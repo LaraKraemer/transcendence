@@ -1,0 +1,42 @@
+services:
+
+  backend:
+    build:
+      context: ./backend
+
+    container_name: expense-backend
+
+    ports:
+      - "3001:3001"
+
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+
+    environment:
+      NODE_ENV: development
+
+    command: npm run dev
+
+
+  frontend:
+    build:
+      context: ./frontend
+
+    container_name: expense-frontend
+
+    ports:
+      - "3000:3000"
+
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_API_URL: http://localhost:3001
+
+    depends_on:
+      - backend
+
+    command: npm run dev
