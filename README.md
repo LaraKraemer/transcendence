@@ -100,16 +100,11 @@ The repository contains an `.nvmrc` file specifying the required Node version.
 transcendence/
 
 ├── frontend/              # Next.js frontend application
-│   ├── app/               # App Router pages and layouts
-│   └── Dockerfile
 │
 ├── backend/               # TypeScript backend service
-│   ├── srcs/              # Backend source code
-│   └── Dockerfile
 │
 ├── docker-compose.yml     # Container orchestration
 ├── Makefile               # Development commands
-├── .nvmrc                 # Required Node version
 └── README.md
 ```
 
