@@ -29,7 +29,7 @@ Final group project as part of the 42 curriculum, building a full-stack expense 
 |---|---|
 | Frontend | TypeScript, Next.js |
 | Backend | TypeScript, Node.js, Express |
-| Database | PostgreSQL (planned) |
+| Database | *Not yet integrated* — PostgreSQL planned |
 | Development Tools | Docker, Docker Compose, Makefile, GitHub Repository, GitHub Projects 
 
 <br>
@@ -71,7 +71,7 @@ npm --version
 ```bash
 git clone https://github.com/LaraKraemer/transcendence.git
 
-cd expense-tracker
+cd transcendence
 ```
 
 <br>
@@ -97,16 +97,19 @@ The repository contains an `.nvmrc` file specifying the required Node version.
 # Project Structure
 
 ```
-expense-tracker/
+transcendence/
 
 ├── frontend/              # Next.js frontend application
+│   ├── app/               # App Router pages and layouts
+│   └── Dockerfile
 │
 ├── backend/               # TypeScript backend service
-│
-├── docker/                # Docker configuration files
+│   ├── srcs/              # Backend source code
+│   └── Dockerfile
 │
 ├── docker-compose.yml     # Container orchestration
 ├── Makefile               # Development commands
+├── .nvmrc                 # Required Node version
 └── README.md
 ```
 
@@ -220,7 +223,7 @@ However, both applications can run independently.
 | Navigate | `cd frontend` |
 | Install dependencies | `npm install` |
 | Start development server | `npm run dev` |
-| Backend URL | `http://localhost:3000` |
+| Frontend URL | `http://localhost:3000` |
 
 
 <br>
