@@ -71,7 +71,7 @@ npm --version
 ```bash
 git clone https://github.com/LaraKraemer/transcendence.git
 
-cd expense-tracker
+cd transcendence
 ```
 
 <br>
@@ -97,13 +97,11 @@ The repository contains an `.nvmrc` file specifying the required Node version.
 # Project Structure
 
 ```
-expense-tracker/
+transcendence/
 
 ├── frontend/              # Next.js frontend application
 │
 ├── backend/               # TypeScript backend service
-│
-├── docker/                # Docker configuration files
 │
 ├── docker-compose.yml     # Container orchestration
 ├── Makefile               # Development commands
@@ -220,7 +218,7 @@ However, both applications can run independently.
 | Navigate | `cd frontend` |
 | Install dependencies | `npm install` |
 | Start development server | `npm run dev` |
-| Backend URL | `http://localhost:3000` |
+| Frontend URL | `http://localhost:3000` |
 
 
 <br>
