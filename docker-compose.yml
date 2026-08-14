@@ -1,5 +1,31 @@
 services:
 
+  db:
+    image: postgres:17-alpine
+    container_name: expense-db
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+    environment:
+      POSTGRES_USER: expense
+      POSTGRES_PASSWORD: expense
+      POSTGRES_DB: expense_tracker
+
+    # The backend waits for this before starting. Without it the backend races
+    # Postgres on first boot: Postgres accepts connections briefly during
+    # initdb, then restarts, and the migration step fails.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U expense -d expense_tracker"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+
   backend:
     build:
       context: ./backend
@@ -15,6 +41,13 @@ services:
 
     environment:
       NODE_ENV: development
+      # Host is the compose service name "db" — a server-side connection,
+      # unlike the browser-facing NEXT_PUBLIC_API_URL below.
+      DATABASE_URL: postgres://expense:expense@db:5432/expense_tracker
+
+    depends_on:
+      db:
+        condition: service_healthy
 
     command: npm run dev
 
@@ -40,3 +73,7 @@ services:
       - backend
 
     command: npm run dev
+
+
+volumes:
+  db-data:
