@@ -29,7 +29,7 @@ Final group project as part of the 42 curriculum, building a full-stack expense 
 |---|---|
 | Frontend | TypeScript, Next.js |
 | Backend | TypeScript, Node.js, Express |
-| Database | *Not yet integrated* — PostgreSQL planned |
+| Database | PostgreSQL (planned) |
 | Development Tools | Docker, Docker Compose, Makefile, GitHub Repository, GitHub Projects 
 
 <br>
