@@ -1,6 +1,6 @@
 # Entity diagram
 
-MVP scope: one owner per account, no planning features, no recurring transactions.
+Full scope: multiple owners per account, planning and goals features, recurring transactions.
 
 ```mermaid
 erDiagram
