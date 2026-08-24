@@ -13,6 +13,7 @@ Final group project as part of the 42 curriculum, building a full-stack expense 
 - [Project Structure](#project-structure)
 - [Environment Setup](#environment-setup)
 - [Start the Application](#start-the-application)
+- [Database](#database)
 - [Docker Commands](#docker-commands)
 - [Development Workflow](#development-workflow)
 - [Running Without Docker](#running-without-docker)
@@ -29,7 +30,7 @@ Final group project as part of the 42 curriculum, building a full-stack expense 
 |---|---|
 | Frontend | TypeScript, Next.js |
 | Backend | TypeScript, Node.js, Express |
-| Database | PostgreSQL (planned) |
+| Database | PostgreSQL, Drizzle ORM |
 | Development Tools | Docker, Docker Compose, Makefile, GitHub Repository, GitHub Projects 
 
 <br>
@@ -112,13 +113,13 @@ transcendence/
 
 # Environment Setup
 
-Create your local environment file:
+Docker Compose provides the database configuration for local development.
+When running the backend outside Docker, create `backend/.env` with a local
+PostgreSQL connection string:
 
-```bash
-touch .env
+```env
+DATABASE_URL=postgres://expense:expense@localhost:5432/expense_tracker
 ```
-
-The project does not require database configuration yet.
 
 <br>
 
@@ -147,6 +148,49 @@ The application will start:
 |---|---|
 | Frontend | http://localhost:3000 |
 | Backend | http://localhost:3001 |
+
+
+<br>
+
+# Database
+
+Docker Compose starts PostgreSQL with the following **development-only**
+credentials:
+
+| Setting | Value |
+|---|---|
+| User | `expense` |
+| Password | `expense` |
+| Database | `expense_tracker` |
+
+The backend applies the committed Drizzle migrations automatically when it
+starts. To work with the database manually:
+
+```bash
+# Open a PostgreSQL shell
+docker compose exec db psql -U expense -d expense_tracker
+
+# Run migrations manually, if needed
+docker compose exec backend npm run db:migrate
+
+# Add the sample expenses (safe to re-run)
+docker compose exec backend npm run db:seed
+```
+
+Inside `psql`, list tables with `\dt` and inspect expenses with:
+
+```sql
+SELECT * FROM expenses;
+```
+
+Run `docker compose exec backend npm run db:generate` only after changing
+`backend/srcs/db/schema.ts`; commit the generated files in `backend/drizzle/`.
+
+Database data is stored in the `db-data` Docker volume and survives normal
+container restarts. `make clean` removes that volume and permanently deletes
+your local database data. PostgreSQL reads its initial user, password, and
+database name only when this volume is first created, so changing those values
+later requires recreating the volume.
 
 
 <br>
