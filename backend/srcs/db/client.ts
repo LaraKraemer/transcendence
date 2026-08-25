@@ -14,4 +14,8 @@ if (!databaseUrl) {
 
 export const pool = new pg.Pool({ connectionString: databaseUrl });
 
+pool.on("error", (error) => {
+  console.error("Unexpected PostgreSQL pool error:", error);
+});
+
 export const db = drizzle(pool, { schema });
