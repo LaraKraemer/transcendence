@@ -1,0 +1,36 @@
+meta {
+  name: 01 - Register disposable user
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/auth/register
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+script:pre-request {
+  bru.setVar("testEmail", `bruno-${Date.now()}@example.com`);
+}
+
+body:json {
+  {
+    "email": "{{testEmail}}",
+    "password": "{{testPassword}}",
+    "displayName": "Bruno Test User"
+  }
+}
+
+tests {
+  test("user is registered", function () {
+    expect(res.getStatus()).to.equal(201);
+    const body = res.getBody();
+    expect(body).to.have.property("user");
+    bru.setVar("userId", body.user.id);
+  });
+}

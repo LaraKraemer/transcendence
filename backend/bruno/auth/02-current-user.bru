@@ -1,0 +1,18 @@
+meta {
+  name: 02 - Current user
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/auth/me
+  body: none
+  auth: none
+}
+
+tests {
+  test("session identifies the registered user", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().user.id).to.equal(bru.getVar("userId"));
+  });
+}

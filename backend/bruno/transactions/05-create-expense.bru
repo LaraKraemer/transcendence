@@ -1,0 +1,36 @@
+meta {
+  name: 05 - Create expense transaction
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/transactions
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "accountId": "{{accountId}}",
+    "categoryId": "{{expenseCategoryId}}",
+    "amountMinor": -4250,
+    "description": "Groceries",
+    "notes": "Created by the Bruno collection",
+    "bookedOn": "2026-08-25",
+    "status": "cleared"
+  }
+}
+
+tests {
+  test("expense transaction is created", function () {
+    expect(res.getStatus()).to.equal(201);
+    const body = res.getBody();
+    expect(body.amountMinor).to.equal(-4250);
+    bru.setVar("transactionId", body.id);
+  });
+}
