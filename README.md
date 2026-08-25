@@ -14,6 +14,9 @@ Final group project as part of the 42 curriculum, building a full-stack expense 
 - [Environment Setup](#environment-setup)
 - [Start the Application](#start-the-application)
 - [Database](#database)
+- [Authentication API](#authentication-api)
+- [Ledger API](#ledger-api)
+- [Local API Testing](#local-api-testing)
 - [Docker Commands](#docker-commands)
 - [Development Workflow](#development-workflow)
 - [Running Without Docker](#running-without-docker)
@@ -177,10 +180,10 @@ docker compose exec backend npm run db:migrate
 docker compose exec backend npm run db:seed
 ```
 
-Inside `psql`, list tables with `\dt` and inspect expenses with:
+Inside `psql`, list tables with `\dt` and inspect transactions with:
 
 ```sql
-SELECT * FROM expenses;
+SELECT * FROM "transaction";
 ```
 
 Run `docker compose exec backend npm run db:generate` only after changing
@@ -191,6 +194,84 @@ container restarts. `make clean` removes that volume and permanently deletes
 your local database data. PostgreSQL reads its initial user, password, and
 database name only when this volume is first created, so changing those values
 later requires recreating the volume.
+
+
+<br>
+
+# Authentication API
+
+The backend supports email/password registration and session-based login. The
+session is stored in an HTTP-only cookie; clients must send requests with
+credentials enabled.
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| `POST` | `/auth/register` | Create an account and start a session |
+| `POST` | `/auth/login` | Start a session with email and password |
+| `POST` | `/auth/logout` | Revoke the current session |
+| `GET` | `/auth/me` | Return the current authenticated user |
+
+Example registration request:
+
+```bash
+curl -i -c cookies.txt \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"you@example.com","password":"a-secure-password","displayName":"Your name"}' \
+  http://localhost:3001/auth/register
+```
+
+Passwords must be 12 to 72 bytes. Password hashes, not passwords, are stored
+in the database. Google and other provider logins will be added later through
+a separate account-identity table.
+
+
+<br>
+
+# Ledger API
+
+Account, category, and transaction routes require an active session cookie.
+Each route is scoped to the authenticated user, so one user cannot read or
+modify another user's financial data.
+
+| Resource | Endpoints |
+|---|---|
+| Accounts | `GET`, `POST` `/accounts`; `GET`, `PATCH`, `DELETE` `/accounts/:accountId` |
+| Categories | `GET`, `POST` `/categories`; `GET`, `PATCH`, `DELETE` `/categories/:categoryId` |
+| Transactions | `GET`, `POST` `/transactions`; `GET`, `PATCH`, `DELETE` `/transactions/:transactionId` |
+
+`GET /transactions` requires an `accountId` query parameter. Account and
+category deletion archives the resource; transaction deletion changes its
+status to `void` so financial history is retained.
+
+
+<br>
+
+# Local API Testing
+
+The repository includes a Bruno collection for repeatable local API testing in
+`backend/bruno/`. It registers a disposable user, creates an account, category,
+and transaction, then updates and voids that transaction.
+
+1. Start the services:
+
+   ```bash
+   make rebuild
+   ```
+
+2. Create your untracked Bruno environment file:
+
+   ```bash
+   cp backend/bruno/.env.example backend/bruno/.env
+   ```
+
+3. Set `TEST_PASSWORD` in `backend/bruno/.env` to a password of at least 12
+   characters.
+
+4. Open the `backend/bruno/` folder as a collection in the Bruno desktop app,
+   choose the `local` environment, and run requests in numerical order.
+
+See [the Bruno collection guide](backend/bruno/README.md) for details. The
+local `.env` file and any `cookies.txt` files are ignored by Git.
 
 
 <br>

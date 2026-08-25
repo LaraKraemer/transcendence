@@ -158,6 +158,8 @@ web_modules/
 # dotenv environment variable files
 .env
 .env.development.local
+cookies.txt
+temp.txt
 .env.test.local
 .env.production.local
 .env.local
