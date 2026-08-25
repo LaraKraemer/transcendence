@@ -8,6 +8,41 @@
       "when": 1787563657925,
       "tag": "0000_sloppy_cassandra_nova",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1787578076537,
+      "tag": "0001_happy_tyrannus",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1787579353178,
+      "tag": "0002_mixed_ted_forrester",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1787661698037,
+      "tag": "0003_brief_marrow",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1787662810379,
+      "tag": "0004_common_blade",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1787663810162,
+      "tag": "0005_charming_doorman",
+      "breakpoints": true
     }
   ]
 }
