@@ -9,6 +9,7 @@ import { appUsers, sessions } from "./db/schema.ts";
 
 const SESSION_COOKIE = "session";
 const SESSION_LIFETIME_MS = 1000 * 60 * 60 * 24 * 30;
+const BCRYPT_COST_FACTOR = 12;
 const isProduction = process.env.NODE_ENV === "production";
 
 /** Returns a non-reversible SHA-256 value for storing a session token safely. */
@@ -107,7 +108,7 @@ export async function requireAuthenticatedUser(
 
 /** Creates a bcrypt password hash suitable for persistent storage. */
 export async function hashPassword(password: string): Promise<string> {
-  return bcrypt.hash(password, 12);
+  return bcrypt.hash(password, BCRYPT_COST_FACTOR);
 }
 
 /** Compares a supplied password with its stored bcrypt hash. */
