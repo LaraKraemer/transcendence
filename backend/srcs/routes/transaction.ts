@@ -4,6 +4,7 @@ import { Router } from "express";
 import { requireAuthenticatedUser } from "../auth.ts";
 import { db } from "../db/client.ts";
 import { accounts, categories, transactions } from "../db/schema.ts";
+import { isUuid } from "../validation.ts";
 
 const TRANSACTION_STATUSES = ["pending", "cleared", "void"] as const;
 type TransactionStatus = (typeof TRANSACTION_STATUSES)[number];
@@ -20,13 +21,6 @@ function isDateOnly(value: unknown): value is string {
     typeof value === "string" &&
     /^\d{4}-\d{2}-\d{2}$/.test(value) &&
     !Number.isNaN(Date.parse(`${value}T00:00:00Z`))
-  );
-}
-
-function isUuid(value: unknown): value is string {
-  return (
-    typeof value === "string" &&
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
   );
 }
 

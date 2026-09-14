@@ -4,6 +4,7 @@ import { Router } from "express";
 import { requireAuthenticatedUser } from "../auth.ts";
 import { db } from "../db/client.ts";
 import { categories } from "../db/schema.ts";
+import { isUuid } from "../validation.ts";
 
 const CATEGORY_KINDS = ["expense", "income"] as const;
 type CategoryKind = (typeof CATEGORY_KINDS)[number];
@@ -17,13 +18,6 @@ function isCategoryKind(value: unknown): value is CategoryKind {
 
 function isHexColor(value: unknown): value is string {
   return typeof value === "string" && /^#[0-9A-Fa-f]{6}$/.test(value);
-}
-
-function isUuid(value: unknown): value is string {
-  return (
-    typeof value === "string" &&
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
-  );
 }
 
 /** Finds a category only when it belongs to the authenticated user. */

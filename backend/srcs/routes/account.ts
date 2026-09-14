@@ -4,19 +4,13 @@ import { Router } from "express";
 import { requireAuthenticatedUser } from "../auth.ts";
 import { db } from "../db/client.ts";
 import { accounts } from "../db/schema.ts";
+import { isUuid } from "../validation.ts";
 
 const ACCOUNT_TYPES = ["checking", "savings", "cash"] as const;
 type AccountType = (typeof ACCOUNT_TYPES)[number];
 
 function isAccountType(value: unknown): value is AccountType {
   return typeof value === "string" && ACCOUNT_TYPES.includes(value as AccountType);
-}
-
-function isUuid(value: unknown): value is string {
-  return (
-    typeof value === "string" &&
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
-  );
 }
 
 /** Finds an account only when it belongs to the authenticated user. */
