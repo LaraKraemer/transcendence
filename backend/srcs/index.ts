@@ -1,18 +1,31 @@
 import "dotenv/config";
 
+import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
 
 import { pool } from "./db/client.ts";
-import { db } from "./db/client.ts";
 import { runMigrations } from "./db/migrate.ts";
-import { expenses } from "./db/schema.ts";
+import { accountsRouter } from "./routes/account.ts";
+import { authRouter } from "./routes/auth.ts";
+import { categoriesRouter } from "./routes/category.ts";
+import { transactionsRouter } from "./routes/transaction.ts";
 
 const app = express();
 const PORT = 3001;
 
-app.use(cors());
+app.use(
+  cors({
+    origin: process.env.FRONTEND_ORIGIN ?? "http://localhost:3000",
+    credentials: true,
+  }),
+);
+app.use(cookieParser());
 app.use(express.json());
+app.use("/accounts", accountsRouter);
+app.use("/auth", authRouter);
+app.use("/categories", categoriesRouter);
+app.use("/transactions", transactionsRouter);
 
 app.get("/", (_, res) => {
   res.send("Expense Tracker API");
@@ -30,41 +43,9 @@ app.get("/health", async (_, res) => {
   }
 });
 
-app.get("/expenses", async (_, res) => {
-  const rows = await db.select().from(expenses);
-  res.json(rows);
-});
-
-app.post("/expenses", async (req, res) => {
-  const { description, amountCents, category } = req.body ?? {};
-
-  if (typeof description !== "string" || description.trim() === "") {
-    res.status(400).json({ error: "description must be a non-empty string" });
-    return;
-  }
-
-  if (!Number.isInteger(amountCents)) {
-    res.status(400).json({ error: "amountCents must be an integer (cents)" });
-    return;
-  }
-
-  if (category !== undefined && typeof category !== "string") {
-    res.status(400).json({ error: "category must be a string when provided" });
-    return;
-  }
-
-  // exactOptionalPropertyTypes forbids passing `category: undefined`
-  // explicitly, so the key is only spread in when it is actually present.
-  const [created] = await db
-    .insert(expenses)
-    .values({
-      description: description.trim(),
-      amountCents,
-      ...(category === undefined ? {} : { category }),
-    })
-    .returning();
-
-  res.status(201).json(created);
+app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error("Unhandled request error:", error);
+  res.status(500).json({ error: "Internal server error" });
 });
 
 // Migrate before listening so the server never serves an unmigrated schema.

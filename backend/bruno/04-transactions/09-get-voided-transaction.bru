@@ -1,0 +1,18 @@
+meta {
+  name: 09 - Get voided transaction
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{baseUrl}}/transactions/{{transactionId}}
+  body: none
+  auth: none
+}
+
+tests {
+  test("transaction remains in history with void status", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().status).to.equal("void");
+  });
+}

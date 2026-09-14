@@ -1,0 +1,31 @@
+meta {
+  name: 03 - Create account
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/accounts
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "name": "Bruno checking account",
+    "type": "checking",
+    "openingBalanceMinor": 100000,
+    "institution": "Deutsche Bank"
+  }
+}
+
+tests {
+  test("account is created", function () {
+    expect(res.getStatus()).to.equal(201);
+    bru.setVar("accountId", res.getBody().id);
+  });
+}

@@ -1,0 +1,19 @@
+meta {
+  name: 06 - List account transactions
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/transactions?accountId={{accountId}}
+  body: none
+  auth: none
+}
+
+tests {
+  test("created transaction is listed", function () {
+    expect(res.getStatus()).to.equal(200);
+    const ids = res.getBody().map((transaction) => transaction.id);
+    expect(ids).to.include(bru.getVar("transactionId"));
+  });
+}

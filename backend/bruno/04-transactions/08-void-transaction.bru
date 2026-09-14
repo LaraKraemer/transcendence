@@ -1,0 +1,17 @@
+meta {
+  name: 08 - Void transaction
+  type: http
+  seq: 9
+}
+
+delete {
+  url: {{baseUrl}}/transactions/{{transactionId}}
+  body: none
+  auth: none
+}
+
+tests {
+  test("transaction is voided", function () {
+    expect(res.getStatus()).to.equal(204);
+  });
+}

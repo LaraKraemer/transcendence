@@ -1,0 +1,30 @@
+meta {
+  name: 07 - Update transaction
+  type: http
+  seq: 8
+}
+
+patch {
+  url: {{baseUrl}}/transactions/{{transactionId}}
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "description": "Bruno groceries and household items",
+    "notes": null
+  }
+}
+
+tests {
+  test("transaction is updated", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().description).to.equal("Bruno groceries and household items");
+    expect(res.getBody().notes).to.equal(null);
+  });
+}
