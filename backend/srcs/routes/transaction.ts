@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, getTableColumns } from "drizzle-orm";
 import { Router } from "express";
 
 import { requireAuthenticatedUser } from "../auth.ts";
@@ -44,15 +44,19 @@ async function findOwnedAccount(accountId: string, userId: string) {
 /** Finds a transaction only when its account belongs to the authenticated user. */
 async function findOwnedTransaction(transactionId: string, userId: string) {
   const [transaction] = await db
-    .select()
+    .select(getTableColumns(transactions))
     .from(transactions)
-    .where(eq(transactions.id, transactionId))
+    .innerJoin(accounts, eq(transactions.accountId, accounts.id))
+    .where(
+      and(
+        eq(transactions.id, transactionId),
+        eq(accounts.userId, userId),
+        eq(accounts.isArchived, false),
+      ),
+    )
     .limit(1);
 
-  if (!transaction) return undefined;
-
-  const account = await findOwnedAccount(transaction.accountId, userId);
-  return account ? transaction : undefined;
+  return transaction;
 }
 
 /** Ensures a selected category belongs to the user and matches the amount sign. */
