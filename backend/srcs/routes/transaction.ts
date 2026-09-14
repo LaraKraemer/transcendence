@@ -296,9 +296,9 @@ transactionsRouter.post("/", async (req, res, next) => {
   } = req.body ?? {};
 
   if (!isUuid(accountId)) {
-	res.status(400).json({ error: "accountId must be a valid UUID" });
-	return;
-	}
+    res.status(400).json({ error: "accountId must be a valid UUID" });
+    return;
+  }
 
   if (!Number.isSafeInteger(amountMinor) || amountMinor === 0) {
     res.status(400).json({ error: "amountMinor must be a non-zero safe integer" });
@@ -330,8 +330,8 @@ transactionsRouter.post("/", async (req, res, next) => {
   }
 
   if (categoryId !== undefined && !isUuid(categoryId)) {
-	res.status(400).json({ error: "categoryId must be a valid UUID" });
-  	return;
+    res.status(400).json({ error: "categoryId must be a valid UUID" });
+    return;
   }
 
   try {
@@ -374,14 +374,14 @@ transactionsRouter.post("/", async (req, res, next) => {
       .insert(transactions)
       .values({
         accountId: account.id,
-		createdById: res.locals.userId,
+        createdById: res.locals.userId,
         ...(categoryId === undefined ? {} : { categoryId }),
         amountMinor,
         description: description.trim(),
         ...(notes === undefined ? {} : { notes: notes.trim() }),
         bookedOn,
         ...(status === undefined ? {} : { status }),
-		
+
       })
       .returning();
 
