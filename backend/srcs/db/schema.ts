@@ -1,5 +1,16 @@
-import { bigint ,check, date, boolean, index, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
+import {
+  bigint,
+  boolean,
+  check,
+  date,
+  index,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from "drizzle-orm/pg-core";
 
 export const appUsers = pgTable(
   "app_user",
@@ -55,7 +66,9 @@ export const transactions = pgTable(
     categoryId: uuid("category_id").references(() => categories.id, {
       onDelete: "set null",
     }),
-	createdById: uuid("created_by_id") .notNull() .references(() => appUsers.id),
+    createdById: uuid("created_by_id")
+      .notNull()
+      .references(() => appUsers.id),
 
     // Negative values are expenses; positive values are income.
     amountMinor: bigint("amount_minor", { mode: "number" }).notNull(),
