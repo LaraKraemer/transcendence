@@ -15,7 +15,7 @@ Final group project as part of the 42 curriculum, building a full-stack expense 
 - [Start the Application](#start-the-application)
 - [Database](#database)
 - [Authentication API](#authentication-api)
-- [Ledger API](#ledger-api)
+- [Expense Tracker API](#expense-tracker-api)
 - [Local API Testing](#local-api-testing)
 - [Docker Commands](#docker-commands)
 - [Development Workflow](#development-workflow)
@@ -227,7 +227,7 @@ a separate account-identity table.
 
 <br>
 
-# Ledger API
+# Expense Tracker API
 
 Account, category, and transaction routes require an active session cookie.
 Each route is scoped to the authenticated user, so one user cannot read or
