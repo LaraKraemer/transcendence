@@ -244,4 +244,7 @@ xcuserdata/
 # Docker local data
 postgres-data/
 
+# gh cli configuration
+.gh-config/
+
 # End of https://www.toptal.com/developers/gitignore/api/node,xcode,linux,nextjs,macos
