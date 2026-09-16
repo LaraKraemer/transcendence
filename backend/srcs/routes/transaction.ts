@@ -173,7 +173,7 @@ transactionsRouter.patch("/:transactionId", async (req, res, next) => {
       notes?: string | null;
       bookedOn?: string;
       status?: TransactionStatus;
-      occurredAt?: string | null;
+      occurredAt?: Date | null;
       updatedAt: Date;
     } = { updatedAt: new Date() };
     let hasUpdates = false;
@@ -237,7 +237,7 @@ transactionsRouter.patch("/:transactionId", async (req, res, next) => {
         res.status(400).json({ error: "occurredAt must be a valid ISO 8601 timestamp or null" });
         return;
       }
-      updates.occurredAt = body.occurredAt;
+      updates.occurredAt = body.occurredAt === null ? null : new Date(body.occurredAt);
       hasUpdates = true;
     }
 
@@ -405,7 +405,7 @@ transactionsRouter.post("/", async (req, res, next) => {
         ...(notes === undefined ? {} : { notes: notes.trim() }),
         bookedOn,
         ...(status === undefined ? {} : { status }),
-        ...(occurredAt === undefined ? {} : { occurredAt }),
+        ...(occurredAt === undefined ? {} : { occurredAt: occurredAt === null ? null : new Date(occurredAt) }),
       })
       .returning();
 
