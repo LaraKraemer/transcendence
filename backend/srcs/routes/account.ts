@@ -49,7 +49,7 @@ accountsRouter.get("/", async (_req, res, next) => {
 
 /** Creates an account owned by the authenticated user. */
 accountsRouter.post("/", async (req, res, next) => {
-  const { name, type, openingBalanceMinor, institution, accountRef } = req.body ?? {};
+  const { name, type, openingBalanceMinor, institution, accountRef, currencyCode } = req.body ?? {};
 
   if (typeof name !== "string" || name.trim().length === 0 || name.trim().length > 100) {
     res.status(400).json({ error: "name must be between 1 and 100 characters" });
@@ -76,6 +76,11 @@ accountsRouter.post("/", async (req, res, next) => {
     return;
   }
 
+  if (currencyCode !== undefined && (typeof currencyCode !== "string" || !/^[A-Z]{3}$/.test(currencyCode))) {
+    res.status(400).json({ error: "currencyCode must be a 3-letter uppercase ISO 4217 code (e.g. EUR, USD)" });
+    return;
+  }
+
   try {
     const [account] = await db
       .insert(accounts)
@@ -86,6 +91,7 @@ accountsRouter.post("/", async (req, res, next) => {
         ...(openingBalanceMinor === undefined ? {} : { openingBalanceMinor }),
         ...(institution === undefined ? {} : { institution: institution.trim() }),
         ...(accountRef === undefined ? {} : { accountRef: accountRef.trim() }),
+        ...(currencyCode === undefined ? {} : { currencyCode }),
       })
       .returning();
 
@@ -129,6 +135,7 @@ accountsRouter.patch("/:accountId", async (req, res, next) => {
     openingBalanceMinor?: number;
     institution?: string | null;
     accountRef?: string | null;
+    currencyCode?: string;
   } = {};
 
   if (Object.hasOwn(body, "name")) {
@@ -163,6 +170,14 @@ accountsRouter.patch("/:accountId", async (req, res, next) => {
       }
       updates[field] = body[field] === null ? null : body[field].trim();
     }
+  }
+
+  if (Object.hasOwn(body, "currencyCode")) {
+    if (typeof body.currencyCode !== "string" || !/^[A-Z]{3}$/.test(body.currencyCode)) {
+      res.status(400).json({ error: "currencyCode must be a 3-letter uppercase ISO 4217 code (e.g. EUR, USD)" });
+      return;
+    }
+    updates.currencyCode = body.currencyCode;
   }
 
   if (Object.keys(updates).length === 0) {
