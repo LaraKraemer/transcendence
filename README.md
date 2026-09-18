@@ -17,6 +17,7 @@ Final group project as part of the 42 curriculum, building a full-stack expense 
 - [Authentication API](#authentication-api)
 - [Expense Tracker API](#expense-tracker-api)
 - [Local API Testing](#local-api-testing)
+- [Unit Tests](#unit-tests)
 - [Docker Commands](#docker-commands)
 - [Development Workflow](#development-workflow)
 - [Running Without Docker](#running-without-docker)
@@ -273,6 +274,18 @@ and transaction, then updates and voids that transaction.
 See [the Bruno collection guide](backend/bruno/README.md) for details. The
 local `.env` file and any `cookies.txt` files are ignored by Git.
 
+
+<br>
+
+# Unit Tests
+
+Unit tests cover pure business logic (validation helpers, etc.) and run without Docker, a server, or a database.
+
+```bash
+cd backend
+npm test            # single run, exits with pass/fail
+npm run test:watch  # watch mode — re-runs affected files on save
+```
 
 <br>
 
