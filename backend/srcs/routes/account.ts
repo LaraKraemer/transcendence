@@ -4,7 +4,7 @@ import { Router } from "express";
 import { requireAuthenticatedUser } from "../auth.ts";
 import { db } from "../db/client.ts";
 import { accounts } from "../db/schema.ts";
-import { isUuid } from "../validation.ts";
+import { isCurrencyCode, isUuid } from "../validation.ts";
 
 const ACCOUNT_TYPES = ["checking", "savings", "cash"] as const;
 type AccountType = (typeof ACCOUNT_TYPES)[number];
@@ -76,7 +76,7 @@ accountsRouter.post("/", async (req, res, next) => {
     return;
   }
 
-  if (currencyCode !== undefined && (typeof currencyCode !== "string" || !/^[A-Z]{3}$/.test(currencyCode))) {
+  if (currencyCode !== undefined && !isCurrencyCode(currencyCode)) {
     res.status(400).json({ error: "currencyCode must be a 3-letter uppercase ISO 4217 code (e.g. EUR, USD)" });
     return;
   }
@@ -173,7 +173,7 @@ accountsRouter.patch("/:accountId", async (req, res, next) => {
   }
 
   if (Object.hasOwn(body, "currencyCode")) {
-    if (typeof body.currencyCode !== "string" || !/^[A-Z]{3}$/.test(body.currencyCode)) {
+    if (!isCurrencyCode(body.currencyCode)) {
       res.status(400).json({ error: "currencyCode must be a 3-letter uppercase ISO 4217 code (e.g. EUR, USD)" });
       return;
     }
