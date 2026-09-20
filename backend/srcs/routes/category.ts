@@ -6,7 +6,7 @@ import { db } from "../db/client.ts";
 import { categories } from "../db/schema.ts";
 import { isUuid } from "../validation.ts";
 
-const CATEGORY_KINDS = ["expense", "income"] as const;
+const CATEGORY_KINDS = ["expense", "income", "transfer"] as const;
 type CategoryKind = (typeof CATEGORY_KINDS)[number];
 
 function isCategoryKind(value: unknown): value is CategoryKind {
@@ -55,7 +55,7 @@ categoriesRouter.get("/", async (_req, res, next) => {
   }
 });
 
-/** Creates an income or expense category for the authenticated user. */
+/** Creates an expense, income, or transfer category for the authenticated user. */
 categoriesRouter.post("/", async (req, res, next) => {
   const { name, icon, color, kind } = req.body ?? {};
 
@@ -83,7 +83,7 @@ categoriesRouter.post("/", async (req, res, next) => {
   }
 
   if (!isCategoryKind(kind)) {
-    res.status(400).json({ error: "kind must be expense or income" });
+    res.status(400).json({ error: "kind must be expense, income, or transfer" });
     return;
   }
 
