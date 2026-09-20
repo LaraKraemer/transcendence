@@ -16,6 +16,10 @@ function isTransactionStatus(value: unknown): value is TransactionStatus {
   );
 }
 
+function isIsoTimestamp(value: unknown): value is string {
+  return typeof value === "string" && !Number.isNaN(Date.parse(value));
+}
+
 function isDateOnly(value: unknown): value is string {
   return (
     typeof value === "string" &&
@@ -170,6 +174,7 @@ transactionsRouter.patch("/:transactionId", async (req, res, next) => {
       notes?: string | null;
       bookedOn?: string;
       status?: TransactionStatus;
+      occurredAt?: Date | null;
       updatedAt: Date;
     } = { updatedAt: new Date() };
     let hasUpdates = false;
@@ -225,6 +230,15 @@ transactionsRouter.patch("/:transactionId", async (req, res, next) => {
         return;
       }
       updates.status = body.status;
+      hasUpdates = true;
+    }
+
+    if (Object.hasOwn(body, "occurredAt")) {
+      if (body.occurredAt !== null && !isIsoTimestamp(body.occurredAt)) {
+        res.status(400).json({ error: "occurredAt must be a valid ISO 8601 timestamp or null" });
+        return;
+      }
+      updates.occurredAt = body.occurredAt === null ? null : new Date(body.occurredAt);
       hasUpdates = true;
     }
 
@@ -298,6 +312,7 @@ transactionsRouter.post("/", async (req, res, next) => {
     notes,
     bookedOn,
     status,
+    occurredAt,
   } = req.body ?? {};
 
   if (!isUuid(accountId)) {
@@ -336,6 +351,11 @@ transactionsRouter.post("/", async (req, res, next) => {
 
   if (categoryId !== undefined && !isUuid(categoryId)) {
     res.status(400).json({ error: "categoryId must be a valid UUID" });
+    return;
+  }
+
+  if (occurredAt !== undefined && occurredAt !== null && !isIsoTimestamp(occurredAt)) {
+    res.status(400).json({ error: "occurredAt must be a valid ISO 8601 timestamp or null" });
     return;
   }
 
@@ -386,7 +406,7 @@ transactionsRouter.post("/", async (req, res, next) => {
         ...(notes === undefined ? {} : { notes: notes.trim() }),
         bookedOn,
         ...(status === undefined ? {} : { status }),
-
+        ...(occurredAt === undefined ? {} : { occurredAt: occurredAt === null ? null : new Date(occurredAt) }),
       })
       .returning();
 
