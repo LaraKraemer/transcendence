@@ -85,6 +85,7 @@ async function validateCategory(
     .limit(1);
 
   if (!category) return "Category not found";
+  if (category.kind === "transfer") return undefined;
 
   const requiredKind = amountMinor < 0 ? "expense" : "income";
   return category.kind === requiredKind
@@ -299,7 +300,7 @@ transactionsRouter.delete("/:transactionId", async (req, res, next) => {
 });
 
 /**
- * Creates an income or expense transaction in an account owned by the
+ * Creates an expense, income, or transfer transaction in an account owned by the
  * authenticated user.
  */
 transactionsRouter.post("/", async (req, res, next) => {
@@ -386,7 +387,7 @@ transactionsRouter.post("/", async (req, res, next) => {
 
       const requiredKind = amountMinor < 0 ? "expense" : "income";
 
-      if (category.kind !== requiredKind) {
+      if (category.kind !== "transfer" && category.kind !== requiredKind) {
         res.status(400).json({
           error: `A ${requiredKind} transaction requires an ${requiredKind} category`,
         });
