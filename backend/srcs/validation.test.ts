@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isUuid } from "./validation.ts";
+import { isCurrencyCode, isUuid } from "./validation.ts";
 
 describe("isUuid", () => {
   it("accepts a valid v4 UUID", () => {
@@ -17,5 +17,25 @@ describe("isUuid", () => {
 
   it("rejects a malformed UUID", () => {
     expect(isUuid("not-a-uuid")).toBe(false);
+  });
+});
+
+describe("isCurrencyCode", () => {
+  it.each(["EUR", "USD", "GBP", "AAA"])("accepts %s", (value) => {
+    expect(isCurrencyCode(value)).toBe(true);
+  });
+
+  it.each([
+    ["an empty string", ""],
+    ["too few letters", "US"],
+    ["too many letters", "USDD"],
+    ["lowercase letters", "usd"],
+    ["mixed-case letters", "Usd"],
+    ["digits", "US1"],
+    ["a number", 123],
+    ["null", null],
+    ["undefined", undefined],
+  ])("rejects %s", (_description, value) => {
+    expect(isCurrencyCode(value)).toBe(false);
   });
 });
