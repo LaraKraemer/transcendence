@@ -149,7 +149,7 @@ transactionsRouter.get("/summary", async (req, res, next) => {
     const rows = await db
       .select({
         categoryId: transactions.categoryId,
-        totalMinor: sql<number>`COALESCE(SUM(${transactions.amountMinor}), 0)`.mapWith(Number),
+        totalMinor: sql<number>`SUM(${transactions.amountMinor})`.mapWith(Number),
         count: sql<number>`COUNT(*)`.mapWith(Number),
       })
       .from(transactions)
