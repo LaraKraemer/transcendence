@@ -56,12 +56,33 @@ describe("GET /accounts/:accountId/balance", () => {
     ["-12000", -2000],
     ["0", 10000],
     [null, 10000],
+	["-10000", 0],
   ])("adds transaction sum %s to the opening balance", async (total, expected) => {
     mocks.where.mockResolvedValue([{ total }]);
 
     const { res, next } = await requestBalance();
 
     expect(res.json).toHaveBeenCalledWith({ balanceMinor: expected, currencyCode: "EUR" });
+    expect(res.status).not.toHaveBeenCalled();
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it("returns the transaction sum when the opening balance is zero", async () => {
+    mocks.limit.mockResolvedValue([{ ...account, openingBalanceMinor: 0 }]);
+
+    const { res, next } = await requestBalance();
+
+    expect(res.json).toHaveBeenCalledWith({ balanceMinor: 3000, currencyCode: "EUR" });
+    expect(res.status).not.toHaveBeenCalled();
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it("adds transactions to a negative opening balance", async () => {
+    mocks.limit.mockResolvedValue([{ ...account, openingBalanceMinor: -5000 }]);
+
+    const { res, next } = await requestBalance();
+
+    expect(res.json).toHaveBeenCalledWith({ balanceMinor: -2000, currencyCode: "EUR" });
     expect(res.status).not.toHaveBeenCalled();
     expect(next).not.toHaveBeenCalled();
   });
