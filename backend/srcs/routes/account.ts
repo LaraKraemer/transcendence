@@ -3,6 +3,7 @@ import { Router } from "express";
 
 import { requireAuthenticatedUser } from "../auth.ts";
 import { db } from "../db/client.ts";
+import { findOwnedAccount } from "../db/accounts.ts";
 import { accounts, transactions } from "../db/schema.ts";
 import { isCurrencyCode, isUuid } from "../validation.ts";
 
@@ -13,16 +14,6 @@ function isAccountType(value: unknown): value is AccountType {
   return typeof value === "string" && ACCOUNT_TYPES.includes(value as AccountType);
 }
 
-/** Finds an account only when it belongs to the authenticated user. */
-async function findOwnedAccount(accountId: string, userId: string) {
-  const [account] = await db
-    .select()
-    .from(accounts)
-    .where(and(eq(accounts.id, accountId), eq(accounts.userId, userId)))
-    .limit(1);
-
-  return account;
-}
 
 export const accountsRouter = Router();
 

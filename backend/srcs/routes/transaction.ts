@@ -3,6 +3,7 @@ import { Router } from "express";
 
 import { requireAuthenticatedUser } from "../auth.ts";
 import { db } from "../db/client.ts";
+import { findOwnedAccount } from "../db/accounts.ts";
 import { accounts, categories, transactions } from "../db/schema.ts";
 import { isUuid } from "../validation.ts";
 
@@ -28,22 +29,6 @@ function isDateOnly(value: unknown): value is string {
   );
 }
 
-/** Finds an account only when it belongs to the current authenticated user. */
-async function findOwnedAccount(accountId: string, userId: string, allowArchived = false) {
-  const [account] = await db
-    .select({ id: accounts.id })
-    .from(accounts)
-    .where(
-      and(
-        eq(accounts.id, accountId),
-        eq(accounts.userId, userId),
-        allowArchived ? undefined : eq(accounts.isArchived, false),
-      ),
-    )
-    .limit(1);
-
-  return account;
-}
 
 /** Finds a transaction only when its account belongs to the authenticated user. */
 async function findOwnedTransaction(transactionId: string, userId: string) {
@@ -155,7 +140,7 @@ transactionsRouter.get("/summary", async (req, res, next) => {
   }
 
   try {
-    const account = await findOwnedAccount(accountId, res.locals.userId, true);
+    const account = await findOwnedAccount(accountId, res.locals.userId);
     if (!account) {
       res.status(404).json({ error: "Account not found" });
       return;
@@ -413,7 +398,7 @@ transactionsRouter.post("/", async (req, res, next) => {
   }
 
   try {
-    const account = await findOwnedAccount(accountId, res.locals.userId);
+    const account = await findOwnedAccount(accountId, res.locals.userId, false);
 
     if (!account) {
       res.status(404).json({ error: "Account not found" });

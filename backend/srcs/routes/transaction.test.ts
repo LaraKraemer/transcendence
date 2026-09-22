@@ -63,7 +63,7 @@ describe("GET /transactions/summary", () => {
         { categoryId: null, totalMinor: -100, count: 1 },
       ] },
     });
-    expect(query.mock.calls[0]![0].text).not.toContain("is_archived");
+    expect(query.mock.calls[0]![0].text.split(" where ")[1]).not.toContain("is_archived");
     const [statement, values] = query.mock.calls[1]!;
     expect(statement.text).toContain('COALESCE(SUM("amount_minor"), 0)');
     expect(statement.text).toContain('COUNT(*)');
