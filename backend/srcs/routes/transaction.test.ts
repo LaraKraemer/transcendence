@@ -58,10 +58,10 @@ describe("GET /transactions/summary", () => {
     query.mockResolvedValueOnce({ rows: [[accountId, "-32000", "2"], [null, "-100", "1"]] });
     expect(await summary({ accountId, from: "2025-01-01", to: "2025-03-31" })).toEqual({
       status: 200,
-      body: { items: [
+      body: [
         { categoryId: accountId, totalMinor: -32000, count: 2 },
         { categoryId: null, totalMinor: -100, count: 1 },
-      ] },
+      ],
     });
     expect(query.mock.calls[0]![0].text.split(" where ")[1]).not.toContain("is_archived");
     const [statement, values] = query.mock.calls[1]!;
@@ -77,7 +77,7 @@ describe("GET /transactions/summary", () => {
   it.each([{}, { from: "2025-01-01" }, { to: "2025-03-31" }])("supports optional date bounds %j and empty results", async (dates) => {
     query.mockResolvedValueOnce({ rows: [[accountId]] });
     query.mockResolvedValueOnce({ rows: [] });
-    expect(await summary({ accountId, ...dates })).toEqual({ status: 200, body: { items: [] } });
+    expect(await summary({ accountId, ...dates })).toEqual({ status: 200, body: [] });
     expect(query.mock.calls[1]![1]).toEqual([accountId, "void", ...Object.values(dates)]);
   });
 

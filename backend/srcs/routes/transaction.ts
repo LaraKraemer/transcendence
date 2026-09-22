@@ -163,7 +163,7 @@ transactionsRouter.get("/summary", async (req, res, next) => {
       )
       .groupBy(transactions.categoryId);
 
-    res.json({ items: rows });
+    res.json(rows);
   } catch (error) {
     next(error);
   }
