@@ -1,9 +1,9 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, ne, sum } from "drizzle-orm";
 import { Router } from "express";
 
 import { requireAuthenticatedUser } from "../auth.ts";
 import { db } from "../db/client.ts";
-import { accounts } from "../db/schema.ts";
+import { accounts, transactions } from "../db/schema.ts";
 import { isCurrencyCode, isUuid } from "../validation.ts";
 
 const ACCOUNT_TYPES = ["checking", "savings", "cash"] as const;
@@ -96,6 +96,38 @@ accountsRouter.post("/", async (req, res, next) => {
       .returning();
 
     res.status(201).json(account);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/** Calculates the balance of an owned account, including archived accounts. */
+accountsRouter.get("/:accountId/balance", async (req, res, next) => {
+  if (!isUuid(req.params.accountId)) {
+    res.status(400).json({ error: "accountId must be a valid UUID" });
+    return;
+  }
+
+  try {
+    const account = await findOwnedAccount(req.params.accountId, res.locals.userId);
+    if (!account) {
+      res.status(404).json({ error: "Account not found" });
+      return;
+    }
+
+    const [result] = await db
+      .select({ total: sum(transactions.amountMinor) })
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.accountId, account.id),
+          ne(transactions.status, "void"),
+        ),
+      );
+
+    const transactionSum = Number(result?.total ?? 0);
+    const balanceMinor = account.openingBalanceMinor + transactionSum;
+    res.json({ balanceMinor, currencyCode: account.currencyCode });
   } catch (error) {
     next(error);
   }
