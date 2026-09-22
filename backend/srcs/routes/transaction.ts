@@ -133,7 +133,9 @@ transactionsRouter.get("/", async (req, res, next) => {
 
 /** Returns non-void transaction totals by category, including uncategorized transactions. */
 transactionsRouter.get("/summary", async (req, res, next) => {
-  const { accountId, from, to } = req.query;
+  const accountId =
+    typeof req.query.accountId === "string" ? req.query.accountId : undefined;
+  const { from, to } = req.query;
 
   if (accountId === undefined || accountId === "") {
     res.status(400).json({ error: "accountId is required" });
