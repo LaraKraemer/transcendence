@@ -30,7 +30,7 @@ function isDateOnly(value: unknown): value is string {
 }
 
 
-/** Finds a transaction only when its account belongs to the authenticated user. */
+/** Finds a transaction only when its account belongs to the authenticated user, including archived accounts. */
 async function findOwnedTransaction(transactionId: string, userId: string) {
   const [transaction] = await db
     .select(getTableColumns(transactions))
@@ -40,7 +40,6 @@ async function findOwnedTransaction(transactionId: string, userId: string) {
       and(
         eq(transactions.id, transactionId),
         eq(accounts.userId, userId),
-        eq(accounts.isArchived, false),
       ),
     )
     .limit(1);
