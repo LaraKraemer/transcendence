@@ -1,8 +1,9 @@
-import { and, desc, eq, getTableColumns } from "drizzle-orm";
+import { and, desc, eq, getTableColumns, gte, lte, ne, sql } from "drizzle-orm";
 import { Router } from "express";
 
 import { requireAuthenticatedUser } from "../auth.ts";
 import { db } from "../db/client.ts";
+import { findOwnedAccount } from "../db/accounts.ts";
 import { accounts, categories, transactions } from "../db/schema.ts";
 import { isUuid } from "../validation.ts";
 
@@ -28,22 +29,6 @@ function isDateOnly(value: unknown): value is string {
   );
 }
 
-/** Finds an account only when it belongs to the current authenticated user. */
-async function findOwnedAccount(accountId: string, userId: string) {
-  const [account] = await db
-    .select({ id: accounts.id })
-    .from(accounts)
-    .where(
-      and(
-        eq(accounts.id, accountId),
-        eq(accounts.userId, userId),
-        eq(accounts.isArchived, false),
-      ),
-    )
-    .limit(1);
-
-  return account;
-}
 
 /** Finds a transaction only when its account belongs to the authenticated user. */
 async function findOwnedTransaction(transactionId: string, userId: string) {
@@ -124,6 +109,59 @@ transactionsRouter.get("/", async (req, res, next) => {
       .from(transactions)
       .where(eq(transactions.accountId, account.id))
       .orderBy(desc(transactions.bookedOn), desc(transactions.createdAt));
+
+    res.json(rows);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/** Returns non-void transaction totals by category, including uncategorized transactions. */
+transactionsRouter.get("/summary", async (req, res, next) => {
+  const accountId =
+    typeof req.query.accountId === "string" ? req.query.accountId : undefined;
+  const { from, to } = req.query;
+
+  if (accountId === undefined || accountId === "") {
+    res.status(400).json({ error: "accountId is required" });
+    return;
+  }
+  if (!isUuid(accountId)) {
+    res.status(400).json({ error: "accountId must be a valid UUID" });
+    return;
+  }
+  if (from !== undefined && !isDateOnly(from)) {
+    res.status(400).json({ error: "from must use YYYY-MM-DD format" });
+    return;
+  }
+  if (to !== undefined && !isDateOnly(to)) {
+    res.status(400).json({ error: "to must use YYYY-MM-DD format" });
+    return;
+  }
+
+  try {
+    const account = await findOwnedAccount(accountId, res.locals.userId);
+    if (!account) {
+      res.status(404).json({ error: "Account not found" });
+      return;
+    }
+
+    const rows = await db
+      .select({
+        categoryId: transactions.categoryId,
+        totalMinor: sql<number>`SUM(${transactions.amountMinor})`.mapWith(Number),
+        count: sql<number>`COUNT(*)`.mapWith(Number),
+      })
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.accountId, account.id),
+          ne(transactions.status, "void"),
+          ...(from ? [gte(transactions.bookedOn, from)] : []),
+          ...(to ? [lte(transactions.bookedOn, to)] : []),
+        ),
+      )
+      .groupBy(transactions.categoryId);
 
     res.json(rows);
   } catch (error) {
@@ -360,7 +398,7 @@ transactionsRouter.post("/", async (req, res, next) => {
   }
 
   try {
-    const account = await findOwnedAccount(accountId, res.locals.userId);
+    const account = await findOwnedAccount(accountId, res.locals.userId, false);
 
     if (!account) {
       res.status(404).json({ error: "Account not found" });
