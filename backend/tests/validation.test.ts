@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isCurrencyCode, isUuid } from "./validation.ts";
+import { isCurrencyCode, isUuid } from "../srcs/validation.ts";
 
 describe("isUuid", () => {
   it("accepts a valid v4 UUID", () => {
