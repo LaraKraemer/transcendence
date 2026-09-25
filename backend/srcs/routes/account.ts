@@ -168,6 +168,7 @@ accountsRouter.patch("/:accountId", async (req, res, next) => {
     institution?: string | null;
     accountRef?: string | null;
     currencyCode?: string;
+    isArchived?: boolean;
   } = {};
 
   if (Object.hasOwn(body, "name")) {
@@ -212,6 +213,14 @@ accountsRouter.patch("/:accountId", async (req, res, next) => {
     updates.currencyCode = body.currencyCode;
   }
 
+  if (Object.hasOwn(body, "isArchived")) {
+    if (typeof body.isArchived !== "boolean") {
+      res.status(400).json({ error: "isArchived must be a boolean" });
+      return;
+    }
+    updates.isArchived = body.isArchived;
+  }
+
   if (Object.keys(updates).length === 0) {
     res.status(400).json({ error: "Provide at least one editable account field" });
     return;
@@ -231,31 +240,6 @@ accountsRouter.patch("/:accountId", async (req, res, next) => {
       .returning();
 
     res.json(updatedAccount);
-  } catch (error) {
-    next(error);
-  }
-});
-
-/** Archives an account while retaining its financial history. */
-accountsRouter.delete("/:accountId", async (req, res, next) => {
-  if (!isUuid(req.params.accountId)) {
-    res.status(400).json({ error: "accountId must be a valid UUID" });
-    return;
-  }
-
-  try {
-    const account = await findOwnedAccount(req.params.accountId, res.locals.userId);
-    if (!account) {
-      res.status(404).json({ error: "Account not found" });
-      return;
-    }
-
-    await db
-      .update(accounts)
-      .set({ isArchived: true, updatedAt: new Date() })
-      .where(eq(accounts.id, account.id));
-
-    res.status(204).send();
   } catch (error) {
     next(error);
   }
