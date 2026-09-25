@@ -152,7 +152,7 @@ categoriesRouter.patch("/:categoryId", async (req, res, next) => {
   }
 
   const body = req.body ?? {};
-  const updates: { name?: string; icon?: string; color?: string } = {};
+  const updates: { name?: string; icon?: string; color?: string; isArchived?: boolean } = {};
 
   if (Object.hasOwn(body, "kind")) {
     res.status(400).json({ error: "A category kind cannot be changed" });
@@ -181,6 +181,14 @@ categoriesRouter.patch("/:categoryId", async (req, res, next) => {
       return;
     }
     updates.color = body.color.toUpperCase();
+  }
+
+  if (Object.hasOwn(body, "isArchived")) {
+    if (typeof body.isArchived !== "boolean") {
+      res.status(400).json({ error: "isArchived must be a boolean" });
+      return;
+    }
+    updates.isArchived = body.isArchived;
   }
 
   if (Object.keys(updates).length === 0) {
@@ -221,31 +229,6 @@ categoriesRouter.patch("/:categoryId", async (req, res, next) => {
       .returning();
 
     res.json(updatedCategory);
-  } catch (error) {
-    next(error);
-  }
-});
-
-/** Archives a category while preserving historical transaction classifications. */
-categoriesRouter.delete("/:categoryId", async (req, res, next) => {
-  if (!isUuid(req.params.categoryId)) {
-    res.status(400).json({ error: "categoryId must be a valid UUID" });
-    return;
-  }
-
-  try {
-    const category = await findOwnedCategory(req.params.categoryId, res.locals.userId);
-    if (!category) {
-      res.status(404).json({ error: "Category not found" });
-      return;
-    }
-
-    await db
-      .update(categories)
-      .set({ isArchived: true })
-      .where(eq(categories.id, category.id));
-
-    res.status(204).send();
   } catch (error) {
     next(error);
   }
