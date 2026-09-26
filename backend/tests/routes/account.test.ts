@@ -9,10 +9,10 @@ const mocks = vi.hoisted(() => ({
   limit: vi.fn(),
 }));
 
-vi.mock("../db/client.ts", () => ({ db: { select: mocks.select } }));
-vi.mock("../auth.ts", () => ({ requireAuthenticatedUser: vi.fn() }));
+vi.mock("../../srcs/db/client.ts", () => ({ db: { select: mocks.select } }));
+vi.mock("../../srcs/auth.ts", () => ({ requireAuthenticatedUser: vi.fn() }));
 
-import { accountsRouter } from "./account.ts";
+import { accountsRouter } from "../../srcs/routes/account.ts";
 
 const accountId = "550e8400-e29b-41d4-a716-446655440000";
 const userId = "550e8400-e29b-41d4-a716-446655440001";

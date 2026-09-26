@@ -2,18 +2,18 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Request, Response } from "express";
 
 const { query } = vi.hoisted(() => ({ query: vi.fn() }));
-vi.mock("../db/client.ts", async () => {
+vi.mock("../../srcs/db/client.ts", async () => {
   const { drizzle } = await import("drizzle-orm/node-postgres");
   return { db: drizzle({ query } as unknown as import("pg").Pool) };
 });
-vi.mock("../auth.ts", () => ({
+vi.mock("../../srcs/auth.ts", () => ({
   requireAuthenticatedUser: (_req: Request, res: Response, next: () => void) => {
     res.locals.userId = "550e8400-e29b-41d4-a716-446655440001";
     next();
   },
 }));
 
-import { transactionsRouter } from "./transaction.ts";
+import { transactionsRouter } from "../../srcs/routes/transaction.ts";
 
 const accountId = "550e8400-e29b-41d4-a716-446655440000";
 
