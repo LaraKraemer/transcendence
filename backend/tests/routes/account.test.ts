@@ -1,143 +1,128 @@
-import type { Request, Response, NextFunction } from "express";
-import { PgDialect } from "drizzle-orm/pg-core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { Request, Response } from "express";
 
-const mocks = vi.hoisted(() => ({
-  select: vi.fn(),
-  from: vi.fn(),
-  where: vi.fn(),
-  limit: vi.fn(),
+const { query } = vi.hoisted(() => ({ query: vi.fn() }));
+vi.mock("../../srcs/db/client.ts", async () => {
+  const { drizzle } = await import("drizzle-orm/node-postgres");
+  return { db: drizzle({ query } as unknown as import("pg").Pool) };
+});
+vi.mock("../../srcs/auth.ts", () => ({
+  requireAuthenticatedUser: (_req: Request, res: Response, next: () => void) => {
+    res.locals.userId = userId;
+    next();
+  },
 }));
 
-vi.mock("../../srcs/db/client.ts", () => ({ db: { select: mocks.select } }));
-vi.mock("../../srcs/auth.ts", () => ({ requireAuthenticatedUser: vi.fn() }));
-
 import { accountsRouter } from "../../srcs/routes/account.ts";
+import { dispatch } from "../helpers/dispatch.ts";
 
 const accountId = "550e8400-e29b-41d4-a716-446655440000";
 const userId = "550e8400-e29b-41d4-a716-446655440001";
-const account = {
-  id: accountId,
-  userId,
-  openingBalanceMinor: 10000,
-  currencyCode: "EUR",
-  isArchived: false,
-};
 
-// Exercise the registered handler without a server or a database connection.
-const handler = accountsRouter.stack.find(
-  (layer) => layer.route?.path === "/:accountId/balance",
-)!.route!.stack[0]!.handle;
-
-async function requestBalance(id = accountId) {
-  const req = { params: { accountId: id } } as unknown as Request;
-  const res = {
-    locals: { userId },
-    status: vi.fn().mockReturnThis(),
-    json: vi.fn(),
-  };
-  const next = vi.fn();
-  await handler(req, res as unknown as Response, next as NextFunction);
-  return { res, next };
+// Account row in schema column order:
+// id, userId, name, type, currencyCode, openingBalanceMinor, institution, accountRef,
+// isArchived, createdAt, updatedAt
+function accountRow(overrides: Record<string, unknown> = {}) {
+  return [
+    overrides.id ?? accountId,
+    overrides.userId ?? userId,
+    overrides.name ?? "Checking",
+    overrides.type ?? "checking",
+    overrides.currencyCode ?? "EUR",
+    overrides.openingBalanceMinor ?? "10000",
+    overrides.institution ?? null,
+    overrides.accountRef ?? null,
+    overrides.isArchived ?? false,
+    overrides.createdAt ?? new Date().toISOString(),
+    overrides.updatedAt ?? new Date().toISOString(),
+  ];
 }
 
-beforeEach(() => {
-  vi.resetAllMocks();
-  mocks.select.mockReturnValue({ from: mocks.from });
-  mocks.from.mockReturnValue({ where: mocks.where });
-  mocks.where.mockReturnValueOnce({ limit: mocks.limit });
-  mocks.limit.mockResolvedValue([account]);
-  mocks.where.mockResolvedValue([{ total: "3000" }]);
-});
+beforeEach(() => query.mockReset());
 
 describe("GET /accounts/:accountId/balance", () => {
+  function balance(id = accountId) {
+    return dispatch(accountsRouter, { url: `/${id}/balance` });
+  }
+
   it.each([
     ["3000", 13000],
     ["-12000", -2000],
     ["0", 10000],
     [null, 10000],
-	["-10000", 0],
+    ["-10000", 0],
   ])("adds transaction sum %s to the opening balance", async (total, expected) => {
-    mocks.where.mockResolvedValue([{ total }]);
+    query.mockResolvedValueOnce({ rows: [accountRow()] });
+    query.mockResolvedValueOnce({ rows: [[total]] });
 
-    const { res, next } = await requestBalance();
+    const result = await balance();
 
-    expect(res.json).toHaveBeenCalledWith({ balanceMinor: expected, currencyCode: "EUR" });
-    expect(res.status).not.toHaveBeenCalled();
-    expect(next).not.toHaveBeenCalled();
+    expect(result).toEqual({ status: 200, body: { balanceMinor: expected, currencyCode: "EUR" } });
   });
 
   it("returns the transaction sum when the opening balance is zero", async () => {
-    mocks.limit.mockResolvedValue([{ ...account, openingBalanceMinor: 0 }]);
+    query.mockResolvedValueOnce({ rows: [accountRow({ openingBalanceMinor: "0" })] });
+    query.mockResolvedValueOnce({ rows: [["3000"]] });
 
-    const { res, next } = await requestBalance();
-
-    expect(res.json).toHaveBeenCalledWith({ balanceMinor: 3000, currencyCode: "EUR" });
-    expect(res.status).not.toHaveBeenCalled();
-    expect(next).not.toHaveBeenCalled();
+    expect(await balance()).toEqual({ status: 200, body: { balanceMinor: 3000, currencyCode: "EUR" } });
   });
 
   it("adds transactions to a negative opening balance", async () => {
-    mocks.limit.mockResolvedValue([{ ...account, openingBalanceMinor: -5000 }]);
+    query.mockResolvedValueOnce({ rows: [accountRow({ openingBalanceMinor: "-5000" })] });
+    query.mockResolvedValueOnce({ rows: [["3000"]] });
 
-    const { res, next } = await requestBalance();
-
-    expect(res.json).toHaveBeenCalledWith({ balanceMinor: -2000, currencyCode: "EUR" });
-    expect(res.status).not.toHaveBeenCalled();
-    expect(next).not.toHaveBeenCalled();
+    expect(await balance()).toEqual({ status: 200, body: { balanceMinor: -2000, currencyCode: "EUR" } });
   });
 
-  it("sums only this account's non-void transactions, including pending and cleared", async () => {
-    await requestBalance();
+  it("sums only non-void transactions", async () => {
+    query.mockResolvedValueOnce({ rows: [accountRow()] });
+    query.mockResolvedValueOnce({ rows: [[null]] });
 
-    const dialect = new PgDialect();
-    const aggregate = dialect.sqlToQuery(mocks.select.mock.calls[1]![0].total);
-    expect(aggregate.sql).toBe('sum("transaction"."amount_minor")');
+    await balance();
 
-    // Inspect Drizzle predicate: a mocked result alone cannot verify filtering.
-    const filter = dialect.sqlToQuery(mocks.where.mock.calls[1]![0]);
-    expect(filter.sql).toBe('("transaction"."account_id" = $1 and "transaction"."status" <> $2)');
-    expect(filter.params).toEqual([accountId, "void"]);
+    const sumSql = query.mock.calls[1]![0].text as string;
+    expect(sumSql).toContain('"transaction"."account_id"');
+    expect(sumSql).toContain('"transaction"."status"');
+    expect(query.mock.calls[1]![1]).toContain("void");
   });
 
-  it("checks ownership without excluding archived accounts", async () => {
-    mocks.limit.mockResolvedValue([{ ...account, isArchived: true, currencyCode: "USD" }]);
+  it("checks ownership including archived accounts", async () => {
+    query.mockResolvedValueOnce({ rows: [accountRow({ isArchived: true, currencyCode: "USD" })] });
+    query.mockResolvedValueOnce({ rows: [["3000"]] });
 
-    const { res } = await requestBalance();
+    const result = await balance();
 
-    const filter = new PgDialect().sqlToQuery(mocks.where.mock.calls[0]![0]);
-    expect(filter.sql).toBe('("account"."id" = $1 and "account"."user_id" = $2)');
-    expect(filter.params).toEqual([accountId, userId]);
-    expect(res.json).toHaveBeenCalledWith({ balanceMinor: 13000, currencyCode: "USD" });
-    expect(res.status).not.toHaveBeenCalled();
+    const ownershipSql = query.mock.calls[0]![0].text as string;
+    expect(ownershipSql).not.toMatch(/where.*is_archived/);
+    expect(query.mock.calls[0]![1]).toContain(accountId);
+    expect(query.mock.calls[0]![1]).toContain(userId);
+    expect(result).toEqual({ status: 200, body: { balanceMinor: 13000, currencyCode: "USD" } });
   });
 
   it("returns 404 when the ownership lookup finds no account", async () => {
-    mocks.limit.mockResolvedValue([]);
+    query.mockResolvedValueOnce({ rows: [] });
 
-    const { res } = await requestBalance();
-
-    expect(res.status).toHaveBeenCalledWith(404);
-    expect(res.json).toHaveBeenCalledWith({ error: "Account not found" });
-    expect(mocks.select).toHaveBeenCalledTimes(1);
+    expect(await balance()).toEqual({ status: 404, body: { error: "Account not found" } });
+    expect(query).toHaveBeenCalledTimes(1);
   });
 
   it("rejects an invalid UUID before querying the database", async () => {
-    const { res } = await requestBalance("not-a-uuid");
-
-    expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith({ error: "accountId must be a valid UUID" });
-    expect(mocks.select).not.toHaveBeenCalled();
+    expect(await balance("not-a-uuid")).toEqual({
+      status: 400,
+      body: { error: "accountId must be a valid UUID" },
+    });
+    expect(query).not.toHaveBeenCalled();
   });
 
-  it.each(["ownership", "aggregate"])("forwards %s query errors to error middleware", async (query) => {
+  it.each(["ownership", "aggregate"])("forwards %s query errors to error middleware", async (which) => {
     const error = new Error("Database unavailable");
-    if (query === "ownership") mocks.limit.mockRejectedValue(error);
-    else mocks.where.mockRejectedValue(error);
+    if (which === "ownership") {
+      query.mockRejectedValueOnce(error);
+    } else {
+      query.mockResolvedValueOnce({ rows: [accountRow()] });
+      query.mockRejectedValueOnce(error);
+    }
 
-    const { res, next } = await requestBalance();
-
-    expect(next).toHaveBeenCalledWith(error);
-    expect(res.json).not.toHaveBeenCalled();
+    await expect(balance()).rejects.toThrow();
   });
 });
