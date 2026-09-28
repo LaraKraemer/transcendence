@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Request, Response } from "express";
 
 const { query } = vi.hoisted(() => ({ query: vi.fn() }));
 vi.mock("../../srcs/db/client.ts", async () => {
@@ -89,7 +88,7 @@ describe("POST /register", () => {
   it.each([
     [undefined, "Password must be 12 to 72 bytes"],
     [12345, "Password must be 12 to 72 bytes"],
-    ["tooshort11", "Password must be 12 to 72 bytes"],  // 11 chars
+    ["tooshort11", "Password must be 12 to 72 bytes"], // 11 chars
     ["é".repeat(37), "Password must be 12 to 72 bytes"], // 74 bytes
   ])("rejects invalid password %j", async (password, errorMsg) => {
     const result = await register({ email: "alice@example.com", password, displayName: "Alice" });
@@ -100,14 +99,22 @@ describe("POST /register", () => {
   it("accepts a 12-character password", async () => {
     query.mockResolvedValueOnce({ rows: [] }); // findUserByEmail → not found
     query.mockResolvedValueOnce({ rows: [createdUserRow()] }); // createUser
-    const result = await register({ email: "alice@example.com", password: "12characters", displayName: "Alice" });
+    const result = await register({
+      email: "alice@example.com",
+      password: "12characters",
+      displayName: "Alice",
+    });
     expect(result.status).toBe(201);
   });
 
   it("accepts a 72-byte password", async () => {
     query.mockResolvedValueOnce({ rows: [] });
     query.mockResolvedValueOnce({ rows: [createdUserRow()] });
-    const result = await register({ email: "alice@example.com", password: "a".repeat(72), displayName: "Alice" });
+    const result = await register({
+      email: "alice@example.com",
+      password: "a".repeat(72),
+      displayName: "Alice",
+    });
     expect(result.status).toBe(201);
   });
 
@@ -116,7 +123,11 @@ describe("POST /register", () => {
     ["   ", "displayName must be between 1 and 100 characters"],
     ["a".repeat(101), "displayName must be between 1 and 100 characters"],
   ])("rejects invalid displayName %j", async (displayName, errorMsg) => {
-    const result = await register({ email: "alice@example.com", password: "validpassword12", displayName });
+    const result = await register({
+      email: "alice@example.com",
+      password: "validpassword12",
+      displayName,
+    });
     expect(result).toEqual({ status: 400, body: { error: errorMsg } });
     expect(query).not.toHaveBeenCalled();
   });
@@ -124,7 +135,11 @@ describe("POST /register", () => {
   it("accepts a 100-character displayName", async () => {
     query.mockResolvedValueOnce({ rows: [] });
     query.mockResolvedValueOnce({ rows: [createdUserRow()] });
-    const result = await register({ email: "alice@example.com", password: "validpassword12", displayName: "a".repeat(100) });
+    const result = await register({
+      email: "alice@example.com",
+      password: "validpassword12",
+      displayName: "a".repeat(100),
+    });
     expect(result.status).toBe(201);
   });
 
@@ -138,7 +153,11 @@ describe("POST /register", () => {
     query.mockResolvedValueOnce({ rows: [] }); // findUserByEmail
     query.mockResolvedValueOnce({ rows: [createdUserRow({ email: "alice@example.com" })] }); // createUser
 
-    await register({ email: "  Alice@Example.COM ", password: "validpassword12", displayName: "Alice" });
+    await register({
+      email: "  Alice@Example.COM ",
+      password: "validpassword12",
+      displayName: "Alice",
+    });
 
     const lookupParams: unknown[] = query.mock.calls[0]![1];
     expect(lookupParams).toContain("alice@example.com");
@@ -149,9 +168,16 @@ describe("POST /register", () => {
   it("returns 409 when the email already exists, no INSERT, no session", async () => {
     query.mockResolvedValueOnce({ rows: [userRow()] }); // findUserByEmail → found
 
-    const result = await register({ email: "alice@example.com", password: "validpassword12", displayName: "Alice" });
+    const result = await register({
+      email: "alice@example.com",
+      password: "validpassword12",
+      displayName: "Alice",
+    });
 
-    expect(result).toEqual({ status: 409, body: { error: "An account with this email already exists" } });
+    expect(result).toEqual({
+      status: 409,
+      body: { error: "An account with this email already exists" },
+    });
     expect(query).toHaveBeenCalledTimes(1);
     expect(authMocks.createSession).not.toHaveBeenCalled();
   });
@@ -160,7 +186,11 @@ describe("POST /register", () => {
     query.mockResolvedValueOnce({ rows: [] }); // findUserByEmail
     query.mockResolvedValueOnce({ rows: [createdUserRow()] }); // createUser
 
-    const result = await register({ email: "alice@example.com", password: "validpassword12", displayName: "Alice" });
+    const result = await register({
+      email: "alice@example.com",
+      password: "validpassword12",
+      displayName: "Alice",
+    });
 
     expect(result.status).toBe(201);
     expect((result.body as { user: unknown }).user).toBeDefined();
@@ -172,7 +202,11 @@ describe("POST /register", () => {
     query.mockResolvedValueOnce({ rows: [] }); // findUserByEmail
     query.mockResolvedValueOnce({ rows: [createdUserRow()] }); // createUser
 
-    await register({ email: "alice@example.com", password: "validpassword12", displayName: "Alice" });
+    await register({
+      email: "alice@example.com",
+      password: "validpassword12",
+      displayName: "Alice",
+    });
 
     const insertParams: unknown[] = query.mock.calls[1]![1];
     expect(insertParams).toContain("$2b$12$hashed");
@@ -183,12 +217,20 @@ describe("POST /register", () => {
     query.mockResolvedValueOnce({ rows: [] }); // findUserByEmail
     query.mockResolvedValueOnce({ rows: [] }); // createUser returns empty
 
-    await expect(dispatch(authRouter, { method: "POST", url: "/register", body: { email: "alice@example.com", password: "validpassword12", displayName: "Alice" } })).rejects.toThrow();
+    await expect(
+      dispatch(authRouter, {
+        method: "POST",
+        url: "/register",
+        body: { email: "alice@example.com", password: "validpassword12", displayName: "Alice" },
+      }),
+    ).rejects.toThrow();
   });
 
   it("forwards database errors", async () => {
     query.mockRejectedValueOnce(new Error("DB down"));
-    await expect(register({ email: "alice@example.com", password: "validpassword12", displayName: "Alice" })).rejects.toThrow();
+    await expect(
+      register({ email: "alice@example.com", password: "validpassword12", displayName: "Alice" }),
+    ).rejects.toThrow();
   });
 });
 
@@ -244,7 +286,11 @@ describe("POST /login", () => {
     const body = result.body as { user: Record<string, unknown> };
     expect(body.user.passwordHash).toBeUndefined();
     expect(body.user.id).toBe(userId);
-    expect(authMocks.createSession).toHaveBeenCalledWith(expect.anything(), expect.anything(), userId);
+    expect(authMocks.createSession).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      userId,
+    );
   });
 });
 
