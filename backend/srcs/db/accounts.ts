@@ -5,11 +5,7 @@ import { accounts, transactions } from "./schema.ts";
 import type { NewAccount } from "./schema.ts";
 
 /** Finds an owned account, including archived accounts unless explicitly excluded. */
-export async function findOwnedAccount(
-  accountId: string,
-  userId: string,
-  allowArchived = true,
-) {
+export async function findOwnedAccount(accountId: string, userId: string, allowArchived = true) {
   const [account] = await db
     .select()
     .from(accounts)

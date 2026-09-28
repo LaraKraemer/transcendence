@@ -121,7 +121,10 @@ describe("POST /categories", () => {
   it("returns 409 when a duplicate name+kind exists", async () => {
     query.mockResolvedValueOnce({ rows: [[categoryId]] }); // findCategoryByNameAndKind → found
     const result = await post(validBody);
-    expect(result).toEqual({ status: 409, body: { error: "A category with this name and kind already exists" } });
+    expect(result).toEqual({
+      status: 409,
+      body: { error: "A category with this name and kind already exists" },
+    });
     expect(query).toHaveBeenCalledTimes(1);
   });
 
@@ -229,7 +232,10 @@ describe("PATCH /categories/:categoryId", () => {
     query.mockResolvedValueOnce({ rows: [[otherId]] }); // findCategoryByNameAndKind → conflict
 
     const result = await patch(categoryId, { name: "Conflict" });
-    expect(result).toEqual({ status: 409, body: { error: "A category with this name and kind already exists" } });
+    expect(result).toEqual({
+      status: 409,
+      body: { error: "A category with this name and kind already exists" },
+    });
   });
 
   it("returns 200 when renaming to the same name (no conflict)", async () => {

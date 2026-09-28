@@ -45,7 +45,11 @@ authRouter.post("/register", async (req, res, next) => {
       return;
     }
 
-    const user = await createUser(normalizedEmail, await hashPassword(password), displayName.trim());
+    const user = await createUser(
+      normalizedEmail,
+      await hashPassword(password),
+      displayName.trim(),
+    );
     if (!user) throw new Error("User creation did not return a user");
     await createSession(req, res, user.id);
     res.status(201).json({ user });

@@ -64,14 +64,20 @@ describe("GET /accounts/:accountId/balance", () => {
     query.mockResolvedValueOnce({ rows: [accountRow({ openingBalanceMinor: "0" })] });
     query.mockResolvedValueOnce({ rows: [["3000"]] });
 
-    expect(await balance()).toEqual({ status: 200, body: { balanceMinor: 3000, currencyCode: "EUR" } });
+    expect(await balance()).toEqual({
+      status: 200,
+      body: { balanceMinor: 3000, currencyCode: "EUR" },
+    });
   });
 
   it("adds transactions to a negative opening balance", async () => {
     query.mockResolvedValueOnce({ rows: [accountRow({ openingBalanceMinor: "-5000" })] });
     query.mockResolvedValueOnce({ rows: [["3000"]] });
 
-    expect(await balance()).toEqual({ status: 200, body: { balanceMinor: -2000, currencyCode: "EUR" } });
+    expect(await balance()).toEqual({
+      status: 200,
+      body: { balanceMinor: -2000, currencyCode: "EUR" },
+    });
   });
 
   it("sums only non-void transactions", async () => {
@@ -114,17 +120,20 @@ describe("GET /accounts/:accountId/balance", () => {
     expect(query).not.toHaveBeenCalled();
   });
 
-  it.each(["ownership", "aggregate"])("forwards %s query errors to error middleware", async (which) => {
-    const error = new Error("Database unavailable");
-    if (which === "ownership") {
-      query.mockRejectedValueOnce(error);
-    } else {
-      query.mockResolvedValueOnce({ rows: [accountRow()] });
-      query.mockRejectedValueOnce(error);
-    }
+  it.each(["ownership", "aggregate"])(
+    "forwards %s query errors to error middleware",
+    async (which) => {
+      const error = new Error("Database unavailable");
+      if (which === "ownership") {
+        query.mockRejectedValueOnce(error);
+      } else {
+        query.mockResolvedValueOnce({ rows: [accountRow()] });
+        query.mockRejectedValueOnce(error);
+      }
 
-    await expect(balance()).rejects.toThrow();
-  });
+      await expect(balance()).rejects.toThrow();
+    },
+  );
 });
 
 // ─── GET / ────────────────────────────────────────────────────────────────────
@@ -190,13 +199,14 @@ describe("POST /accounts", () => {
     expect(query).not.toHaveBeenCalled();
   });
 
-  it.each([
-    10.5, "100", null, 2 ** 53,
-  ])("rejects openingBalanceMinor %j", async (openingBalanceMinor) => {
-    const result = await post({ ...validBody, openingBalanceMinor });
-    expect(result.status).toBe(400);
-    expect(query).not.toHaveBeenCalled();
-  });
+  it.each([10.5, "100", null, 2 ** 53])(
+    "rejects openingBalanceMinor %j",
+    async (openingBalanceMinor) => {
+      const result = await post({ ...validBody, openingBalanceMinor });
+      expect(result.status).toBe(400);
+      expect(query).not.toHaveBeenCalled();
+    },
+  );
 
   it.each([
     [{ ...validBody, institution: null }, "institution must be a string"],
@@ -207,8 +217,14 @@ describe("POST /accounts", () => {
   });
 
   it.each([
-    [{ ...validBody, currencyCode: "eur" }, "currencyCode must be a 3-letter uppercase ISO 4217 code (e.g. EUR, USD)"],
-    [{ ...validBody, currencyCode: "EURO" }, "currencyCode must be a 3-letter uppercase ISO 4217 code (e.g. EUR, USD)"],
+    [
+      { ...validBody, currencyCode: "eur" },
+      "currencyCode must be a 3-letter uppercase ISO 4217 code (e.g. EUR, USD)",
+    ],
+    [
+      { ...validBody, currencyCode: "EURO" },
+      "currencyCode must be a 3-letter uppercase ISO 4217 code (e.g. EUR, USD)",
+    ],
   ])("rejects invalid currencyCode", async (body, error) => {
     expect(await post(body)).toEqual({ status: 400, body: { error } });
     expect(query).not.toHaveBeenCalled();
@@ -298,7 +314,10 @@ describe("PATCH /accounts/:accountId", () => {
     [{ openingBalanceMinor: null }, "openingBalanceMinor must be a safe integer"],
     [{ institution: 123 }, "institution must be a string or null"],
     [{ accountRef: true }, "accountRef must be a string or null"],
-    [{ currencyCode: "eur" }, "currencyCode must be a 3-letter uppercase ISO 4217 code (e.g. EUR, USD)"],
+    [
+      { currencyCode: "eur" },
+      "currencyCode must be a 3-letter uppercase ISO 4217 code (e.g. EUR, USD)",
+    ],
     [{ isArchived: "true" }, "isArchived must be a boolean"],
   ])("rejects invalid field %j", async (body, error) => {
     expect(await patch(accountId, body)).toEqual({ status: 400, body: { error } });

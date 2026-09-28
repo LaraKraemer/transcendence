@@ -17,10 +17,7 @@ const TRANSACTION_STATUSES = ["pending", "cleared", "void"] as const;
 type TransactionStatus = (typeof TRANSACTION_STATUSES)[number];
 
 function isTransactionStatus(value: unknown): value is TransactionStatus {
-  return (
-    typeof value === "string" &&
-    TRANSACTION_STATUSES.includes(value as TransactionStatus)
-  );
+  return typeof value === "string" && TRANSACTION_STATUSES.includes(value as TransactionStatus);
 }
 
 function parsePaginationInt(value: unknown, defaultValue: number): number | null {
@@ -61,8 +58,7 @@ transactionsRouter.use(requireAuthenticatedUser);
  * Optional query parameters: limit (default 50), offset (default 0), from, to
  */
 transactionsRouter.get("/", async (req, res, next) => {
-  const accountId =
-    typeof req.query.accountId === "string" ? req.query.accountId : undefined;
+  const accountId = typeof req.query.accountId === "string" ? req.query.accountId : undefined;
 
   if (!accountId) {
     res.status(400).json({ error: "accountId is required" });
@@ -112,8 +108,7 @@ transactionsRouter.get("/", async (req, res, next) => {
 
 /** Returns non-void transaction totals by category, including uncategorized transactions. */
 transactionsRouter.get("/summary", async (req, res, next) => {
-  const accountId =
-    typeof req.query.accountId === "string" ? req.query.accountId : undefined;
+  const accountId = typeof req.query.accountId === "string" ? req.query.accountId : undefined;
   const { from, to } = req.query;
 
   if (accountId === undefined || accountId === "") {
@@ -140,7 +135,11 @@ transactionsRouter.get("/summary", async (req, res, next) => {
       return;
     }
 
-    const rows = await summarizeTransactionsByCategory(account.id, from as string | undefined, to as string | undefined);
+    const rows = await summarizeTransactionsByCategory(
+      account.id,
+      from as string | undefined,
+      to as string | undefined,
+    );
     res.json(rows);
   } catch (error) {
     next(error);
@@ -214,7 +213,11 @@ transactionsRouter.patch("/:transactionId", async (req, res, next) => {
     }
 
     if (Object.hasOwn(body, "description")) {
-      if (typeof body.description !== "string" || body.description.trim().length === 0 || body.description.trim().length > 500) {
+      if (
+        typeof body.description !== "string" ||
+        body.description.trim().length === 0 ||
+        body.description.trim().length > 500
+      ) {
         res.status(400).json({ error: "description must be between 1 and 500 characters" });
         return;
       }
@@ -265,7 +268,7 @@ transactionsRouter.patch("/:transactionId", async (req, res, next) => {
 
     const candidateAmount = updates.amountMinor ?? transaction.amountMinor;
     const candidateCategoryId = Object.hasOwn(updates, "categoryId")
-      ? updates.categoryId ?? null
+      ? (updates.categoryId ?? null)
       : transaction.categoryId;
     const categoryError = await validateCategory(
       candidateCategoryId,
@@ -311,16 +314,8 @@ transactionsRouter.delete("/:transactionId", async (req, res, next) => {
  * authenticated user.
  */
 transactionsRouter.post("/", async (req, res, next) => {
-  const {
-    accountId,
-    categoryId,
-    amountMinor,
-    description,
-    notes,
-    bookedOn,
-    status,
-    occurredAt,
-  } = req.body ?? {};
+  const { accountId, categoryId, amountMinor, description, notes, bookedOn, status, occurredAt } =
+    req.body ?? {};
 
   if (!isUuid(accountId)) {
     res.status(400).json({ error: "accountId must be a valid UUID" });
@@ -392,7 +387,9 @@ transactionsRouter.post("/", async (req, res, next) => {
       ...(notes === undefined ? {} : { notes: notes.trim() }),
       bookedOn,
       ...(status === undefined ? {} : { status }),
-      ...(occurredAt === undefined ? {} : { occurredAt: occurredAt === null ? null : new Date(occurredAt) }),
+      ...(occurredAt === undefined
+        ? {}
+        : { occurredAt: occurredAt === null ? null : new Date(occurredAt) }),
     });
 
     res.status(201).json(transaction);

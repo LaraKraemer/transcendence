@@ -23,7 +23,9 @@ export const appUsers = pgTable(
     displayName: text("display_name").notNull(),
     avatarUrl: text("avatar_url"),
     emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
-    passwordChangedAt: timestamp("password_changed_at", { withTimezone: true }).notNull().defaultNow(),
+    passwordChangedAt: timestamp("password_changed_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
@@ -86,21 +88,14 @@ export const transactions = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
-    check(
-      "transaction_amount_non_zero",
-      sql`${table.amountMinor} <> 0`,
-    ),
-    index("transaction_account_booked_on_idx").on(
-      table.accountId,
-      table.bookedOn,
-    ),
+    check("transaction_amount_non_zero", sql`${table.amountMinor} <> 0`),
+    index("transaction_account_booked_on_idx").on(table.accountId, table.bookedOn),
     index("transaction_category_id_idx").on(table.categoryId),
   ],
 );
 
 export type Transaction = typeof transactions.$inferSelect;
 export type NewTransaction = typeof transactions.$inferInsert;
-
 
 // account entity
 export const accounts = pgTable(
@@ -113,9 +108,7 @@ export const accounts = pgTable(
     name: text("name").notNull(),
     type: text("type").notNull(),
     currencyCode: text("currency_code").notNull().default("EUR"),
-    openingBalanceMinor: bigint("opening_balance_minor", { mode: "number" })
-      .notNull()
-      .default(0),
+    openingBalanceMinor: bigint("opening_balance_minor", { mode: "number" }).notNull().default(0),
     institution: text("institution"),
     accountRef: text("account_ref"),
     isArchived: boolean("is_archived").notNull().default(false),
@@ -145,11 +138,7 @@ export const categories = pgTable(
   },
   (table) => [
     index("category_user_id_idx").on(table.userId),
-    uniqueIndex("category_user_name_kind_unique").on(
-      table.userId,
-      table.name,
-      table.kind,
-    ),
+    uniqueIndex("category_user_name_kind_unique").on(table.userId, table.name, table.kind),
   ],
 );
 

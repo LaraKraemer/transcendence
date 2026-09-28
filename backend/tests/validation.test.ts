@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { isCurrencyCode, isDateOnly, isHexColor, isIsoTimestamp, isUuid } from "../srcs/validation.ts";
+import {
+  isCurrencyCode,
+  isDateOnly,
+  isHexColor,
+  isIsoTimestamp,
+  isUuid,
+} from "../srcs/validation.ts";
 
 describe("isUuid", () => {
   it("accepts a valid v4 UUID", () => {
@@ -52,9 +58,12 @@ describe("isUuid", () => {
 });
 
 describe("isIsoTimestamp", () => {
-  it.each(["2025-01-15T10:30:00Z", "2025-01-15T10:30:00.000Z", "2025-01-15"])("accepts %s", (value) => {
-    expect(isIsoTimestamp(value)).toBe(true);
-  });
+  it.each(["2025-01-15T10:30:00Z", "2025-01-15T10:30:00.000Z", "2025-01-15"])(
+    "accepts %s",
+    (value) => {
+      expect(isIsoTimestamp(value)).toBe(true);
+    },
+  );
 
   it.each([null, undefined, 123, "not-a-date", "2025-13-01"])("rejects %j", (value) => {
     expect(isIsoTimestamp(value)).toBe(false);
@@ -66,9 +75,12 @@ describe("isDateOnly", () => {
     expect(isDateOnly("2025-01-15")).toBe(true);
   });
 
-  it.each(["2025/01/15", "2025-1-15", "20250115", null, undefined, 20250115])("rejects %j", (value) => {
-    expect(isDateOnly(value)).toBe(false);
-  });
+  it.each(["2025/01/15", "2025-1-15", "20250115", null, undefined, 20250115])(
+    "rejects %j",
+    (value) => {
+      expect(isDateOnly(value)).toBe(false);
+    },
+  );
 
   it("accepts overflow dates like February 30 (Date.parse rolls over) — pin this", () => {
     // Current behaviour: "2025-02-30" parses as March 2; the implementation doesn't

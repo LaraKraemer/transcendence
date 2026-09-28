@@ -17,7 +17,6 @@ function isAccountType(value: unknown): value is AccountType {
   return typeof value === "string" && ACCOUNT_TYPES.includes(value as AccountType);
 }
 
-
 export const accountsRouter = Router();
 
 accountsRouter.use(requireAuthenticatedUser);
@@ -62,7 +61,9 @@ accountsRouter.post("/", async (req, res, next) => {
   }
 
   if (currencyCode !== undefined && !isCurrencyCode(currencyCode)) {
-    res.status(400).json({ error: "currencyCode must be a 3-letter uppercase ISO 4217 code (e.g. EUR, USD)" });
+    res
+      .status(400)
+      .json({ error: "currencyCode must be a 3-letter uppercase ISO 4217 code (e.g. EUR, USD)" });
     return;
   }
 
@@ -144,7 +145,11 @@ accountsRouter.patch("/:accountId", async (req, res, next) => {
   } = {};
 
   if (Object.hasOwn(body, "name")) {
-    if (typeof body.name !== "string" || body.name.trim().length === 0 || body.name.trim().length > 100) {
+    if (
+      typeof body.name !== "string" ||
+      body.name.trim().length === 0 ||
+      body.name.trim().length > 100
+    ) {
       res.status(400).json({ error: "name must be between 1 and 100 characters" });
       return;
     }
@@ -179,7 +184,9 @@ accountsRouter.patch("/:accountId", async (req, res, next) => {
 
   if (Object.hasOwn(body, "currencyCode")) {
     if (!isCurrencyCode(body.currencyCode)) {
-      res.status(400).json({ error: "currencyCode must be a 3-letter uppercase ISO 4217 code (e.g. EUR, USD)" });
+      res
+        .status(400)
+        .json({ error: "currencyCode must be a 3-letter uppercase ISO 4217 code (e.g. EUR, USD)" });
       return;
     }
     updates.currencyCode = body.currencyCode;

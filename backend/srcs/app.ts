@@ -38,10 +38,12 @@ export function createApp() {
     }
   });
 
-  app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-    console.error("Unhandled request error:", error);
-    res.status(500).json({ error: "Internal server error" });
-  });
+  app.use(
+    (error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+      console.error("Unhandled request error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    },
+  );
 
   return app;
 }
