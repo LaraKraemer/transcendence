@@ -1,10 +1,15 @@
-import { and, eq } from "drizzle-orm";
 import { Router } from "express";
 
 import { requireAuthenticatedUser } from "../auth.ts";
-import { db } from "../db/client.ts";
-import { categories } from "../db/schema.ts";
-import { isUuid } from "../validation.ts";
+import {
+  archiveCategory,
+  findCategoryByNameAndKind,
+  findOwnedCategory,
+  insertCategory,
+  listActiveCategories,
+  updateCategory,
+} from "../db/categories.ts";
+import { isHexColor, isUuid } from "../validation.ts";
 
 const CATEGORY_KINDS = ["expense", "income", "transfer"] as const;
 type CategoryKind = (typeof CATEGORY_KINDS)[number];
@@ -16,21 +21,6 @@ function isCategoryKind(value: unknown): value is CategoryKind {
   );
 }
 
-function isHexColor(value: unknown): value is string {
-  return typeof value === "string" && /^#[0-9A-Fa-f]{6}$/.test(value);
-}
-
-/** Finds a category only when it belongs to the authenticated user. */
-async function findOwnedCategory(categoryId: string, userId: string) {
-  const [category] = await db
-    .select()
-    .from(categories)
-    .where(and(eq(categories.id, categoryId), eq(categories.userId, userId)))
-    .limit(1);
-
-  return category;
-}
-
 export const categoriesRouter = Router();
 
 categoriesRouter.use(requireAuthenticatedUser);
@@ -38,17 +28,7 @@ categoriesRouter.use(requireAuthenticatedUser);
 /** Returns all active categories belonging to the authenticated user. */
 categoriesRouter.get("/", async (_req, res, next) => {
   try {
-    const rows = await db
-      .select()
-      .from(categories)
-      .where(
-        and(
-          eq(categories.userId, res.locals.userId),
-          eq(categories.isArchived, false),
-        ),
-      )
-      .orderBy(categories.kind, categories.name);
-
+    const rows = await listActiveCategories(res.locals.userId);
     res.json(rows);
   } catch (error) {
     next(error);
@@ -88,35 +68,19 @@ categoriesRouter.post("/", async (req, res, next) => {
   }
 
   try {
-    const [existingCategory] = await db
-      .select({ id: categories.id })
-      .from(categories)
-      .where(
-        and(
-          eq(categories.userId, res.locals.userId),
-          eq(categories.name, name.trim()),
-          eq(categories.kind, kind),
-        ),
-      )
-      .limit(1);
-
+    const existingCategory = await findCategoryByNameAndKind(res.locals.userId, name.trim(), kind);
     if (existingCategory) {
-      res.status(409).json({
-        error: "A category with this name and kind already exists",
-      });
+      res.status(409).json({ error: "A category with this name and kind already exists" });
       return;
     }
 
-    const [category] = await db
-      .insert(categories)
-      .values({
-        userId: res.locals.userId,
-        name: name.trim(),
-        icon: icon.trim(),
-        color: color.toUpperCase(),
-        kind,
-      })
-      .returning();
+    const category = await insertCategory({
+      userId: res.locals.userId,
+      name: name.trim(),
+      icon: icon.trim(),
+      color: color.toUpperCase(),
+      kind,
+    });
 
     res.status(201).json(category);
   } catch (error) {
@@ -204,30 +168,14 @@ categoriesRouter.patch("/:categoryId", async (req, res, next) => {
     }
 
     if (updates.name) {
-      const [existingCategory] = await db
-        .select({ id: categories.id })
-        .from(categories)
-        .where(
-          and(
-            eq(categories.userId, res.locals.userId),
-            eq(categories.name, updates.name),
-            eq(categories.kind, category.kind),
-          ),
-        )
-        .limit(1);
-
+      const existingCategory = await findCategoryByNameAndKind(res.locals.userId, updates.name, category.kind);
       if (existingCategory && existingCategory.id !== category.id) {
         res.status(409).json({ error: "A category with this name and kind already exists" });
         return;
       }
     }
 
-    const [updatedCategory] = await db
-      .update(categories)
-      .set(updates)
-      .where(eq(categories.id, category.id))
-      .returning();
-
+    const updatedCategory = await updateCategory(category.id, updates);
     res.json(updatedCategory);
   } catch (error) {
     next(error);

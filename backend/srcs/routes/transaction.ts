@@ -1,11 +1,17 @@
-import { and, desc, eq, getTableColumns, gte, lte, ne, sql } from "drizzle-orm";
 import { Router } from "express";
 
 import { requireAuthenticatedUser } from "../auth.ts";
-import { db } from "../db/client.ts";
 import { findOwnedAccount } from "../db/accounts.ts";
-import { accounts, categories, transactions } from "../db/schema.ts";
-import { isUuid } from "../validation.ts";
+import {
+  findCategoryKind,
+  findOwnedTransaction,
+  insertTransaction,
+  listTransactionsByAccount,
+  summarizeTransactionsByCategory,
+  updateTransaction,
+  voidTransaction,
+} from "../db/transactions.ts";
+import { isDateOnly, isIsoTimestamp, isUuid } from "../validation.ts";
 
 const TRANSACTION_STATUSES = ["pending", "cleared", "void"] as const;
 type TransactionStatus = (typeof TRANSACTION_STATUSES)[number];
@@ -17,36 +23,6 @@ function isTransactionStatus(value: unknown): value is TransactionStatus {
   );
 }
 
-function isIsoTimestamp(value: unknown): value is string {
-  return typeof value === "string" && !Number.isNaN(Date.parse(value));
-}
-
-function isDateOnly(value: unknown): value is string {
-  return (
-    typeof value === "string" &&
-    /^\d{4}-\d{2}-\d{2}$/.test(value) &&
-    !Number.isNaN(Date.parse(`${value}T00:00:00Z`))
-  );
-}
-
-
-/** Finds a transaction only when its account belongs to the authenticated user, including archived accounts. */
-async function findOwnedTransaction(transactionId: string, userId: string) {
-  const [transaction] = await db
-    .select(getTableColumns(transactions))
-    .from(transactions)
-    .innerJoin(accounts, eq(transactions.accountId, accounts.id))
-    .where(
-      and(
-        eq(transactions.id, transactionId),
-        eq(accounts.userId, userId),
-      ),
-    )
-    .limit(1);
-
-  return transaction;
-}
-
 /** Ensures a selected category belongs to the user and matches the amount sign. */
 async function validateCategory(
   categoryId: string | null,
@@ -56,17 +32,7 @@ async function validateCategory(
 ): Promise<string | undefined> {
   if (categoryId === null) return undefined;
 
-  const [category] = await db
-    .select({ kind: categories.kind })
-    .from(categories)
-    .where(
-      and(
-        eq(categories.id, categoryId),
-        eq(categories.userId, userId),
-        allowArchived ? undefined : eq(categories.isArchived, false),
-      ),
-    )
-    .limit(1);
+  const category = await findCategoryKind(categoryId, userId, allowArchived);
 
   if (!category) return "Category not found";
   if (category.kind === "transfer") return undefined;
@@ -103,12 +69,7 @@ transactionsRouter.get("/", async (req, res, next) => {
       return;
     }
 
-    const rows = await db
-      .select()
-      .from(transactions)
-      .where(eq(transactions.accountId, account.id))
-      .orderBy(desc(transactions.bookedOn), desc(transactions.createdAt));
-
+    const rows = await listTransactionsByAccount(account.id);
     res.json(rows);
   } catch (error) {
     next(error);
@@ -145,23 +106,7 @@ transactionsRouter.get("/summary", async (req, res, next) => {
       return;
     }
 
-    const rows = await db
-      .select({
-        categoryId: transactions.categoryId,
-        totalMinor: sql<number>`SUM(${transactions.amountMinor})`.mapWith(Number),
-        count: sql<number>`COUNT(*)`.mapWith(Number),
-      })
-      .from(transactions)
-      .where(
-        and(
-          eq(transactions.accountId, account.id),
-          ne(transactions.status, "void"),
-          ...(from ? [gte(transactions.bookedOn, from)] : []),
-          ...(to ? [lte(transactions.bookedOn, to)] : []),
-        ),
-      )
-      .groupBy(transactions.categoryId);
-
+    const rows = await summarizeTransactionsByCategory(account.id, from as string | undefined, to as string | undefined);
     res.json(rows);
   } catch (error) {
     next(error);
@@ -299,12 +244,7 @@ transactionsRouter.patch("/:transactionId", async (req, res, next) => {
       return;
     }
 
-    const [updatedTransaction] = await db
-      .update(transactions)
-      .set(updates)
-      .where(eq(transactions.id, transaction.id))
-      .returning();
-
+    const updatedTransaction = await updateTransaction(transaction.id, updates);
     res.json(updatedTransaction);
   } catch (error) {
     next(error);
@@ -325,11 +265,7 @@ transactionsRouter.delete("/:transactionId", async (req, res, next) => {
       return;
     }
 
-    await db
-      .update(transactions)
-      .set({ status: "void", updatedAt: new Date() })
-      .where(eq(transactions.id, transaction.id));
-
+    await voidTransaction(transaction.id);
     res.status(204).send();
   } catch (error) {
     next(error);
@@ -398,54 +334,32 @@ transactionsRouter.post("/", async (req, res, next) => {
 
   try {
     const account = await findOwnedAccount(accountId, res.locals.userId, false);
-
     if (!account) {
       res.status(404).json({ error: "Account not found" });
       return;
     }
 
-    if (categoryId !== undefined) {
-      const [category] = await db
-        .select({ id: categories.id, kind: categories.kind })
-        .from(categories)
-        .where(
-          and(
-            eq(categories.id, categoryId),
-            eq(categories.userId, res.locals.userId),
-            eq(categories.isArchived, false),
-          ),
-        )
-        .limit(1);
-
-      if (!category) {
-        res.status(404).json({ error: "Category not found" });
-        return;
-      }
-
-      const requiredKind = amountMinor < 0 ? "expense" : "income";
-
-      if (category.kind !== "transfer" && category.kind !== requiredKind) {
-        res.status(400).json({
-          error: `A ${requiredKind} transaction requires an ${requiredKind} category`,
-        });
-        return;
-      }
+    const categoryError = await validateCategory(
+      categoryId ?? null,
+      amountMinor,
+      res.locals.userId,
+    );
+    if (categoryError) {
+      res.status(categoryError === "Category not found" ? 404 : 400).json({ error: categoryError });
+      return;
     }
 
-    const [transaction] = await db
-      .insert(transactions)
-      .values({
-        accountId: account.id,
-        createdById: res.locals.userId,
-        ...(categoryId === undefined ? {} : { categoryId }),
-        amountMinor,
-        description: description.trim(),
-        ...(notes === undefined ? {} : { notes: notes.trim() }),
-        bookedOn,
-        ...(status === undefined ? {} : { status }),
-        ...(occurredAt === undefined ? {} : { occurredAt: occurredAt === null ? null : new Date(occurredAt) }),
-      })
-      .returning();
+    const transaction = await insertTransaction({
+      accountId: account.id,
+      createdById: res.locals.userId,
+      ...(categoryId === undefined ? {} : { categoryId }),
+      amountMinor,
+      description: description.trim(),
+      ...(notes === undefined ? {} : { notes: notes.trim() }),
+      bookedOn,
+      ...(status === undefined ? {} : { status }),
+      ...(occurredAt === undefined ? {} : { occurredAt: occurredAt === null ? null : new Date(occurredAt) }),
+    });
 
     res.status(201).json(transaction);
   } catch (error) {

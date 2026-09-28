@@ -1,4 +1,3 @@
-import { and, eq, isNull } from "drizzle-orm";
 import { Router } from "express";
 
 import {
@@ -9,8 +8,7 @@ import {
   revokeCurrentSession,
   verifyPassword,
 } from "../auth.ts";
-import { db } from "../db/client.ts";
-import { appUsers } from "../db/schema.ts";
+import { createUser, findUserByEmail, findUserById } from "../db/users.ts";
 
 export const authRouter = Router();
 
@@ -41,25 +39,13 @@ authRouter.post("/register", async (req, res, next) => {
   }
 
   try {
-    const [existingUser] = await db
-      .select({ id: appUsers.id })
-      .from(appUsers)
-      .where(eq(appUsers.email, normalizedEmail))
-      .limit(1);
+    const existingUser = await findUserByEmail(normalizedEmail);
     if (existingUser) {
       res.status(409).json({ error: "An account with this email already exists" });
       return;
     }
 
-    const [user] = await db
-      .insert(appUsers)
-      .values({
-        email: normalizedEmail,
-        passwordHash: await hashPassword(password),
-        displayName: displayName.trim(),
-      })
-      .returning({ id: appUsers.id, email: appUsers.email, displayName: appUsers.displayName });
-
+    const user = await createUser(normalizedEmail, await hashPassword(password), displayName.trim());
     if (!user) throw new Error("User creation did not return a user");
     await createSession(req, res, user.id);
     res.status(201).json({ user });
@@ -79,11 +65,7 @@ authRouter.post("/login", async (req, res, next) => {
   }
 
   try {
-    const [user] = await db
-      .select()
-      .from(appUsers)
-      .where(and(eq(appUsers.email, normalizedEmail), isNull(appUsers.deletedAt)))
-      .limit(1);
+    const user = await findUserByEmail(normalizedEmail);
     if (!user || !(await verifyPassword(password, user.passwordHash))) {
       res.status(401).json({ error: "Invalid email or password" });
       return;
@@ -116,11 +98,7 @@ authRouter.get("/me", async (req, res, next) => {
       return;
     }
 
-    const [user] = await db
-      .select({ id: appUsers.id, email: appUsers.email, displayName: appUsers.displayName })
-      .from(appUsers)
-      .where(eq(appUsers.id, userId))
-      .limit(1);
+    const user = await findUserById(userId);
     res.json({ user });
   } catch (error) {
     next(error);

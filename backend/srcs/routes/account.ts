@@ -1,10 +1,13 @@
-import { and, eq, ne, sum } from "drizzle-orm";
 import { Router } from "express";
 
 import { requireAuthenticatedUser } from "../auth.ts";
-import { db } from "../db/client.ts";
-import { findOwnedAccount } from "../db/accounts.ts";
-import { accounts, transactions } from "../db/schema.ts";
+import {
+  findOwnedAccount,
+  insertAccount,
+  listActiveAccounts,
+  sumNonVoidTransactions,
+  updateAccount,
+} from "../db/accounts.ts";
 import { isCurrencyCode, isUuid } from "../validation.ts";
 
 const ACCOUNT_TYPES = ["checking", "savings", "cash"] as const;
@@ -22,16 +25,7 @@ accountsRouter.use(requireAuthenticatedUser);
 /** Returns all non-archived accounts belonging to the authenticated user. */
 accountsRouter.get("/", async (_req, res, next) => {
   try {
-    const rows = await db
-      .select()
-      .from(accounts)
-      .where(
-        and(
-          eq(accounts.userId, res.locals.userId),
-          eq(accounts.isArchived, false),
-        ),
-      );
-
+    const rows = await listActiveAccounts(res.locals.userId);
     res.json(rows);
   } catch (error) {
     next(error);
@@ -73,18 +67,15 @@ accountsRouter.post("/", async (req, res, next) => {
   }
 
   try {
-    const [account] = await db
-      .insert(accounts)
-      .values({
-        userId: res.locals.userId,
-        name: name.trim(),
-        type,
-        ...(openingBalanceMinor === undefined ? {} : { openingBalanceMinor }),
-        ...(institution === undefined ? {} : { institution: institution.trim() }),
-        ...(accountRef === undefined ? {} : { accountRef: accountRef.trim() }),
-        ...(currencyCode === undefined ? {} : { currencyCode }),
-      })
-      .returning();
+    const account = await insertAccount({
+      userId: res.locals.userId,
+      name: name.trim(),
+      type,
+      ...(openingBalanceMinor === undefined ? {} : { openingBalanceMinor }),
+      ...(institution === undefined ? {} : { institution: institution.trim() }),
+      ...(accountRef === undefined ? {} : { accountRef: accountRef.trim() }),
+      ...(currencyCode === undefined ? {} : { currencyCode }),
+    });
 
     res.status(201).json(account);
   } catch (error) {
@@ -106,17 +97,7 @@ accountsRouter.get("/:accountId/balance", async (req, res, next) => {
       return;
     }
 
-    const [result] = await db
-      .select({ total: sum(transactions.amountMinor) })
-      .from(transactions)
-      .where(
-        and(
-          eq(transactions.accountId, account.id),
-          ne(transactions.status, "void"),
-        ),
-      );
-
-    const transactionSum = Number(result?.total ?? 0);
+    const transactionSum = await sumNonVoidTransactions(account.id);
     const balanceMinor = account.openingBalanceMinor + transactionSum;
     res.json({ balanceMinor, currencyCode: account.currencyCode });
   } catch (error) {
@@ -224,12 +205,7 @@ accountsRouter.patch("/:accountId", async (req, res, next) => {
       return;
     }
 
-    const [updatedAccount] = await db
-      .update(accounts)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(accounts.id, account.id))
-      .returning();
-
+    const updatedAccount = await updateAccount(account.id, updates);
     res.json(updatedAccount);
   } catch (error) {
     next(error);

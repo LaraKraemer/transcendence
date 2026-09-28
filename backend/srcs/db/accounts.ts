@@ -1,10 +1,11 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, ne, sum } from "drizzle-orm";
 
 import { db } from "./client.ts";
-import { accounts } from "./schema.ts";
+import { accounts, transactions } from "./schema.ts";
+import type { NewAccount } from "./schema.ts";
 
 /** Finds an owned account, including archived accounts unless explicitly excluded. */
-export async function  findOwnedAccount(
+export async function findOwnedAccount(
   accountId: string,
   userId: string,
   allowArchived = true,
@@ -22,4 +23,45 @@ export async function  findOwnedAccount(
     .limit(1);
 
   return account;
+}
+
+export async function listActiveAccounts(userId: string) {
+  return db
+    .select()
+    .from(accounts)
+    .where(and(eq(accounts.userId, userId), eq(accounts.isArchived, false)));
+}
+
+export async function insertAccount(values: NewAccount) {
+  const [account] = await db.insert(accounts).values(values).returning();
+  return account;
+}
+
+export async function sumNonVoidTransactions(accountId: string) {
+  const [result] = await db
+    .select({ total: sum(transactions.amountMinor) })
+    .from(transactions)
+    .where(and(eq(transactions.accountId, accountId), ne(transactions.status, "void")));
+
+  return Number(result?.total ?? 0);
+}
+
+export async function updateAccount(
+  accountId: string,
+  updates: Partial<Omit<NewAccount, "id" | "userId" | "createdAt">>,
+) {
+  const [account] = await db
+    .update(accounts)
+    .set({ ...updates, updatedAt: new Date() })
+    .where(eq(accounts.id, accountId))
+    .returning();
+
+  return account;
+}
+
+export async function archiveAccount(accountId: string) {
+  await db
+    .update(accounts)
+    .set({ isArchived: true, updatedAt: new Date() })
+    .where(eq(accounts.id, accountId));
 }
