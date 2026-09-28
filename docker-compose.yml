@@ -37,6 +37,8 @@ services:
 
     volumes:
       - ./backend:/app
+      # Keep the repository-level formatting rules available above /app.
+      - ./.prettierrc.json:/.prettierrc.json:ro
       - /app/node_modules
 
     environment:

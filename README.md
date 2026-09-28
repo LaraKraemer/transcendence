@@ -277,6 +277,33 @@ local `.env` file and any `cookies.txt` files are ignored by Git.
 
 <br>
 
+# Code Checks
+
+Run backend checks from `backend/`:
+
+```bash
+npm ci
+npm run typecheck          # source, tests, Vitest and Drizzle configuration
+npm run lint               # ESLint recommended JavaScript/TypeScript rules
+npm run format:check       # verify Prettier formatting
+npm run format             # apply formatting
+```
+
+Prettier uses the root `.prettierrc.json` (print width 100). Generated migrations,
+Bruno files, coverage output and the package lockfile are excluded from formatting.
+To ignore the dedicated formatting commit in local blame output, run
+`git config blame.ignoreRevsFile .git-blame-ignore-revs` from the repository root.
+
+Backend CI runs these checks and unit tests, plus the complete Bruno collection
+against a fresh PostgreSQL 17 database. API startup applies migrations; CI waits
+for `/health` before running requests and prints the API log if a step fails.
+
+From `frontend/`, run `npm ci`, `npm run lint` and `npm run build`. Frontend CI
+runs lint and build. Both workflows run on relevant pull requests and pushes to
+`main`, with read-only repository permissions and cancellation of superseded runs.
+
+<br>
+
 # Unit Tests
 
 Backend unit tests run without Docker, a database, or a live server. They use
@@ -315,7 +342,7 @@ Test files live in `backend/tests/`, mirroring `backend/srcs/`:
 | `make up` | Start containers |
 | `make down` | Stop containers |
 | `make build` | Rebuild containers |
-| `make rebuild` | After changing Dockerfile or dependencies |
+| `make rebuild` | Rebuild and renew dependency volumes after Dockerfile or dependency changes |
 | `make restart` | Restart containers |
 | `make logs` | View container logs |
 | `make clean` | Remove containers and volumes |
@@ -323,6 +350,12 @@ Test files live in `backend/tests/`, mirroring `backend/srcs/`:
 <br>
 
 # Development Workflow
+
+Both app containers install locked dependencies with `npm ci` and run as the
+unprivileged `node` user. `make rebuild` renews anonymous dependency volumes,
+while preserving the named database volume. On Linux, bind-mounted directories
+must be writable by the container user (UID 1000), including `backend/drizzle/`
+for migration generation and `frontend/` for `.next` output.
 
 The Docker setup uses volume mounting.
 

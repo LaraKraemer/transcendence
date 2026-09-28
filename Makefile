@@ -1,6 +1,6 @@
 COMPOSE=docker compose
 
-.PHONY: build up down restart logs clean
+.PHONY: build up rebuild down restart logs clean prune
 
 build:
 	$(COMPOSE) build
@@ -9,7 +9,7 @@ up:
 	$(COMPOSE) up -d
 
 rebuild: 
-	$(COMPOSE) up --build -d
+	$(COMPOSE) up --build --renew-anon-volumes -d
 
 down:
 	$(COMPOSE) down
