@@ -1,32 +1,80 @@
-name: Backend unit tests
+name: Backend checks
 
 on:
   push:
+    branches: [main]
     paths:
       - "backend/**"
       - ".github/workflows/backend-unit-tests.yml"
+      - ".nvmrc"
+      - ".prettierrc.json"
   pull_request:
     paths:
       - "backend/**"
       - ".github/workflows/backend-unit-tests.yml"
+      - ".nvmrc"
+      - ".prettierrc.json"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: backend
 
 jobs:
   test:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
           cache: npm
           cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm test
 
-      - name: Install dependencies
-        run: npm ci
-        working-directory: backend
-
-      - name: Run unit tests
-        run: npm test
-        working-directory: backend
+  api:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: expense
+          POSTGRES_PASSWORD: expense
+          POSTGRES_DB: expense_tracker
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U expense -d expense_tracker"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgres://expense:expense@localhost:5432/expense_tracker
+      TEST_PASSWORD: ci-only-test-password
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - name: Start API and apply migrations
+        run: npx --no-install tsx srcs/index.ts > api.log 2>&1 &
+      - name: Wait for API readiness
+        run: timeout 60 bash -c 'until curl -fsS http://localhost:3001/health; do sleep 1; done'
+      - name: Run API collection
+        run: npx --no-install bru run --env local
+        working-directory: backend/bruno
+      - name: Print API log on failure
+        if: failure()
+        run: cat api.log
