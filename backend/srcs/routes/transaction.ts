@@ -23,6 +23,13 @@ function isTransactionStatus(value: unknown): value is TransactionStatus {
   );
 }
 
+function parsePaginationInt(value: unknown, defaultValue: number): number | null {
+  if (value === undefined) return defaultValue;
+  if (typeof value !== "string" || !/^\d+$/.test(value)) return null;
+  const n = Number(value);
+  return Number.isSafeInteger(n) ? n : null;
+}
+
 /** Ensures a selected category belongs to the user and matches the amount sign. */
 async function validateCategory(
   categoryId: string | null,
@@ -51,6 +58,7 @@ transactionsRouter.use(requireAuthenticatedUser);
  * Lists transactions for one account owned by the authenticated user.
  *
  * Required query parameter: accountId
+ * Optional query parameters: limit (default 50), offset (default 0), from, to, status
  */
 transactionsRouter.get("/", async (req, res, next) => {
   const accountId =
@@ -58,6 +66,31 @@ transactionsRouter.get("/", async (req, res, next) => {
 
   if (!accountId) {
     res.status(400).json({ error: "accountId is required" });
+    return;
+  }
+
+  const limit = parsePaginationInt(req.query.limit, 50);
+  const offset = parsePaginationInt(req.query.offset, 0);
+  const { from, to, status } = req.query;
+
+  if (limit === null || limit < 1 || limit > 200) {
+    res.status(400).json({ error: "limit must be an integer between 1 and 200" });
+    return;
+  }
+  if (offset === null) {
+    res.status(400).json({ error: "offset must be a non-negative integer" });
+    return;
+  }
+  if (from !== undefined && !isDateOnly(from)) {
+    res.status(400).json({ error: "from must use YYYY-MM-DD format" });
+    return;
+  }
+  if (to !== undefined && !isDateOnly(to)) {
+    res.status(400).json({ error: "to must use YYYY-MM-DD format" });
+    return;
+  }
+  if (status !== undefined && !isTransactionStatus(status)) {
+    res.status(400).json({ error: "status must be pending, cleared, or void" });
     return;
   }
 
@@ -69,8 +102,14 @@ transactionsRouter.get("/", async (req, res, next) => {
       return;
     }
 
-    const rows = await listTransactionsByAccount(account.id);
-    res.json(rows);
+    const result = await listTransactionsByAccount(account.id, {
+      limit,
+      offset,
+      ...(from === undefined ? {} : { from }),
+      ...(to === undefined ? {} : { to }),
+      ...(status === undefined ? {} : { status }),
+    });
+    res.json(result);
   } catch (error) {
     next(error);
   }

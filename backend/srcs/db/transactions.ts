@@ -1,4 +1,4 @@
-import { and, desc, eq, getTableColumns, gte, lte, ne, sql } from "drizzle-orm";
+import { and, count, desc, eq, getTableColumns, gte, lte, ne, sql } from "drizzle-orm";
 
 import { db } from "./client.ts";
 import { accounts, categories, transactions } from "./schema.ts";
@@ -32,12 +32,31 @@ export async function findCategoryKind(categoryId: string, userId: string, allow
   return category;
 }
 
-export async function listTransactionsByAccount(accountId: string) {
-  return db
-    .select()
-    .from(transactions)
-    .where(eq(transactions.accountId, accountId))
-    .orderBy(desc(transactions.bookedOn), desc(transactions.createdAt));
+export async function listTransactionsByAccount(
+  accountId: string,
+  options: {
+    limit: number;
+    offset: number;
+    from?: string;
+    to?: string;
+    status?: "pending" | "cleared" | "void";
+  },
+) {
+  const { limit, offset, from, to, status } = options;
+  const whereClause = and(
+    eq(transactions.accountId, accountId),
+    from === undefined ? undefined : gte(transactions.bookedOn, from),
+    to === undefined ? undefined : lte(transactions.bookedOn, to),
+    status === undefined ? undefined : eq(transactions.status, status),
+  );
+  const [items, totals] = await Promise.all([
+    db.select().from(transactions).where(whereClause)
+      .orderBy(desc(transactions.bookedOn), desc(transactions.createdAt))
+      .limit(limit).offset(offset),
+    db.select({ total: count() }).from(transactions).where(whereClause),
+  ]);
+
+  return { items, total: totals[0]!.total };
 }
 
 export async function summarizeTransactionsByCategory(

@@ -13,7 +13,7 @@ get {
 tests {
   test("created transaction is listed", function () {
     expect(res.getStatus()).to.equal(200);
-    const ids = res.getBody().map((transaction) => transaction.id);
+    const ids = res.getBody().items.map((transaction) => transaction.id);
     expect(ids).to.include(bru.getVar("transactionId"));
   });
 }
