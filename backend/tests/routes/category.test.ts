@@ -208,8 +208,13 @@ describe("PATCH /categories/:categoryId", () => {
 
   it("returns 400 for empty body or only non-editable fields", async () => {
     expect((await patch(categoryId, {})).status).toBe(400);
-    expect((await patch(categoryId, { isArchived: true })).status).toBe(400);
     expect(query).not.toHaveBeenCalled();
+  });
+
+  it.each([true, false])("returns 200 when patching isArchived=%s", async (isArchived) => {
+    query.mockResolvedValueOnce({ rows: [categoryRow()] }); // findOwnedCategory
+    query.mockResolvedValueOnce({ rows: [categoryRow({ isArchived })] }); // updateCategory
+    expect((await patch(categoryId, { isArchived })).status).toBe(200);
   });
 
   it("returns 404 when category not found, no UPDATE", async () => {
