@@ -279,13 +279,31 @@ local `.env` file and any `cookies.txt` files are ignored by Git.
 
 # Unit Tests
 
-Unit tests cover pure business logic (validation helpers, etc.) and run without Docker, a server, or a database.
+Backend unit tests run without Docker, a database, or a live server. They use
+a fake pool to intercept Drizzle queries, so every route handler, auth helper,
+and validation function is covered in isolation.
 
 ```bash
 cd backend
-npm test            # single run, exits with pass/fail
-npm run test:watch  # watch mode — re-runs affected files on save
+npm test                   # single run, exits with pass/fail
+npm run test:watch         # watch mode — re-runs affected files on save
+npm run test:coverage      # single run with V8 coverage report (writes backend/coverage/)
 ```
+
+Test files live in `backend/tests/`, mirroring `backend/srcs/`:
+
+| Test file | Covers |
+|---|---|
+| `tests/auth.test.ts` | session lifecycle, hashing, middleware |
+| `tests/routes/auth.test.ts` | register, login, logout, me |
+| `tests/routes/protection.test.ts` | all 16 protected routes reject unauthenticated requests |
+| `tests/routes/account.test.ts` | account CRUD + balance |
+| `tests/routes/category.test.ts` | category CRUD |
+| `tests/routes/transaction.test.ts` | transaction CRUD + category sign rule |
+| `tests/validation.test.ts` | isUuid, isCurrencyCode, isIsoTimestamp, isDateOnly, isHexColor |
+| `tests/db/accounts.test.ts` | findOwnedAccount ownership filter |
+| `tests/db/client.test.ts` | DATABASE_URL guard, pool error handler |
+| `tests/app.test.ts` | HTTP wiring: health, CORS, router mount, error handler |
 
 <br>
 
