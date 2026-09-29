@@ -61,11 +61,7 @@ export async function listTransactionsByAccount(
   return { items, total: totals[0]!.total };
 }
 
-export async function summarizeTransactionsByCategory(
-  accountId: string,
-  from?: string,
-  to?: string,
-) {
+export async function summarizeTransactionsByCategory(accountId: string, from?: string, to?: string) {
   return db
     .select({
       categoryId: transactions.categoryId,

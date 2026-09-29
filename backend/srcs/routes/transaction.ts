@@ -314,8 +314,7 @@ transactionsRouter.delete("/:transactionId", async (req, res, next) => {
  * authenticated user.
  */
 transactionsRouter.post("/", async (req, res, next) => {
-  const { accountId, categoryId, amountMinor, description, notes, bookedOn, status, occurredAt } =
-    req.body ?? {};
+  const { accountId, categoryId, amountMinor, description, notes, bookedOn, status, occurredAt } = req.body ?? {};
 
   if (!isUuid(accountId)) {
     res.status(400).json({ error: "accountId must be a valid UUID" });
@@ -327,11 +326,7 @@ transactionsRouter.post("/", async (req, res, next) => {
     return;
   }
 
-  if (
-    typeof description !== "string" ||
-    description.trim().length === 0 ||
-    description.trim().length > 500
-  ) {
+  if (typeof description !== "string" || description.trim().length === 0 || description.trim().length > 500) {
     res.status(400).json({ error: "description must be between 1 and 500 characters" });
     return;
   }
@@ -368,11 +363,7 @@ transactionsRouter.post("/", async (req, res, next) => {
       return;
     }
 
-    const categoryError = await validateCategory(
-      categoryId ?? null,
-      amountMinor,
-      res.locals.userId,
-    );
+    const categoryError = await validateCategory(categoryId ?? null, amountMinor, res.locals.userId);
     if (categoryError) {
       res.status(categoryError === "Category not found" ? 404 : 400).json({ error: categoryError });
       return;
@@ -387,9 +378,7 @@ transactionsRouter.post("/", async (req, res, next) => {
       ...(notes === undefined ? {} : { notes: notes.trim() }),
       bookedOn,
       ...(status === undefined ? {} : { status }),
-      ...(occurredAt === undefined
-        ? {}
-        : { occurredAt: occurredAt === null ? null : new Date(occurredAt) }),
+      ...(occurredAt === undefined ? {} : { occurredAt: occurredAt === null ? null : new Date(occurredAt) }),
     });
 
     res.status(201).json(transaction);

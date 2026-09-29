@@ -56,8 +56,5 @@ export async function updateAccount(
 }
 
 export async function archiveAccount(accountId: string) {
-  await db
-    .update(accounts)
-    .set({ isArchived: true, updatedAt: new Date() })
-    .where(eq(accounts.id, accountId));
+  await db.update(accounts).set({ isArchived: true, updatedAt: new Date() }).where(eq(accounts.id, accountId));
 }

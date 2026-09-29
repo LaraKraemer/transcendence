@@ -73,9 +73,7 @@ function summary(params: Record<string, unknown>) {
         resolve({ status, body });
       },
     } as Response;
-    transactionsRouter(req, res, (error?: unknown) =>
-      reject(error ?? new Error("Route not found")),
-    );
+    transactionsRouter(req, res, (error?: unknown) => reject(error ?? new Error("Route not found")));
   });
 }
 
@@ -159,12 +157,10 @@ describe("GET /transactions/summary", () => {
 
 describe("GET /transactions", () => {
   it.each([
-    ...["0", "201", "1.5", "20abc", "", ["20", "30"]].map(
-      (limit): [Record<string, unknown>, string] => [
-        { accountId, limit },
-        "limit must be an integer between 1 and 200",
-      ],
-    ),
+    ...["0", "201", "1.5", "20abc", "", ["20", "30"]].map((limit): [Record<string, unknown>, string] => [
+      { accountId, limit },
+      "limit must be an integer between 1 and 200",
+    ]),
     ...["-1", "1.5", "3abc", "", ["0", "1"]].map((offset): [Record<string, unknown>, string] => [
       { accountId, offset },
       "offset must be a non-negative integer",
@@ -172,40 +168,39 @@ describe("GET /transactions", () => {
     [{ accountId, from: "2025-1-01" }, "from must use YYYY-MM-DD format"],
     [{ accountId, to: "invalid" }, "to must use YYYY-MM-DD format"],
   ])("rejects invalid list parameters %j", async (params, error) => {
-    expect(
-      await dispatch(transactionsRouter, { url: "/", query: params as Record<string, unknown> }),
-    ).toEqual({ status: 400, body: { error } });
+    expect(await dispatch(transactionsRouter, { url: "/", query: params as Record<string, unknown> })).toEqual({
+      status: 400,
+      body: { error },
+    });
     expect(query).not.toHaveBeenCalled();
   });
 
-  it.each(["20", "200"])(
-    "accepts limit=%s with offset=0 and returns a separate total",
-    async (limit) => {
-      query.mockResolvedValueOnce({ rows: [acctRow()] });
-      query.mockResolvedValueOnce({ rows: [txRow()] });
-      query.mockResolvedValueOnce({ rows: [["87"]] });
-      const result = await dispatch(transactionsRouter, {
-        url: "/",
-        query: { accountId, limit, offset: "0" },
-      });
-      expect(result).toMatchObject({
-        status: 200,
-        body: { items: [{ id: transactionId }], total: 87 },
-      });
-      expect(query.mock.calls[1]![0].text).toContain("limit $");
-      expect(query.mock.calls[1]![1]).toEqual([accountId, Number(limit)]);
-      expect(query.mock.calls[2]![0].text).toContain("count(*)");
-      expect(query.mock.calls[2]![0].text).not.toMatch(/limit|offset/);
-      expect(query.mock.calls[2]![1]).toEqual([accountId]);
-    },
-  );
+  it.each(["20", "200"])("accepts limit=%s with offset=0 and returns a separate total", async (limit) => {
+    query.mockResolvedValueOnce({ rows: [acctRow()] });
+    query.mockResolvedValueOnce({ rows: [txRow()] });
+    query.mockResolvedValueOnce({ rows: [["87"]] });
+    const result = await dispatch(transactionsRouter, {
+      url: "/",
+      query: { accountId, limit, offset: "0" },
+    });
+    expect(result).toMatchObject({
+      status: 200,
+      body: { items: [{ id: transactionId }], total: 87 },
+    });
+    expect(query.mock.calls[1]![0].text).toContain("limit $");
+    expect(query.mock.calls[1]![1]).toEqual([accountId, Number(limit)]);
+    expect(query.mock.calls[2]![0].text).toContain("count(*)");
+    expect(query.mock.calls[2]![0].text).not.toMatch(/limit|offset/);
+    expect(query.mock.calls[2]![1]).toEqual([accountId]);
+  });
 
   it("applies inclusive dates to both queries", async () => {
     query.mockResolvedValueOnce({ rows: [acctRow()] });
     query.mockResolvedValueOnce({ rows: [txRow()] });
     query.mockResolvedValueOnce({ rows: [["42"]] });
     const result = await dispatch(transactionsRouter, {
-      url: "/", query: { accountId, from: "2025-01-01", to: "2025-03-31", limit: "20", offset: "20" },
+      url: "/",
+      query: { accountId, from: "2025-01-01", to: "2025-03-31", limit: "20", offset: "20" },
     });
     expect(result).toMatchObject({ status: 200, body: { items: [{ id: transactionId }], total: 42 } });
     for (const index of [1, 2]) {
@@ -220,13 +215,15 @@ describe("GET /transactions", () => {
   });
 
   it.each([{}, { from: "2025-01-01" }, { to: "2025-03-31" }])(
-    "supports independent optional filters %j and no matches", async (filters) => {
+    "supports independent optional filters %j and no matches",
+    async (filters) => {
       query.mockResolvedValueOnce({ rows: [acctRow()] });
       query.mockResolvedValueOnce({ rows: [] });
       query.mockResolvedValueOnce({ rows: [["0"]] });
-      expect(
-        await dispatch(transactionsRouter, { url: "/", query: { accountId, ...filters } }),
-      ).toEqual({ status: 200, body: { items: [], total: 0 } });
+      expect(await dispatch(transactionsRouter, { url: "/", query: { accountId, ...filters } })).toEqual({
+        status: 200,
+        body: { items: [], total: 0 },
+      });
       expect(query.mock.calls[1]![1]).toEqual([accountId, ...Object.values(filters), 50]);
       expect(query.mock.calls[2]![1]).toEqual([accountId, ...Object.values(filters)]);
     },
@@ -236,9 +233,10 @@ describe("GET /transactions", () => {
     query.mockResolvedValueOnce({ rows: [acctRow()] });
     query.mockResolvedValueOnce({ rows: [] });
     query.mockResolvedValueOnce({ rows: [["3"]] });
-    expect(
-      await dispatch(transactionsRouter, { url: "/", query: { accountId, offset: "50" } }),
-    ).toEqual({ status: 200, body: { items: [], total: 3 } });
+    expect(await dispatch(transactionsRouter, { url: "/", query: { accountId, offset: "50" } })).toEqual({
+      status: 200,
+      body: { items: [], total: 3 },
+    });
     expect(query.mock.calls[1]![1]).toEqual([accountId, 50, 50]);
   });
 
@@ -270,9 +268,7 @@ describe("GET /transactions", () => {
     const result = await dispatch(transactionsRouter, { url: "/", query: { accountId } });
     expect(result.status).toBe(200);
     const sql: string = query.mock.calls[1]![0].text;
-    expect(sql).toContain(
-      'order by "transaction"."booked_on" desc, "transaction"."created_at" desc',
-    );
+    expect(sql).toContain('order by "transaction"."booked_on" desc, "transaction"."created_at" desc');
     expect(query.mock.calls[1]![1]).toEqual([accountId, 50]);
     expect(result.body).toMatchObject({ items: [{ id: transactionId }], total: 1 });
   });
@@ -303,9 +299,7 @@ describe("GET /transactions", () => {
 
   it("forwards errors", async () => {
     query.mockRejectedValueOnce(new Error("DB down"));
-    await expect(
-      dispatch(transactionsRouter, { url: "/", query: { accountId } }),
-    ).rejects.toThrow();
+    await expect(dispatch(transactionsRouter, { url: "/", query: { accountId } })).rejects.toThrow();
   });
 });
 
@@ -369,20 +363,14 @@ describe("POST /transactions", () => {
     [{ ...validBody, amountMinor: 2 ** 53 }, "amountMinor must be a non-zero safe integer"],
     [{ ...validBody, description: undefined }, "description must be between 1 and 500 characters"],
     [{ ...validBody, description: "  " }, "description must be between 1 and 500 characters"],
-    [
-      { ...validBody, description: "a".repeat(501) },
-      "description must be between 1 and 500 characters",
-    ],
+    [{ ...validBody, description: "a".repeat(501) }, "description must be between 1 and 500 characters"],
     [{ ...validBody, bookedOn: undefined }, "bookedOn must use YYYY-MM-DD format"],
     [{ ...validBody, bookedOn: "2025/01/01" }, "bookedOn must use YYYY-MM-DD format"],
     [{ ...validBody, bookedOn: "2025-1-1" }, "bookedOn must use YYYY-MM-DD format"],
     [{ ...validBody, status: "done" }, "status must be pending, cleared, or void"],
     [{ ...validBody, notes: 123 }, "notes must be a string"],
     [{ ...validBody, categoryId: "not-a-uuid" }, "categoryId must be a valid UUID"],
-    [
-      { ...validBody, occurredAt: "not-a-date" },
-      "occurredAt must be a valid ISO 8601 timestamp or null",
-    ],
+    [{ ...validBody, occurredAt: "not-a-date" }, "occurredAt must be a valid ISO 8601 timestamp or null"],
   ])("returns 400 for invalid body %j", async (body, error) => {
     expect(await post(body)).toEqual({ status: 400, body: { error } });
     expect(query).not.toHaveBeenCalled();

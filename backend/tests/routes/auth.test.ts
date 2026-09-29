@@ -48,11 +48,7 @@ function userRow(overrides: Record<string, unknown> = {}) {
 
 // returning({ id, email, displayName }) row
 function createdUserRow(overrides: Record<string, unknown> = {}) {
-  return [
-    overrides.id ?? userId,
-    overrides.email ?? "alice@example.com",
-    overrides.displayName ?? "Alice",
-  ];
+  return [overrides.id ?? userId, overrides.email ?? "alice@example.com", overrides.displayName ?? "Alice"];
 }
 
 beforeEach(() => {
@@ -286,11 +282,7 @@ describe("POST /login", () => {
     const body = result.body as { user: Record<string, unknown> };
     expect(body.user.passwordHash).toBeUndefined();
     expect(body.user.id).toBe(userId);
-    expect(authMocks.createSession).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.anything(),
-      userId,
-    );
+    expect(authMocks.createSession).toHaveBeenCalledWith(expect.anything(), expect.anything(), userId);
   });
 });
 

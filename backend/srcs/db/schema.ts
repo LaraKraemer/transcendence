@@ -1,16 +1,5 @@
 import { sql } from "drizzle-orm";
-import {
-  bigint,
-  boolean,
-  check,
-  date,
-  index,
-  pgTable,
-  text,
-  timestamp,
-  uniqueIndex,
-  uuid,
-} from "drizzle-orm/pg-core";
+import { bigint, boolean, check, date, index, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 
 export const appUsers = pgTable(
   "app_user",
@@ -23,9 +12,7 @@ export const appUsers = pgTable(
     displayName: text("display_name").notNull(),
     avatarUrl: text("avatar_url"),
     emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
-    passwordChangedAt: timestamp("password_changed_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    passwordChangedAt: timestamp("password_changed_at", { withTimezone: true }).notNull().defaultNow(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),

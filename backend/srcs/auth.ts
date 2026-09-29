@@ -87,11 +87,7 @@ export async function getAuthenticatedUserId(req: Request): Promise<string | und
  * Express middleware that rejects unauthenticated requests and makes the
  * authenticated user's ID available as `res.locals.userId` to later handlers.
  */
-export async function requireAuthenticatedUser(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): Promise<void> {
+export async function requireAuthenticatedUser(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const userId = await getAuthenticatedUserId(req);
     if (!userId) {

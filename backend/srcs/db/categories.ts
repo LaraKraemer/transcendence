@@ -41,11 +41,7 @@ export async function updateCategory(
   categoryId: string,
   updates: Partial<Pick<NewCategory, "name" | "icon" | "color">>,
 ) {
-  const [category] = await db
-    .update(categories)
-    .set(updates)
-    .where(eq(categories.id, categoryId))
-    .returning();
+  const [category] = await db.update(categories).set(updates).where(eq(categories.id, categoryId)).returning();
 
   return category;
 }
