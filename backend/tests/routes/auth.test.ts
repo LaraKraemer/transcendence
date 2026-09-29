@@ -218,7 +218,7 @@ describe("POST /login", () => {
     const lookupParams: unknown[] = query.mock.calls[0]![1];
     expect(lookupParams).toContain("alice@example.com");
     const sql: string = query.mock.calls[0]![0].text;
-    expect(sql).toContain('"deleted_at"');
+    expect(sql).toMatch(/"deleted_at" is null/i);
   });
 
   it("returns 401 for unknown email, no session", async () => {
