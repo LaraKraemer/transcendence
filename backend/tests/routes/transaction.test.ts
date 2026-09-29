@@ -136,6 +136,74 @@ describe("GET /transactions/summary", () => {
 // ─── GET / ────────────────────────────────────────────────────────────────────
 
 describe("GET /transactions", () => {
+  it.each([
+    ...["0", "201", "1.5", "20abc", "", ["20", "30"]].map((limit) => [
+      { accountId, limit }, "limit must be an integer between 1 and 200",
+    ]),
+    ...["-1", "1.5", "3abc", "", ["0", "1"]].map((offset) => [
+      { accountId, offset }, "offset must be a non-negative integer",
+    ]),
+    [{ accountId, from: "2025-1-01" }, "from must use YYYY-MM-DD format"],
+    [{ accountId, to: "invalid" }, "to must use YYYY-MM-DD format"],
+  ])("rejects invalid list parameters %j", async (params, error) => {
+    expect(await dispatch(transactionsRouter, { url: "/", query: params as Record<string, unknown> }))
+      .toEqual({ status: 400, body: { error } });
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  it.each(["20", "200"])("accepts limit=%s with offset=0 and returns a separate total", async (limit) => {
+    query.mockResolvedValueOnce({ rows: [acctRow()] });
+    query.mockResolvedValueOnce({ rows: [txRow()] });
+    query.mockResolvedValueOnce({ rows: [["87"]] });
+    const result = await dispatch(transactionsRouter, { url: "/", query: { accountId, limit, offset: "0" } });
+    expect(result).toMatchObject({ status: 200, body: { items: [{ id: transactionId }], total: 87 } });
+    expect(query.mock.calls[1]![0].text).toContain("limit $");
+    expect(query.mock.calls[1]![1]).toEqual([accountId, Number(limit)]);
+    expect(query.mock.calls[2]![0].text).toContain("count(*)");
+    expect(query.mock.calls[2]![0].text).not.toMatch(/limit|offset/);
+    expect(query.mock.calls[2]![1]).toEqual([accountId]);
+  });
+
+  it("applies inclusive dates to both queries", async () => {
+    query.mockResolvedValueOnce({ rows: [acctRow()] });
+    query.mockResolvedValueOnce({ rows: [txRow()] });
+    query.mockResolvedValueOnce({ rows: [["42"]] });
+    const result = await dispatch(transactionsRouter, {
+      url: "/", query: { accountId, from: "2025-01-01", to: "2025-03-31", limit: "20", offset: "20" },
+    });
+    expect(result).toMatchObject({ status: 200, body: { items: [{ id: transactionId }], total: 42 } });
+    for (const index of [1, 2]) {
+      const sql = query.mock.calls[index]![0].text;
+      expect(sql).toContain('"transaction"."account_id" =');
+      expect(sql).toContain('"transaction"."booked_on" >=');
+      expect(sql).toContain('"transaction"."booked_on" <=');
+    }
+    expect(query.mock.calls[1]![0].text).toMatch(/limit \$\d+ offset \$\d+/);
+    expect(query.mock.calls[1]![1]).toEqual([accountId, "2025-01-01", "2025-03-31", 20, 20]);
+    expect(query.mock.calls[2]![1]).toEqual([accountId, "2025-01-01", "2025-03-31"]);
+  });
+
+  it.each([{}, { from: "2025-01-01" }, { to: "2025-03-31" }])(
+    "supports independent optional filters %j and no matches", async (filters) => {
+      query.mockResolvedValueOnce({ rows: [acctRow()] });
+      query.mockResolvedValueOnce({ rows: [] });
+      query.mockResolvedValueOnce({ rows: [["0"]] });
+      expect(await dispatch(transactionsRouter, { url: "/", query: { accountId, ...filters } }))
+        .toEqual({ status: 200, body: { items: [], total: 0 } });
+      expect(query.mock.calls[1]![1]).toEqual([accountId, ...Object.values(filters), 50]);
+      expect(query.mock.calls[2]![1]).toEqual([accountId, ...Object.values(filters)]);
+    },
+  );
+
+  it("preserves total when offset is beyond the last match", async () => {
+    query.mockResolvedValueOnce({ rows: [acctRow()] });
+    query.mockResolvedValueOnce({ rows: [] });
+    query.mockResolvedValueOnce({ rows: [["3"]] });
+    expect(await dispatch(transactionsRouter, { url: "/", query: { accountId, offset: "50" } }))
+      .toEqual({ status: 200, body: { items: [], total: 3 } });
+    expect(query.mock.calls[1]![1]).toEqual([accountId, 50, 50]);
+  });
+
   it("returns 400 when accountId is missing", async () => {
     const result = await dispatch(transactionsRouter, { url: "/" });
     expect(result).toEqual({ status: 400, body: { error: "accountId is required" } });
@@ -157,17 +225,19 @@ describe("GET /transactions", () => {
   it("returns transaction list ordered by booked_on desc, created_at desc", async () => {
     query.mockResolvedValueOnce({ rows: [acctRow()] }); // findOwnedAccount
     query.mockResolvedValueOnce({ rows: [txRow()] }); // listTransactionsByAccount
+    query.mockResolvedValueOnce({ rows: [["1"]] });
     const result = await dispatch(transactionsRouter, { url: "/", query: { accountId } });
     expect(result.status).toBe(200);
     const sql: string = query.mock.calls[1]![0].text;
-    expect(sql).toContain('"booked_on"');
-    expect(sql).toContain('"created_at"');
-    expect(sql.toLowerCase()).toContain("desc");
+    expect(sql).toContain('order by "transaction"."booked_on" desc, "transaction"."created_at" desc');
+    expect(query.mock.calls[1]![1]).toEqual([accountId, 50]);
+    expect(result.body).toMatchObject({ items: [{ id: transactionId }], total: 1 });
   });
 
   it("includes archived account's transactions and void transactions", async () => {
     query.mockResolvedValueOnce({ rows: [acctRow({ isArchived: true })] });
     query.mockResolvedValueOnce({ rows: [txRow({ status: "void" })] });
+    query.mockResolvedValueOnce({ rows: [["1"]] });
     const result = await dispatch(transactionsRouter, { url: "/", query: { accountId } });
     expect(result.status).toBe(200);
     // list does not filter by status; WHERE clause only checks accountId
@@ -181,8 +251,9 @@ describe("GET /transactions", () => {
   it("converts amountMinor bigint string to number", async () => {
     query.mockResolvedValueOnce({ rows: [acctRow()] });
     query.mockResolvedValueOnce({ rows: [txRow({ amountMinor: "-3000" })] });
+    query.mockResolvedValueOnce({ rows: [["1"]] });
     const result = await dispatch(transactionsRouter, { url: "/", query: { accountId } });
-    const body = result.body as Array<{ amountMinor: number }>;
+    const { items: body } = result.body as { items: Array<{ amountMinor: number }> };
     expect(typeof body[0]!.amountMinor).toBe("number");
     expect(body[0]!.amountMinor).toBe(-3000);
   });
