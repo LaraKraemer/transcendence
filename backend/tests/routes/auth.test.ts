@@ -142,6 +142,8 @@ describe("POST /register", () => {
 
     const lookupParams: unknown[] = query.mock.calls[0]![1];
     expect(lookupParams).toContain("alice@example.com");
+    const insertParams: unknown[] = query.mock.calls[1]![1];
+    expect(insertParams).toContain("alice@example.com");
   });
 
   it("returns 409 when the email already exists, no INSERT, no session", async () => {
