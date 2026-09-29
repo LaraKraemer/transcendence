@@ -126,3 +126,234 @@ describe("GET /accounts/:accountId/balance", () => {
     await expect(balance()).rejects.toThrow();
   });
 });
+
+// ─── GET / ────────────────────────────────────────────────────────────────────
+
+describe("GET /accounts", () => {
+  it("returns the list from listActiveAccounts", async () => {
+    query.mockResolvedValueOnce({ rows: [accountRow()] });
+    const result = await dispatch(accountsRouter, { url: "/" });
+    expect(result.status).toBe(200);
+    expect(Array.isArray(result.body)).toBe(true);
+  });
+
+  it("filters on user_id and is_archived=false", async () => {
+    query.mockResolvedValueOnce({ rows: [] });
+    await dispatch(accountsRouter, { url: "/" });
+    const sql: string = query.mock.calls[0]![0].text;
+    expect(sql).toContain('"user_id"');
+    expect(sql).toContain('"is_archived"');
+  });
+
+  it("converts opening_balance_minor bigint string to number", async () => {
+    query.mockResolvedValueOnce({ rows: [accountRow({ openingBalanceMinor: "-32000" })] });
+    const result = await dispatch(accountsRouter, { url: "/" });
+    const body = result.body as Array<{ openingBalanceMinor: number }>;
+    expect(typeof body[0]!.openingBalanceMinor).toBe("number");
+    expect(body[0]!.openingBalanceMinor).toBe(-32000);
+  });
+
+  it("returns [] for an empty result", async () => {
+    query.mockResolvedValueOnce({ rows: [] });
+    expect(await dispatch(accountsRouter, { url: "/" })).toEqual({ status: 200, body: [] });
+  });
+
+  it("forwards errors", async () => {
+    query.mockRejectedValueOnce(new Error("DB down"));
+    await expect(dispatch(accountsRouter, { url: "/" })).rejects.toThrow();
+  });
+});
+
+// ─── POST / ───────────────────────────────────────────────────────────────────
+
+describe("POST /accounts", () => {
+  function post(body: unknown) {
+    return dispatch(accountsRouter, { method: "POST", url: "/", body });
+  }
+
+  const validBody = { name: "Checking", type: "checking" };
+
+  it.each([
+    [{ ...validBody, name: undefined }, "name must be between 1 and 100 characters"],
+    [{ ...validBody, name: "  " }, "name must be between 1 and 100 characters"],
+    [{ ...validBody, name: "a".repeat(101) }, "name must be between 1 and 100 characters"],
+  ])("rejects invalid name", async (body, error) => {
+    expect(await post(body)).toEqual({ status: 400, body: { error } });
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [{ ...validBody, type: undefined }, "type must be checking, savings, or cash"],
+    [{ ...validBody, type: "credit" }, "type must be checking, savings, or cash"],
+  ])("rejects invalid type", async (body, error) => {
+    expect(await post(body)).toEqual({ status: 400, body: { error } });
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    10.5, "100", null, 2 ** 53,
+  ])("rejects openingBalanceMinor %j", async (openingBalanceMinor) => {
+    const result = await post({ ...validBody, openingBalanceMinor });
+    expect(result.status).toBe(400);
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [{ ...validBody, institution: null }, "institution must be a string"],
+    [{ ...validBody, accountRef: 123 }, "accountRef must be a string"],
+  ])("rejects non-string institution/accountRef", async (body, error) => {
+    expect(await post(body)).toEqual({ status: 400, body: { error } });
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [{ ...validBody, currencyCode: "eur" }, "currencyCode must be a 3-letter uppercase ISO 4217 code (e.g. EUR, USD)"],
+    [{ ...validBody, currencyCode: "EURO" }, "currencyCode must be a 3-letter uppercase ISO 4217 code (e.g. EUR, USD)"],
+  ])("rejects invalid currencyCode", async (body, error) => {
+    expect(await post(body)).toEqual({ status: 400, body: { error } });
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  it("returns 400 with no request body", async () => {
+    expect((await post(undefined)).status).toBe(400);
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  it("returns 201 with created account, uses userId from locals", async () => {
+    query.mockResolvedValueOnce({ rows: [accountRow()] });
+    const result = await post(validBody);
+    expect(result.status).toBe(201);
+    const insertParams: unknown[] = query.mock.calls[0]![1];
+    expect(insertParams).toContain(userId);
+  });
+
+  it("trims name, institution, accountRef before inserting", async () => {
+    query.mockResolvedValueOnce({ rows: [accountRow()] });
+    await post({ ...validBody, name: "  My Bank  ", institution: "  ING  " });
+    const insertParams: unknown[] = query.mock.calls[0]![1];
+    expect(insertParams).toContain("My Bank");
+    expect(insertParams).toContain("ING");
+    expect(insertParams).not.toContain("  My Bank  ");
+  });
+
+  it("accepts openingBalanceMinor of 0 and negatives", async () => {
+    query.mockResolvedValueOnce({ rows: [accountRow({ openingBalanceMinor: "0" })] });
+    expect((await post({ ...validBody, openingBalanceMinor: 0 })).status).toBe(201);
+    query.mockResolvedValueOnce({ rows: [accountRow({ openingBalanceMinor: "-5000" })] });
+    expect((await post({ ...validBody, openingBalanceMinor: -5000 })).status).toBe(201);
+  });
+
+  it("forwards errors", async () => {
+    query.mockRejectedValueOnce(new Error("DB down"));
+    await expect(post(validBody)).rejects.toThrow();
+  });
+});
+
+// ─── GET /:accountId ──────────────────────────────────────────────────────────
+
+describe("GET /accounts/:accountId", () => {
+  it("rejects an invalid UUID", async () => {
+    expect((await dispatch(accountsRouter, { url: "/not-a-uuid" })).status).toBe(400);
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  it("returns 404 for missing or foreign account", async () => {
+    query.mockResolvedValueOnce({ rows: [] });
+    expect((await dispatch(accountsRouter, { url: `/${accountId}` })).status).toBe(404);
+  });
+
+  it("returns 200 for an archived account", async () => {
+    query.mockResolvedValueOnce({ rows: [accountRow({ isArchived: true })] });
+    expect((await dispatch(accountsRouter, { url: `/${accountId}` })).status).toBe(200);
+  });
+
+  it("forwards errors", async () => {
+    query.mockRejectedValueOnce(new Error("DB down"));
+    await expect(dispatch(accountsRouter, { url: `/${accountId}` })).rejects.toThrow();
+  });
+});
+
+// ─── PATCH /:accountId ────────────────────────────────────────────────────────
+
+describe("PATCH /accounts/:accountId", () => {
+  function patch(id: string, body: unknown) {
+    return dispatch(accountsRouter, { method: "PATCH", url: `/${id}`, body });
+  }
+
+  it("rejects an invalid UUID", async () => {
+    expect((await patch("not-a-uuid", { name: "New" })).status).toBe(400);
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  it("returns 400 for empty body or only unknown fields", async () => {
+    expect((await patch(accountId, {})).status).toBe(400);
+    expect((await patch(accountId, { userId: "hack" })).status).toBe(400);
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [{ name: "  " }, "name must be between 1 and 100 characters"],
+    [{ type: "credit" }, "type must be checking, savings, or cash"],
+    [{ openingBalanceMinor: 1.5 }, "openingBalanceMinor must be a safe integer"],
+    [{ openingBalanceMinor: null }, "openingBalanceMinor must be a safe integer"],
+    [{ institution: 123 }, "institution must be a string or null"],
+    [{ accountRef: true }, "accountRef must be a string or null"],
+    [{ currencyCode: "eur" }, "currencyCode must be a 3-letter uppercase ISO 4217 code (e.g. EUR, USD)"],
+    [{ isArchived: "true" }, "isArchived must be a boolean"],
+  ])("rejects invalid field %j", async (body, error) => {
+    expect(await patch(accountId, body)).toEqual({ status: 400, body: { error } });
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  it("returns 404 when account not found, no UPDATE", async () => {
+    query.mockResolvedValueOnce({ rows: [] });
+    expect((await patch(accountId, { name: "New" })).status).toBe(404);
+    expect(query).toHaveBeenCalledTimes(1);
+  });
+
+  it("sets only sent fields plus updated_at, trims strings", async () => {
+    query.mockResolvedValueOnce({ rows: [accountRow()] });
+    query.mockResolvedValueOnce({ rows: [accountRow({ name: "New" })] });
+
+    await patch(accountId, { name: "  New  " });
+
+    const updateSql: string = query.mock.calls[1]![0].text;
+    expect(updateSql).toContain('"updated_at"');
+    const updateParams: unknown[] = query.mock.calls[1]![1];
+    expect(updateParams).toContain("New");
+    expect(updateParams).not.toContain("  New  ");
+  });
+
+  it("null clears institution and accountRef", async () => {
+    query.mockResolvedValueOnce({ rows: [accountRow()] });
+    query.mockResolvedValueOnce({ rows: [accountRow({ institution: null })] });
+
+    await patch(accountId, { institution: null });
+
+    const updateParams: unknown[] = query.mock.calls[1]![1];
+    expect(updateParams).toContain(null);
+  });
+
+  it("archives account with isArchived: true (#20 regression)", async () => {
+    query.mockResolvedValueOnce({ rows: [accountRow()] });
+    query.mockResolvedValueOnce({ rows: [accountRow({ isArchived: true })] });
+    expect((await patch(accountId, { isArchived: true })).status).toBe(200);
+  });
+
+  it("unarchives account with isArchived: false, no is_archived filter on lookup (#20 regression)", async () => {
+    query.mockResolvedValueOnce({ rows: [accountRow({ isArchived: true })] });
+    query.mockResolvedValueOnce({ rows: [accountRow({ isArchived: false })] });
+
+    const result = await patch(accountId, { isArchived: false });
+
+    expect(result.status).toBe(200);
+    // Lookup must not filter on is_archived so archived accounts are still found
+    const lookupSql: string = query.mock.calls[0]![0].text;
+    expect(lookupSql).not.toMatch(/where.*is_archived/);
+  });
+
+  it("forwards errors", async () => {
+    query.mockRejectedValueOnce(new Error("DB down"));
+    await expect(patch(accountId, { name: "New" })).rejects.toThrow();
+  });
+});
