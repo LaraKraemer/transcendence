@@ -58,7 +58,7 @@ transactionsRouter.use(requireAuthenticatedUser);
  * Lists transactions for one account owned by the authenticated user.
  *
  * Required query parameter: accountId
- * Optional query parameters: limit (default 50), offset (default 0), from, to, status
+ * Optional query parameters: limit (default 50), offset (default 0), from, to
  */
 transactionsRouter.get("/", async (req, res, next) => {
   const accountId =
@@ -71,7 +71,7 @@ transactionsRouter.get("/", async (req, res, next) => {
 
   const limit = parsePaginationInt(req.query.limit, 50);
   const offset = parsePaginationInt(req.query.offset, 0);
-  const { from, to, status } = req.query;
+  const { from, to } = req.query;
 
   if (limit === null || limit < 1 || limit > 200) {
     res.status(400).json({ error: "limit must be an integer between 1 and 200" });
@@ -89,10 +89,6 @@ transactionsRouter.get("/", async (req, res, next) => {
     res.status(400).json({ error: "to must use YYYY-MM-DD format" });
     return;
   }
-  if (status !== undefined && !isTransactionStatus(status)) {
-    res.status(400).json({ error: "status must be pending, cleared, or void" });
-    return;
-  }
 
   try {
     const account = await findOwnedAccount(accountId, res.locals.userId);
@@ -107,7 +103,6 @@ transactionsRouter.get("/", async (req, res, next) => {
       offset,
       ...(from === undefined ? {} : { from }),
       ...(to === undefined ? {} : { to }),
-      ...(status === undefined ? {} : { status }),
     });
     res.json(result);
   } catch (error) {

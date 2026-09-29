@@ -145,7 +145,6 @@ describe("GET /transactions", () => {
     ]),
     [{ accountId, from: "2025-1-01" }, "from must use YYYY-MM-DD format"],
     [{ accountId, to: "invalid" }, "to must use YYYY-MM-DD format"],
-    [{ accountId, status: "invalid" }, "status must be pending, cleared, or void"],
   ])("rejects invalid list parameters %j", async (params, error) => {
     expect(await dispatch(transactionsRouter, { url: "/", query: params as Record<string, unknown> }))
       .toEqual({ status: 400, body: { error } });
@@ -165,27 +164,26 @@ describe("GET /transactions", () => {
     expect(query.mock.calls[2]![1]).toEqual([accountId]);
   });
 
-  it.each(["pending", "cleared", "void"])("applies inclusive dates and status=%s to both queries", async (status) => {
+  it("applies inclusive dates to both queries", async () => {
     query.mockResolvedValueOnce({ rows: [acctRow()] });
-    query.mockResolvedValueOnce({ rows: [txRow({ status })] });
+    query.mockResolvedValueOnce({ rows: [txRow()] });
     query.mockResolvedValueOnce({ rows: [["42"]] });
     const result = await dispatch(transactionsRouter, {
-      url: "/", query: { accountId, from: "2025-01-01", to: "2025-03-31", status, limit: "20", offset: "20" },
+      url: "/", query: { accountId, from: "2025-01-01", to: "2025-03-31", limit: "20", offset: "20" },
     });
-    expect(result).toMatchObject({ status: 200, body: { items: [{ status }], total: 42 } });
+    expect(result).toMatchObject({ status: 200, body: { items: [{ id: transactionId }], total: 42 } });
     for (const index of [1, 2]) {
       const sql = query.mock.calls[index]![0].text;
       expect(sql).toContain('"transaction"."account_id" =');
       expect(sql).toContain('"transaction"."booked_on" >=');
       expect(sql).toContain('"transaction"."booked_on" <=');
-      expect(sql).toContain('"transaction"."status" =');
     }
     expect(query.mock.calls[1]![0].text).toMatch(/limit \$\d+ offset \$\d+/);
-    expect(query.mock.calls[1]![1]).toEqual([accountId, "2025-01-01", "2025-03-31", status, 20, 20]);
-    expect(query.mock.calls[2]![1]).toEqual([accountId, "2025-01-01", "2025-03-31", status]);
+    expect(query.mock.calls[1]![1]).toEqual([accountId, "2025-01-01", "2025-03-31", 20, 20]);
+    expect(query.mock.calls[2]![1]).toEqual([accountId, "2025-01-01", "2025-03-31"]);
   });
 
-  it.each([{}, { from: "2025-01-01" }, { to: "2025-03-31" }, { status: "pending" }])(
+  it.each([{}, { from: "2025-01-01" }, { to: "2025-03-31" }])(
     "supports independent optional filters %j and no matches", async (filters) => {
       query.mockResolvedValueOnce({ rows: [acctRow()] });
       query.mockResolvedValueOnce({ rows: [] });

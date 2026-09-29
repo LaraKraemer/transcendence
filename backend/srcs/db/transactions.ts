@@ -39,15 +39,13 @@ export async function listTransactionsByAccount(
     offset: number;
     from?: string;
     to?: string;
-    status?: "pending" | "cleared" | "void";
   },
 ) {
-  const { limit, offset, from, to, status } = options;
+  const { limit, offset, from, to } = options;
   const whereClause = and(
     eq(transactions.accountId, accountId),
     from === undefined ? undefined : gte(transactions.bookedOn, from),
     to === undefined ? undefined : lte(transactions.bookedOn, to),
-    status === undefined ? undefined : eq(transactions.status, status),
   );
   const [items, totals] = await Promise.all([
     db.select().from(transactions).where(whereClause)
