@@ -2,7 +2,6 @@ import { Router } from "express";
 
 import { requireAuthenticatedUser } from "../auth.ts";
 import {
-  archiveCategory,
   findCategoryByNameAndKind,
   findOwnedCategory,
   insertCategory,
