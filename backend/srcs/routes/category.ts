@@ -2,7 +2,6 @@ import { Router } from "express";
 
 import { requireAuthenticatedUser } from "../auth.ts";
 import {
-  archiveCategory,
   findCategoryByNameAndKind,
   findOwnedCategory,
   insertCategory,
@@ -15,10 +14,7 @@ const CATEGORY_KINDS = ["expense", "income", "transfer"] as const;
 type CategoryKind = (typeof CATEGORY_KINDS)[number];
 
 function isCategoryKind(value: unknown): value is CategoryKind {
-  return (
-    typeof value === "string" &&
-    CATEGORY_KINDS.includes(value as CategoryKind)
-  );
+  return typeof value === "string" && CATEGORY_KINDS.includes(value as CategoryKind);
 }
 
 export const categoriesRouter = Router();
@@ -39,20 +35,12 @@ categoriesRouter.get("/", async (_req, res, next) => {
 categoriesRouter.post("/", async (req, res, next) => {
   const { name, icon, color, kind } = req.body ?? {};
 
-  if (
-    typeof name !== "string" ||
-    name.trim().length === 0 ||
-    name.trim().length > 80
-  ) {
+  if (typeof name !== "string" || name.trim().length === 0 || name.trim().length > 80) {
     res.status(400).json({ error: "name must be between 1 and 80 characters" });
     return;
   }
 
-  if (
-    typeof icon !== "string" ||
-    icon.trim().length === 0 ||
-    icon.trim().length > 100
-  ) {
+  if (typeof icon !== "string" || icon.trim().length === 0 || icon.trim().length > 100) {
     res.status(400).json({ error: "icon must be between 1 and 100 characters" });
     return;
   }

@@ -12,7 +12,11 @@
     "db:seed": "tsx srcs/db/seed.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "keywords": [],
   "author": "",
@@ -27,6 +31,7 @@
     "pg": "^8.23.0"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.5",
     "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
@@ -35,8 +40,11 @@
     "@usebruno/cli": "^4.1.0",
     "@vitest/coverage-v8": "^5.0.1",
     "drizzle-kit": "0.31.10",
+    "eslint": "^9.39.5",
+    "prettier": "^3.9.9",
     "tsx": "^4.x",
     "typescript": "^5.9.0",
+    "typescript-eslint": "^8.70.1",
     "vitest": "^5.0.1"
   }
 }

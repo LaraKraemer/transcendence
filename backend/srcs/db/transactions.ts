@@ -48,20 +48,20 @@ export async function listTransactionsByAccount(
     to === undefined ? undefined : lte(transactions.bookedOn, to),
   );
   const [items, totals] = await Promise.all([
-    db.select().from(transactions).where(whereClause)
+    db
+      .select()
+      .from(transactions)
+      .where(whereClause)
       .orderBy(desc(transactions.bookedOn), desc(transactions.createdAt))
-      .limit(limit).offset(offset),
+      .limit(limit)
+      .offset(offset),
     db.select({ total: count() }).from(transactions).where(whereClause),
   ]);
 
   return { items, total: totals[0]!.total };
 }
 
-export async function summarizeTransactionsByCategory(
-  accountId: string,
-  from?: string,
-  to?: string,
-) {
+export async function summarizeTransactionsByCategory(accountId: string, from?: string, to?: string) {
   return db
     .select({
       categoryId: transactions.categoryId,

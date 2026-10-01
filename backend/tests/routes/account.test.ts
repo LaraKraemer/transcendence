@@ -64,14 +64,20 @@ describe("GET /accounts/:accountId/balance", () => {
     query.mockResolvedValueOnce({ rows: [accountRow({ openingBalanceMinor: "0" })] });
     query.mockResolvedValueOnce({ rows: [["3000"]] });
 
-    expect(await balance()).toEqual({ status: 200, body: { balanceMinor: 3000, currencyCode: "EUR" } });
+    expect(await balance()).toEqual({
+      status: 200,
+      body: { balanceMinor: 3000, currencyCode: "EUR" },
+    });
   });
 
   it("adds transactions to a negative opening balance", async () => {
     query.mockResolvedValueOnce({ rows: [accountRow({ openingBalanceMinor: "-5000" })] });
     query.mockResolvedValueOnce({ rows: [["3000"]] });
 
-    expect(await balance()).toEqual({ status: 200, body: { balanceMinor: -2000, currencyCode: "EUR" } });
+    expect(await balance()).toEqual({
+      status: 200,
+      body: { balanceMinor: -2000, currencyCode: "EUR" },
+    });
   });
 
   it("sums only non-void transactions", async () => {
@@ -190,9 +196,7 @@ describe("POST /accounts", () => {
     expect(query).not.toHaveBeenCalled();
   });
 
-  it.each([
-    10.5, "100", null, 2 ** 53,
-  ])("rejects openingBalanceMinor %j", async (openingBalanceMinor) => {
+  it.each([10.5, "100", null, 2 ** 53])("rejects openingBalanceMinor %j", async (openingBalanceMinor) => {
     const result = await post({ ...validBody, openingBalanceMinor });
     expect(result.status).toBe(400);
     expect(query).not.toHaveBeenCalled();

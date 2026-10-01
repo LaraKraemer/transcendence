@@ -32,7 +32,9 @@ function makeRes() {
   const cookieOptions: Record<string, unknown>[] = [];
   return {
     locals: {},
-    cookie: vi.fn((_name, _val, opts) => { cookieOptions.push(opts); }),
+    cookie: vi.fn((_name, _val, opts) => {
+      cookieOptions.push(opts);
+    }),
     clearCookie: vi.fn(),
     status: vi.fn().mockReturnThis(),
     json: vi.fn(),
@@ -172,11 +174,14 @@ describe("clearSessionCookie", () => {
     clearSessionCookie(res);
 
     const clearMock = (res as unknown as { clearCookie: ReturnType<typeof vi.fn> }).clearCookie;
-    expect(clearMock).toHaveBeenCalledWith("session", expect.objectContaining({
-      httpOnly: true,
-      sameSite: "lax",
-      path: "/",
-    }));
+    expect(clearMock).toHaveBeenCalledWith(
+      "session",
+      expect.objectContaining({
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+      }),
+    );
   });
 });
 

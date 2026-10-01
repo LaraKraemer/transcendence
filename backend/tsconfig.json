@@ -2,7 +2,6 @@
   // Visit https://aka.ms/tsconfig to read more about this file
   "compilerOptions": {
     // File Layout
-    "rootDir": "./srcs",
     // "outDir": "./dist",
 
     // Environment Settings
@@ -17,8 +16,6 @@
 
     // Other Outputs
     "sourceMap": true,
-    "declaration": true,
-    "declarationMap": true,
     "noEmit": true,
     "allowImportingTsExtensions": true,
 
@@ -41,7 +38,7 @@
     "isolatedModules": true,
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
-    "skipLibCheck": true,
+    "skipLibCheck": true
   },
-  "include": ["srcs/**/*.ts"]
+  "include": ["srcs/**/*", "tests/**/*", "vitest.config.ts", "drizzle.config.ts"]
 }

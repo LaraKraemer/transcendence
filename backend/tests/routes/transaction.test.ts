@@ -51,7 +51,8 @@ function acctRow(overrides: Record<string, unknown> = {}) {
     overrides.type ?? "checking",
     overrides.currencyCode ?? "EUR",
     overrides.openingBalanceMinor ?? "0",
-    null, null,
+    null,
+    null,
     overrides.isArchived ?? false,
     new Date().toISOString(),
     new Date().toISOString(),
@@ -64,8 +65,13 @@ function summary(params: Record<string, unknown>) {
     const req = { method: "GET", url: "/summary", query: params } as Request;
     const res = {
       locals: {},
-      status(code: number) { status = code; return this; },
-      json(body: unknown) { resolve({ status, body }); },
+      status(code: number) {
+        status = code;
+        return this;
+      },
+      json(body: unknown) {
+        resolve({ status, body });
+      },
     } as Response;
     transactionsRouter(req, res, (error?: unknown) => reject(error ?? new Error("Route not found")));
   });
@@ -88,7 +94,10 @@ describe("GET /transactions/summary", () => {
 
   it("returns 404 when the ownership lookup finds no account", async () => {
     query.mockResolvedValueOnce({ rows: [] });
-    expect(await summary({ accountId })).toEqual({ status: 404, body: { error: "Account not found" } });
+    expect(await summary({ accountId })).toEqual({
+      status: 404,
+      body: { error: "Account not found" },
+    });
     expect(query).toHaveBeenCalledTimes(1);
     expect(query.mock.calls[0]![0].text).toContain('"account"."user_id" =');
     expect(query.mock.calls[0]![1]).toEqual([accountId, "550e8400-e29b-41d4-a716-446655440001", 1]);
@@ -96,7 +105,12 @@ describe("GET /transactions/summary", () => {
 
   it("groups by category, excludes voids, and converts database totals to numbers", async () => {
     query.mockResolvedValueOnce({ rows: [[accountId]] });
-    query.mockResolvedValueOnce({ rows: [[accountId, "-32000", "2"], [null, "-100", "1"]] });
+    query.mockResolvedValueOnce({
+      rows: [
+        [accountId, "-32000", "2"],
+        [null, "-100", "1"],
+      ],
+    });
     expect(await summary({ accountId, from: "2025-01-01", to: "2025-03-31" })).toEqual({
       status: 200,
       body: [
@@ -107,7 +121,7 @@ describe("GET /transactions/summary", () => {
     expect(query.mock.calls[0]![0].text.split(" where ")[1]).not.toContain("is_archived");
     const [statement, values] = query.mock.calls[1]!;
     expect(statement.text).toContain('SUM("amount_minor")');
-    expect(statement.text).toContain('COUNT(*)');
+    expect(statement.text).toContain("COUNT(*)");
     expect(statement.text).toContain('"transaction"."status" <>');
     expect(statement.text).toContain('"transaction"."booked_on" >=');
     expect(statement.text).toContain('"transaction"."booked_on" <=');
@@ -115,12 +129,15 @@ describe("GET /transactions/summary", () => {
     expect(values).toEqual([accountId, "void", "2025-01-01", "2025-03-31"]);
   });
 
-  it.each([{}, { from: "2025-01-01" }, { to: "2025-03-31" }])("supports optional date bounds %j and empty results", async (dates) => {
-    query.mockResolvedValueOnce({ rows: [[accountId]] });
-    query.mockResolvedValueOnce({ rows: [] });
-    expect(await summary({ accountId, ...dates })).toEqual({ status: 200, body: [] });
-    expect(query.mock.calls[1]![1]).toEqual([accountId, "void", ...Object.values(dates)]);
-  });
+  it.each([{}, { from: "2025-01-01" }, { to: "2025-03-31" }])(
+    "supports optional date bounds %j and empty results",
+    async (dates) => {
+      query.mockResolvedValueOnce({ rows: [[accountId]] });
+      query.mockResolvedValueOnce({ rows: [] });
+      expect(await summary({ accountId, ...dates })).toEqual({ status: 200, body: [] });
+      expect(query.mock.calls[1]![1]).toEqual([accountId, "void", ...Object.values(dates)]);
+    },
+  );
 
   it("forwards database errors", async () => {
     query.mockRejectedValueOnce(new Error("Database unavailable"));
@@ -128,7 +145,10 @@ describe("GET /transactions/summary", () => {
   });
 
   it("returns 400 for accountId='' (explicit empty string branch)", async () => {
-    expect(await summary({ accountId: "" })).toEqual({ status: 400, body: { error: "accountId is required" } });
+    expect(await summary({ accountId: "" })).toEqual({
+      status: 400,
+      body: { error: "accountId is required" },
+    });
     expect(query).not.toHaveBeenCalled();
   });
 });
@@ -137,17 +157,21 @@ describe("GET /transactions/summary", () => {
 
 describe("GET /transactions", () => {
   it.each([
-    ...["0", "201", "1.5", "20abc", "", ["20", "30"]].map((limit) => [
-      { accountId, limit }, "limit must be an integer between 1 and 200",
+    ...["0", "201", "1.5", "20abc", "", ["20", "30"]].map((limit): [Record<string, unknown>, string] => [
+      { accountId, limit },
+      "limit must be an integer between 1 and 200",
     ]),
-    ...["-1", "1.5", "3abc", "", ["0", "1"]].map((offset) => [
-      { accountId, offset }, "offset must be a non-negative integer",
+    ...["-1", "1.5", "3abc", "", ["0", "1"]].map((offset): [Record<string, unknown>, string] => [
+      { accountId, offset },
+      "offset must be a non-negative integer",
     ]),
     [{ accountId, from: "2025-1-01" }, "from must use YYYY-MM-DD format"],
     [{ accountId, to: "invalid" }, "to must use YYYY-MM-DD format"],
   ])("rejects invalid list parameters %j", async (params, error) => {
-    expect(await dispatch(transactionsRouter, { url: "/", query: params as Record<string, unknown> }))
-      .toEqual({ status: 400, body: { error } });
+    expect(await dispatch(transactionsRouter, { url: "/", query: params as Record<string, unknown> })).toEqual({
+      status: 400,
+      body: { error },
+    });
     expect(query).not.toHaveBeenCalled();
   });
 
@@ -155,8 +179,14 @@ describe("GET /transactions", () => {
     query.mockResolvedValueOnce({ rows: [acctRow()] });
     query.mockResolvedValueOnce({ rows: [txRow()] });
     query.mockResolvedValueOnce({ rows: [["87"]] });
-    const result = await dispatch(transactionsRouter, { url: "/", query: { accountId, limit, offset: "0" } });
-    expect(result).toMatchObject({ status: 200, body: { items: [{ id: transactionId }], total: 87 } });
+    const result = await dispatch(transactionsRouter, {
+      url: "/",
+      query: { accountId, limit, offset: "0" },
+    });
+    expect(result).toMatchObject({
+      status: 200,
+      body: { items: [{ id: transactionId }], total: 87 },
+    });
     expect(query.mock.calls[1]![0].text).toContain("limit $");
     expect(query.mock.calls[1]![1]).toEqual([accountId, Number(limit)]);
     expect(query.mock.calls[2]![0].text).toContain("count(*)");
@@ -169,7 +199,8 @@ describe("GET /transactions", () => {
     query.mockResolvedValueOnce({ rows: [txRow()] });
     query.mockResolvedValueOnce({ rows: [["42"]] });
     const result = await dispatch(transactionsRouter, {
-      url: "/", query: { accountId, from: "2025-01-01", to: "2025-03-31", limit: "20", offset: "20" },
+      url: "/",
+      query: { accountId, from: "2025-01-01", to: "2025-03-31", limit: "20", offset: "20" },
     });
     expect(result).toMatchObject({ status: 200, body: { items: [{ id: transactionId }], total: 42 } });
     for (const index of [1, 2]) {
@@ -184,12 +215,15 @@ describe("GET /transactions", () => {
   });
 
   it.each([{}, { from: "2025-01-01" }, { to: "2025-03-31" }])(
-    "supports independent optional filters %j and no matches", async (filters) => {
+    "supports independent optional filters %j and no matches",
+    async (filters) => {
       query.mockResolvedValueOnce({ rows: [acctRow()] });
       query.mockResolvedValueOnce({ rows: [] });
       query.mockResolvedValueOnce({ rows: [["0"]] });
-      expect(await dispatch(transactionsRouter, { url: "/", query: { accountId, ...filters } }))
-        .toEqual({ status: 200, body: { items: [], total: 0 } });
+      expect(await dispatch(transactionsRouter, { url: "/", query: { accountId, ...filters } })).toEqual({
+        status: 200,
+        body: { items: [], total: 0 },
+      });
       expect(query.mock.calls[1]![1]).toEqual([accountId, ...Object.values(filters), 50]);
       expect(query.mock.calls[2]![1]).toEqual([accountId, ...Object.values(filters)]);
     },
@@ -199,8 +233,10 @@ describe("GET /transactions", () => {
     query.mockResolvedValueOnce({ rows: [acctRow()] });
     query.mockResolvedValueOnce({ rows: [] });
     query.mockResolvedValueOnce({ rows: [["3"]] });
-    expect(await dispatch(transactionsRouter, { url: "/", query: { accountId, offset: "50" } }))
-      .toEqual({ status: 200, body: { items: [], total: 3 } });
+    expect(await dispatch(transactionsRouter, { url: "/", query: { accountId, offset: "50" } })).toEqual({
+      status: 200,
+      body: { items: [], total: 3 },
+    });
     expect(query.mock.calls[1]![1]).toEqual([accountId, 50, 50]);
   });
 
@@ -211,7 +247,10 @@ describe("GET /transactions", () => {
   });
 
   it("returns 400 when accountId is an array (repeated param)", async () => {
-    const result = await dispatch(transactionsRouter, { url: "/", query: { accountId: [accountId, accountId] } });
+    const result = await dispatch(transactionsRouter, {
+      url: "/",
+      query: { accountId: [accountId, accountId] },
+    });
     expect(result).toEqual({ status: 400, body: { error: "accountId is required" } });
     expect(query).not.toHaveBeenCalled();
   });
@@ -467,7 +506,9 @@ describe("PATCH /transactions/:transactionId", () => {
 
   it("null clears notes, categoryId, occurredAt", async () => {
     query.mockResolvedValueOnce({ rows: [txRow({ categoryId })] }); // findOwnedTransaction
-    query.mockResolvedValueOnce({ rows: [txRow({ notes: null, categoryId: null, occurredAt: null })] });
+    query.mockResolvedValueOnce({
+      rows: [txRow({ notes: null, categoryId: null, occurredAt: null })],
+    });
 
     await patch(transactionId, { notes: null, categoryId: null, occurredAt: null });
 
@@ -521,13 +562,20 @@ describe("DELETE /transactions/:transactionId", () => {
 // ─── Category rule (POST and PATCH) ──────────────────────────────────────────
 
 describe("POST /transactions — category rule", () => {
-  const validBody = { accountId, amountMinor: -1000, description: "Coffee", bookedOn: "2025-01-15" };
+  const validBody = {
+    accountId,
+    amountMinor: -1000,
+    description: "Coffee",
+    bookedOn: "2025-01-15",
+  };
 
   it("returns 404 for a missing or foreign category", async () => {
     query.mockResolvedValueOnce({ rows: [acctRow()] }); // findOwnedAccount
     query.mockResolvedValueOnce({ rows: [] }); // findCategoryKind → not found
     const result = await dispatch(transactionsRouter, {
-      method: "POST", url: "/", body: { ...validBody, categoryId },
+      method: "POST",
+      url: "/",
+      body: { ...validBody, categoryId },
     });
     expect(result).toEqual({ status: 404, body: { error: "Category not found" } });
   });
@@ -536,7 +584,9 @@ describe("POST /transactions — category rule", () => {
     query.mockResolvedValueOnce({ rows: [acctRow()] });
     query.mockResolvedValueOnce({ rows: [] }); // findCategoryKind with allowArchived=false → not found
     const result = await dispatch(transactionsRouter, {
-      method: "POST", url: "/", body: { ...validBody, categoryId },
+      method: "POST",
+      url: "/",
+      body: { ...validBody, categoryId },
     });
     expect(result.status).toBe(404);
   });
@@ -545,7 +595,9 @@ describe("POST /transactions — category rule", () => {
     query.mockResolvedValueOnce({ rows: [acctRow()] });
     query.mockResolvedValueOnce({ rows: [["expense"]] }); // findCategoryKind → expense kind
     const result = await dispatch(transactionsRouter, {
-      method: "POST", url: "/", body: { ...validBody, amountMinor: 1000, categoryId },
+      method: "POST",
+      url: "/",
+      body: { ...validBody, amountMinor: 1000, categoryId },
     });
     expect(result.status).toBe(400);
   });
@@ -554,7 +606,9 @@ describe("POST /transactions — category rule", () => {
     query.mockResolvedValueOnce({ rows: [acctRow()] });
     query.mockResolvedValueOnce({ rows: [["income"]] }); // income kind
     const result = await dispatch(transactionsRouter, {
-      method: "POST", url: "/", body: { ...validBody, amountMinor: -1000, categoryId },
+      method: "POST",
+      url: "/",
+      body: { ...validBody, amountMinor: -1000, categoryId },
     });
     expect(result.status).toBe(400);
   });
@@ -564,7 +618,9 @@ describe("POST /transactions — category rule", () => {
     query.mockResolvedValueOnce({ rows: [["transfer"]] });
     query.mockResolvedValueOnce({ rows: [txRow()] });
     const result = await dispatch(transactionsRouter, {
-      method: "POST", url: "/", body: { ...validBody, amountMinor: 1000, categoryId },
+      method: "POST",
+      url: "/",
+      body: { ...validBody, amountMinor: 1000, categoryId },
     });
     expect(result.status).toBe(201);
   });
@@ -574,7 +630,9 @@ describe("POST /transactions — category rule", () => {
     query.mockResolvedValueOnce({ rows: [["expense"]] });
     query.mockResolvedValueOnce({ rows: [txRow()] });
     const result = await dispatch(transactionsRouter, {
-      method: "POST", url: "/", body: { ...validBody, amountMinor: -1000, categoryId },
+      method: "POST",
+      url: "/",
+      body: { ...validBody, amountMinor: -1000, categoryId },
     });
     expect(result.status).toBe(201);
   });
@@ -586,7 +644,9 @@ describe("PATCH /transactions/:transactionId — category rule", () => {
     query.mockResolvedValueOnce({ rows: [txRow({ categoryId, amountMinor: "-1000" })] });
     query.mockResolvedValueOnce({ rows: [["expense"]] }); // findCategoryKind
     const result = await dispatch(transactionsRouter, {
-      method: "PATCH", url: `/${transactionId}`, body: { amountMinor: 1000 },
+      method: "PATCH",
+      url: `/${transactionId}`,
+      body: { amountMinor: 1000 },
     });
     expect(result.status).toBe(400);
   });
@@ -595,7 +655,9 @@ describe("PATCH /transactions/:transactionId — category rule", () => {
     query.mockResolvedValueOnce({ rows: [txRow({ amountMinor: "-1000" })] });
     query.mockResolvedValueOnce({ rows: [["income"]] }); // income category for negative tx
     const result = await dispatch(transactionsRouter, {
-      method: "PATCH", url: `/${transactionId}`, body: { categoryId },
+      method: "PATCH",
+      url: `/${transactionId}`,
+      body: { categoryId },
     });
     expect(result.status).toBe(400);
   });
@@ -606,7 +668,9 @@ describe("PATCH /transactions/:transactionId — category rule", () => {
     query.mockResolvedValueOnce({ rows: [["expense"]] }); // findCategoryKind with allowArchived=true
     query.mockResolvedValueOnce({ rows: [txRow({ description: "New desc" })] });
     const result = await dispatch(transactionsRouter, {
-      method: "PATCH", url: `/${transactionId}`, body: { description: "New desc" },
+      method: "PATCH",
+      url: `/${transactionId}`,
+      body: { description: "New desc" },
     });
     expect(result.status).toBe(200);
   });
@@ -615,7 +679,9 @@ describe("PATCH /transactions/:transactionId — category rule", () => {
     query.mockResolvedValueOnce({ rows: [txRow({ categoryId, amountMinor: "-1000" })] });
     query.mockResolvedValueOnce({ rows: [] }); // findCategoryKind with allowArchived=false → not found
     const result = await dispatch(transactionsRouter, {
-      method: "PATCH", url: `/${transactionId}`, body: { categoryId },
+      method: "PATCH",
+      url: `/${transactionId}`,
+      body: { categoryId },
     });
     expect(result.status).toBe(404);
   });
@@ -624,7 +690,9 @@ describe("PATCH /transactions/:transactionId — category rule", () => {
     query.mockResolvedValueOnce({ rows: [txRow({ categoryId })] }); // findOwnedTransaction
     query.mockResolvedValueOnce({ rows: [txRow({ categoryId: null })] }); // updateTransaction
     const result = await dispatch(transactionsRouter, {
-      method: "PATCH", url: `/${transactionId}`, body: { categoryId: null },
+      method: "PATCH",
+      url: `/${transactionId}`,
+      body: { categoryId: null },
     });
     expect(result.status).toBe(200);
     expect(query).toHaveBeenCalledTimes(2); // no category lookup

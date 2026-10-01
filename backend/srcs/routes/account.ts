@@ -17,7 +17,6 @@ function isAccountType(value: unknown): value is AccountType {
   return typeof value === "string" && ACCOUNT_TYPES.includes(value as AccountType);
 }
 
-
 export const accountsRouter = Router();
 
 accountsRouter.use(requireAuthenticatedUser);

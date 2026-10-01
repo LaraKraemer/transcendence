@@ -21,19 +21,11 @@ authRouter.post("/register", async (req, res, next) => {
     res.status(400).json({ error: "A valid email is required" });
     return;
   }
-  if (
-    typeof password !== "string" ||
-    password.length < 12 ||
-    Buffer.byteLength(password, "utf8") > 72
-  ) {
+  if (typeof password !== "string" || password.length < 12 || Buffer.byteLength(password, "utf8") > 72) {
     res.status(400).json({ error: "Password must be 12 to 72 bytes" });
     return;
   }
-  if (
-    typeof displayName !== "string" ||
-    displayName.trim().length === 0 ||
-    displayName.trim().length > 100
-  ) {
+  if (typeof displayName !== "string" || displayName.trim().length === 0 || displayName.trim().length > 100) {
     res.status(400).json({ error: "displayName must be between 1 and 100 characters" });
     return;
   }

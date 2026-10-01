@@ -42,10 +42,8 @@ export function dispatch(
         resolve({ status, body: undefined });
       },
     };
-    router(
-      req as unknown as Request,
-      res as unknown as Response,
-      (error?: unknown) => reject(error ?? new Error(`No route for ${method} ${url}`)),
+    router(req as unknown as Request, res as unknown as Response, (error?: unknown) =>
+      reject(error ?? new Error(`No route for ${method} ${url}`)),
     );
   });
 }

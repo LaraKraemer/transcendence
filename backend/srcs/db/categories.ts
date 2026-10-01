@@ -18,13 +18,7 @@ export async function findCategoryByNameAndKind(userId: string, name: string, ki
   const [category] = await db
     .select({ id: categories.id })
     .from(categories)
-    .where(
-      and(
-        eq(categories.userId, userId),
-        eq(categories.name, name),
-        eq(categories.kind, kind),
-      ),
-    )
+    .where(and(eq(categories.userId, userId), eq(categories.name, name), eq(categories.kind, kind)))
     .limit(1);
 
   return category;
@@ -43,19 +37,15 @@ export async function insertCategory(values: NewCategory) {
   return category;
 }
 
-export async function updateCategory(categoryId: string, updates: Partial<Pick<NewCategory, "name" | "icon" | "color">>) {
-  const [category] = await db
-    .update(categories)
-    .set(updates)
-    .where(eq(categories.id, categoryId))
-    .returning();
+export async function updateCategory(
+  categoryId: string,
+  updates: Partial<Pick<NewCategory, "name" | "icon" | "color">>,
+) {
+  const [category] = await db.update(categories).set(updates).where(eq(categories.id, categoryId)).returning();
 
   return category;
 }
 
 export async function archiveCategory(categoryId: string) {
-  await db
-    .update(categories)
-    .set({ isArchived: true })
-    .where(eq(categories.id, categoryId));
+  await db.update(categories).set({ isArchived: true }).where(eq(categories.id, categoryId));
 }
