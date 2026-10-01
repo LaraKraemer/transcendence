@@ -69,7 +69,11 @@ services:
 
     environment:
       NODE_ENV: development
+      # Browser-facing URL for the client bundle (user's browser hits localhost).
       NEXT_PUBLIC_API_URL: http://localhost:3001
+      # Server-side URL for server components / actions / DAL. Inside the Docker
+      # network the backend is reached by its compose service name, not localhost.
+      API_URL: http://backend:3001
 
     depends_on:
       - backend
