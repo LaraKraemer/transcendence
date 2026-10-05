@@ -82,16 +82,15 @@ accountsRouter.get("/:accountId/balance", async (req, res) => {
     return;
   }
 
-	const account = await findOwnedAccount(req.params.accountId, res.locals.userId);
-	if (!account) {
-		res.status(404).json({ error: "Account not found" });
-		return;
-	}
+  const account = await findOwnedAccount(req.params.accountId, res.locals.userId);
+  if (!account) {
+    res.status(404).json({ error: "Account not found" });
+    return;
+  }
 
-	const transactionSum = await sumTransactions(account.id);
-	const balanceMinor = account.openingBalanceMinor + transactionSum;
-	res.json({ balanceMinor, currencyCode: account.currencyCode });
-
+  const transactionSum = await sumTransactions(account.id);
+  const balanceMinor = account.openingBalanceMinor + transactionSum;
+  res.json({ balanceMinor, currencyCode: account.currencyCode });
 });
 
 /** Returns one account owned by the authenticated user. */
@@ -183,23 +182,22 @@ accountsRouter.patch("/:accountId", async (req, res) => {
     return;
   }
 
-  try {
-    const account = await findOwnedAccount(req.params.accountId, res.locals.userId);
-    if (!account) {
-      res.status(404).json({ error: "Account not found" });
-      return;
-    }
+  const account = await findOwnedAccount(req.params.accountId, res.locals.userId);
+  if (!account) {
+    res.status(404).json({ error: "Account not found" });
+    return;
+  }
 
-    if (
-      updates.currencyCode !== undefined &&
-      updates.currencyCode !== account.currencyCode &&
-      (await hasTransactions(account.id))
-    ) {
-      res.status(409).json({
-        error: "currencyCode cannot be changed while the account contains transactions",
-      });
-      return;
-    }
+  if (
+    updates.currencyCode !== undefined &&
+    updates.currencyCode !== account.currencyCode &&
+    (await hasTransactions(account.id))
+  ) {
+    res.status(409).json({
+      error: "currencyCode cannot be changed while the account contains transactions",
+    });
+    return;
+  }
 
   const updatedAccount = await updateAccount(account.id, updates);
   res.json(updatedAccount);

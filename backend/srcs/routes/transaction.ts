@@ -101,7 +101,7 @@ transactionsRouter.get("/", async (req, res) => {
 });
 
 /** Returns transaction totals by category, including uncategorized transactions. */
-transactionsRouter.get("/summary", async (req, res, next) => {
+transactionsRouter.get("/summary", async (req, res) => {
   const accountId = typeof req.query.accountId === "string" ? req.query.accountId : undefined;
   const { from, to } = req.query;
 
@@ -157,23 +157,22 @@ transactionsRouter.patch("/:transactionId", async (req, res) => {
 
   const body = req.body ?? {};
 
-  try {
-    const transaction = await findOwnedTransaction(req.params.transactionId, res.locals.userId);
-    if (!transaction) {
-      res.status(404).json({ error: "Transaction not found" });
-      return;
-    }
+  const transaction = await findOwnedTransaction(req.params.transactionId, res.locals.userId);
+  if (!transaction) {
+    res.status(404).json({ error: "Transaction not found" });
+    return;
+  }
 
-    const updates: {
-      categoryId?: string | null;
-      amountMinor?: number;
-      description?: string;
-      notes?: string | null;
-      bookedOn?: string;
-      occurredAt?: Date | null;
-      updatedAt: Date;
-    } = { updatedAt: new Date() };
-    let hasUpdates = false;
+  const updates: {
+    categoryId?: string | null;
+    amountMinor?: number;
+    description?: string;
+    notes?: string | null;
+    bookedOn?: string;
+    occurredAt?: Date | null;
+    updatedAt: Date;
+  } = { updatedAt: new Date() };
+  let hasUpdates = false;
 
   if (Object.hasOwn(body, "amountMinor")) {
     if (!Number.isSafeInteger(body.amountMinor) || body.amountMinor === 0) {
@@ -224,23 +223,6 @@ transactionsRouter.patch("/:transactionId", async (req, res) => {
     hasUpdates = true;
   }
 
-  if (Object.hasOwn(body, "status")) {
-    if (!isTransactionStatus(body.status)) {
-      res.status(400).json({ error: "status must be pending, cleared, or void" });
-      return;
-    }
-    updates.status = body.status;
-    hasUpdates = true;
-  }
-    if (Object.hasOwn(body, "bookedOn")) {
-      if (!isDateOnly(body.bookedOn)) {
-        res.status(400).json({ error: "bookedOn must use YYYY-MM-DD format" });
-        return;
-      }
-      updates.bookedOn = body.bookedOn;
-      hasUpdates = true;
-    }
-
   if (Object.hasOwn(body, "occurredAt")) {
     if (body.occurredAt !== null && !isIsoTimestamp(body.occurredAt)) {
       res.status(400).json({ error: "occurredAt must be a valid ISO 8601 timestamp or null" });
@@ -255,51 +237,47 @@ transactionsRouter.patch("/:transactionId", async (req, res) => {
     return;
   }
 
-    const candidateAmount = updates.amountMinor ?? transaction.amountMinor;
-    const candidateCategoryId = Object.hasOwn(updates, "categoryId")
-      ? (updates.categoryId ?? null)
-      : transaction.categoryId;
-    const categoryError = await validateCategory(
-      candidateCategoryId,
-      candidateAmount,
-      res.locals.userId,
-      !Object.hasOwn(body, "categoryId"),
-    );
-    if (categoryError) {
-      res.status(categoryError.status).json({ error: categoryError.error });
-      return;
-    }
+  const candidateAmount = updates.amountMinor ?? transaction.amountMinor;
+  const candidateCategoryId = Object.hasOwn(updates, "categoryId")
+    ? (updates.categoryId ?? null)
+    : transaction.categoryId;
+  const categoryError = await validateCategory(
+    candidateCategoryId,
+    candidateAmount,
+    res.locals.userId,
+    !Object.hasOwn(body, "categoryId"),
+  );
+  if (categoryError) {
+    res.status(categoryError.status).json({ error: categoryError.error });
+    return;
+  }
 
   const updatedTransaction = await updateTransaction(transaction.id, updates);
   res.json(updatedTransaction);
 });
 
 /** Permanently deletes a transaction owned by the authenticated user. */
-transactionsRouter.delete("/:transactionId", async (req, res, next) => {
+transactionsRouter.delete("/:transactionId", async (req, res) => {
   if (!isUuid(req.params.transactionId)) {
     res.status(400).json({ error: "transactionId must be a valid UUID" });
     return;
   }
 
-  try {
-    const transaction = await findOwnedTransaction(req.params.transactionId, res.locals.userId);
-    if (!transaction) {
-      res.status(404).json({ error: "Transaction not found" });
-      return;
-    }
-
-    await deleteTransaction(transaction.id);
-    res.status(204).send();
-  } catch (error) {
-    next(error);
+  const transaction = await findOwnedTransaction(req.params.transactionId, res.locals.userId);
+  if (!transaction) {
+    res.status(404).json({ error: "Transaction not found" });
+    return;
   }
+
+  await deleteTransaction(transaction.id);
+  res.status(204).send();
 });
 
 /**
  * Creates an expense, income, or transfer transaction in an account owned by the
  * authenticated user.
  */
-transactionsRouter.post("/", async (req, res, next) => {
+transactionsRouter.post("/", async (req, res) => {
   const { accountId, categoryId, amountMinor, description, notes, bookedOn, occurredAt } = req.body ?? {};
 
   if (!isUuid(accountId)) {
@@ -337,32 +315,28 @@ transactionsRouter.post("/", async (req, res, next) => {
     return;
   }
 
-  try {
-    const account = await findOwnedAccount(accountId, res.locals.userId, false);
-    if (!account) {
-      res.status(404).json({ error: "Account not found" });
-      return;
-    }
-
-    const categoryError = await validateCategory(categoryId ?? null, amountMinor, res.locals.userId);
-    if (categoryError) {
-      res.status(categoryError.status).json({ error: categoryError.error });
-      return;
-    }
-
-    const transaction = await insertTransaction({
-      accountId: account.id,
-      createdById: res.locals.userId,
-      ...(categoryId === undefined ? {} : { categoryId }),
-      amountMinor,
-      description: description.trim(),
-      ...(notes === undefined ? {} : { notes: notes.trim() }),
-      bookedOn,
-      ...(occurredAt === undefined ? {} : { occurredAt: occurredAt === null ? null : new Date(occurredAt) }),
-    });
-
-    res.status(201).json(transaction);
-  } catch (error) {
-    next(error);
+  const account = await findOwnedAccount(accountId, res.locals.userId, false);
+  if (!account) {
+    res.status(404).json({ error: "Account not found" });
+    return;
   }
+
+  const categoryError = await validateCategory(categoryId ?? null, amountMinor, res.locals.userId);
+  if (categoryError) {
+    res.status(categoryError.status).json({ error: categoryError.error });
+    return;
+  }
+
+  const transaction = await insertTransaction({
+    accountId: account.id,
+    createdById: res.locals.userId,
+    ...(categoryId === undefined ? {} : { categoryId }),
+    amountMinor,
+    description: description.trim(),
+    ...(notes === undefined ? {} : { notes: notes.trim() }),
+    bookedOn,
+    ...(occurredAt === undefined ? {} : { occurredAt: occurredAt === null ? null : new Date(occurredAt) }),
+  });
+
+  res.status(201).json(transaction);
 });
