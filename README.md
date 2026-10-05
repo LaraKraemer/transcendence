@@ -241,8 +241,7 @@ modify another user's financial data.
 | Transactions | `GET`, `POST` `/transactions`; `GET`, `PATCH`, `DELETE` `/transactions/:transactionId` |
 
 `GET /transactions` requires an `accountId` query parameter. Account and
-category deletion archives the resource; transaction deletion changes its
-status to `void` so financial history is retained.
+category deletion archives the resource; transaction deletion permanently removes the row.
 
 
 <br>
@@ -251,7 +250,7 @@ status to `void` so financial history is retained.
 
 The repository includes a Bruno collection for repeatable local API testing in
 `backend/bruno/`. It registers a disposable user, creates an account, category,
-and transaction, then updates and voids that transaction.
+and transaction, then updates and deletes that transaction.
 
 1. Start the services:
 
@@ -270,6 +269,13 @@ and transaction, then updates and voids that transaction.
 
 4. Open the `backend/bruno/` folder as a collection in the Bruno desktop app,
    choose the `local` environment, and run requests in numerical order.
+  
+	OR run bruno test from CLI
+
+	```bash
+   cd backend/bruno
+	npx bru run --env local
+   ```
 
 See [the Bruno collection guide](backend/bruno/README.md) for details. The
 local `.env` file and any `cookies.txt` files are ignored by Git.

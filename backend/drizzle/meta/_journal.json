@@ -43,6 +43,13 @@
       "when": 1787663810162,
       "tag": "0005_charming_doorman",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790689831772,
+      "tag": "0006_remove_transaction_status",
+      "breakpoints": true
     }
   ]
 }

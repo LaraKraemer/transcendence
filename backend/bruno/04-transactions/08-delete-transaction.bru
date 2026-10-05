@@ -1,5 +1,5 @@
 meta {
-  name: 08 - Void transaction
+  name: 08 - Delete transaction
   type: http
   seq: 9
 }
@@ -11,7 +11,7 @@ delete {
 }
 
 tests {
-  test("transaction is voided", function () {
+  test("transaction is deleted", function () {
     expect(res.getStatus()).to.equal(204);
   });
 }

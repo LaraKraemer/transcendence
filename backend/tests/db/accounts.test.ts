@@ -6,7 +6,7 @@ vi.mock("../../srcs/db/client.ts", async () => {
   return { db: drizzle({ query } as unknown as import("pg").Pool) };
 });
 
-import { findOwnedAccount, sumNonVoidTransactions } from "../../srcs/db/accounts.ts";
+import { findOwnedAccount, sumTransactions } from "../../srcs/db/accounts.ts";
 
 const accountId = "550e8400-e29b-41d4-a716-446655440000";
 const userId = "550e8400-e29b-41d4-a716-446655440001";
@@ -50,22 +50,20 @@ describe("findOwnedAccount", () => {
   });
 });
 
-describe("sumNonVoidTransactions", () => {
-  it("filters on account_id AND excludes void with <> operator", async () => {
+describe("sumTransactions", () => {
+  it("filters transactions by account_id", async () => {
     query.mockResolvedValueOnce({ rows: [["5000"]] });
-    await sumNonVoidTransactions(accountId);
+    await sumTransactions(accountId);
 
     const sql: string = query.mock.calls[0]![0].text;
     const params: unknown[] = query.mock.calls[0]![1];
-    // <> not = — wrong operator would sum only void transactions
-    expect(sql).toMatch(/"transaction"."account_id" = \$\d+ and "transaction"."status" <> \$\d+/);
-    expect(params).toContain(accountId);
-    expect(params).toContain("void");
+    expect(sql).toMatch(/"transaction"."account_id" = \$\d+/);
+    expect(params).toEqual([accountId]);
   });
 
   it("sums amount_minor", async () => {
     query.mockResolvedValueOnce({ rows: [["5000"]] });
-    await sumNonVoidTransactions(accountId);
+    await sumTransactions(accountId);
 
     const sql: string = query.mock.calls[0]![0].text;
     expect(sql).toContain('sum("amount_minor")');
@@ -73,11 +71,11 @@ describe("sumNonVoidTransactions", () => {
 
   it("returns 0 when result is null (no transactions)", async () => {
     query.mockResolvedValueOnce({ rows: [[null]] });
-    expect(await sumNonVoidTransactions(accountId)).toBe(0);
+    expect(await sumTransactions(accountId)).toBe(0);
   });
 
   it("returns the numeric sum", async () => {
     query.mockResolvedValueOnce({ rows: [["3000"]] });
-    expect(await sumNonVoidTransactions(accountId)).toBe(3000);
+    expect(await sumTransactions(accountId)).toBe(3000);
   });
 });

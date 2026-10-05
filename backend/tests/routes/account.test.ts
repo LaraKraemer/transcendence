@@ -80,7 +80,7 @@ describe("GET /accounts/:accountId/balance", () => {
     });
   });
 
-  it("sums only non-void transactions", async () => {
+  it("sums transactions for the requested account", async () => {
     query.mockResolvedValueOnce({ rows: [accountRow()] });
     query.mockResolvedValueOnce({ rows: [[null]] });
 
@@ -88,8 +88,7 @@ describe("GET /accounts/:accountId/balance", () => {
 
     const sumSql = query.mock.calls[1]![0].text as string;
     expect(sumSql).toContain('"transaction"."account_id"');
-    expect(sumSql).toContain('"transaction"."status"');
-    expect(query.mock.calls[1]![1]).toContain("void");
+    expect(query.mock.calls[1]![1]).toEqual([accountId]);
   });
 
   it("checks ownership including archived accounts", async () => {

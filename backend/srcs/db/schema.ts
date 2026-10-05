@@ -69,8 +69,6 @@ export const transactions = pgTable(
     bookedOn: date("booked_on").notNull(),
     occurredAt: timestamp("occurred_at", { withTimezone: true }),
 
-    status: text("status").notNull().default("cleared"),
-
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
