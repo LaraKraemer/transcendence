@@ -269,8 +269,8 @@ and transaction, then updates and deletes that transaction.
 
 4. Open the `backend/bruno/` folder as a collection in the Bruno desktop app,
    choose the `local` environment, and run requests in numerical order.
-   
-   OR run bruno test from CLI
+  
+	OR run bruno test from CLI
 
 	```bash
    cd backend/bruno
