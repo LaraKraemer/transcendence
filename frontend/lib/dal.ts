@@ -9,6 +9,8 @@
  */
 import "server-only";
 
+import { cache } from "react";
+
 import { ApiError, fetchApi } from "@/lib/api";
 import { getSessionCookieHeader } from "@/lib/session";
 import type { User } from "@/lib/types";
@@ -21,8 +23,11 @@ import type { User } from "@/lib/types";
  * means "not logged in" and maps to `null`; any other failure is logged and
  * also treated as `null` so a transient backend error degrades to logged-out
  * rather than crashing the render.
+ *
+ * Wrapped in React `cache()` so the root layout and the route-group layouts
+ * share one `/auth/me` call per request instead of each making their own.
  */
-export async function getCurrentUser(): Promise<User | null> {
+export const getCurrentUser = cache(async (): Promise<User | null> => {
   const cookie = await getSessionCookieHeader();
   if (!cookie) return null;
 
@@ -36,4 +41,4 @@ export async function getCurrentUser(): Promise<User | null> {
     console.error("getCurrentUser failed:", error);
     return null;
   }
-}
+});

@@ -45,13 +45,21 @@ function backendBaseUrl(): string {
 /**
  * Posts credentials to a backend auth endpoint that starts a session, mirrors
  * the returned `Set-Cookie` onto the browser, and returns the authenticated user.
+ * A network failure (backend unreachable) is returned as a failed response so
+ * the form can show a message instead of hitting an unhandled error.
  */
 async function startSession(path: string, payload: unknown, successMessage: string): Promise<ActionResponse> {
-  const res = await fetch(`${backendBaseUrl()}${path}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${backendBaseUrl()}${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+  } catch (error) {
+    console.error(`startSession: request to ${path} failed:`, error);
+    return { success: false, message: "Could not reach the server. Please try again later." };
+  }
 
   const body = await res.json().catch(() => ({}));
 
