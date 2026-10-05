@@ -203,7 +203,8 @@ later requires recreating the volume.
 
 The backend supports email/password registration and session-based login. The
 session is stored in an HTTP-only cookie; clients must send requests with
-credentials enabled.
+credentials enabled. Sessions expired or revoked more than seven days ago are
+deleted at startup and every six hours.
 
 | Method | Endpoint | Purpose |
 |---|---|---|
@@ -499,7 +500,7 @@ git checkout -b feature/<feature-name>
 Commit changes:
 
 ```bash
-git add .
+git add -p
 
 git commit -m "Describe your change"
 ```

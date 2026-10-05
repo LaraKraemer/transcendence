@@ -50,7 +50,7 @@ transactionsRouter.use(requireAuthenticatedUser);
  * Required query parameter: accountId
  * Optional query parameters: limit (default 50), offset (default 0), from, to
  */
-transactionsRouter.get("/", async (req, res, next) => {
+transactionsRouter.get("/", async (req, res) => {
   const accountId = typeof req.query.accountId === "string" ? req.query.accountId : undefined;
 
   if (!accountId) {
@@ -84,24 +84,20 @@ transactionsRouter.get("/", async (req, res, next) => {
     return;
   }
 
-  try {
-    const account = await findOwnedAccount(accountId, res.locals.userId);
+  const account = await findOwnedAccount(accountId, res.locals.userId);
 
-    if (!account) {
-      res.status(404).json({ error: "Account not found" });
-      return;
-    }
-
-    const result = await listTransactionsByAccount(account.id, {
-      limit,
-      offset,
-      ...(from === undefined ? {} : { from }),
-      ...(to === undefined ? {} : { to }),
-    });
-    res.json(result);
-  } catch (error) {
-    next(error);
+  if (!account) {
+    res.status(404).json({ error: "Account not found" });
+    return;
   }
+
+  const result = await listTransactionsByAccount(account.id, {
+    limit,
+    offset,
+    ...(from === undefined ? {} : { from }),
+    ...(to === undefined ? {} : { to }),
+  });
+  res.json(result);
 });
 
 /** Returns transaction totals by category, including uncategorized transactions. */
@@ -126,46 +122,34 @@ transactionsRouter.get("/summary", async (req, res, next) => {
     return;
   }
 
-  try {
-    const account = await findOwnedAccount(accountId, res.locals.userId);
-    if (!account) {
-      res.status(404).json({ error: "Account not found" });
-      return;
-    }
-
-    const rows = await summarizeTransactionsByCategory(
-      account.id,
-      from as string | undefined,
-      to as string | undefined,
-    );
-    res.json(rows);
-  } catch (error) {
-    next(error);
+  const account = await findOwnedAccount(accountId, res.locals.userId);
+  if (!account) {
+    res.status(404).json({ error: "Account not found" });
+    return;
   }
+
+  const rows = await summarizeTransactionsByCategory(account.id, from as string | undefined, to as string | undefined);
+  res.json(rows);
 });
 
 /** Returns one transaction from an account owned by the authenticated user. */
-transactionsRouter.get("/:transactionId", async (req, res, next) => {
+transactionsRouter.get("/:transactionId", async (req, res) => {
   if (!isUuid(req.params.transactionId)) {
     res.status(400).json({ error: "transactionId must be a valid UUID" });
     return;
   }
 
-  try {
-    const transaction = await findOwnedTransaction(req.params.transactionId, res.locals.userId);
-    if (!transaction) {
-      res.status(404).json({ error: "Transaction not found" });
-      return;
-    }
-
-    res.json(transaction);
-  } catch (error) {
-    next(error);
+  const transaction = await findOwnedTransaction(req.params.transactionId, res.locals.userId);
+  if (!transaction) {
+    res.status(404).json({ error: "Transaction not found" });
+    return;
   }
+
+  res.json(transaction);
 });
 
 /** Updates a transaction while preserving account ownership and category rules. */
-transactionsRouter.patch("/:transactionId", async (req, res, next) => {
+transactionsRouter.patch("/:transactionId", async (req, res) => {
   if (!isUuid(req.params.transactionId)) {
     res.status(400).json({ error: "transactionId must be a valid UUID" });
     return;
@@ -191,46 +175,63 @@ transactionsRouter.patch("/:transactionId", async (req, res, next) => {
     } = { updatedAt: new Date() };
     let hasUpdates = false;
 
-    if (Object.hasOwn(body, "amountMinor")) {
-      if (!Number.isSafeInteger(body.amountMinor) || body.amountMinor === 0) {
-        res.status(400).json({ error: "amountMinor must be a non-zero safe integer" });
-        return;
-      }
-      updates.amountMinor = body.amountMinor;
-      hasUpdates = true;
+  if (Object.hasOwn(body, "amountMinor")) {
+    if (!Number.isSafeInteger(body.amountMinor) || body.amountMinor === 0) {
+      res.status(400).json({ error: "amountMinor must be a non-zero safe integer" });
+      return;
     }
+    updates.amountMinor = body.amountMinor;
+    hasUpdates = true;
+  }
 
-    if (Object.hasOwn(body, "categoryId")) {
-      if (body.categoryId !== null && !isUuid(body.categoryId)) {
-        res.status(400).json({ error: "categoryId must be a valid UUID or null" });
-        return;
-      }
-      updates.categoryId = body.categoryId;
-      hasUpdates = true;
+  if (Object.hasOwn(body, "categoryId")) {
+    if (body.categoryId !== null && !isUuid(body.categoryId)) {
+      res.status(400).json({ error: "categoryId must be a valid UUID or null" });
+      return;
     }
+    updates.categoryId = body.categoryId;
+    hasUpdates = true;
+  }
 
-    if (Object.hasOwn(body, "description")) {
-      if (
-        typeof body.description !== "string" ||
-        body.description.trim().length === 0 ||
-        body.description.trim().length > 500
-      ) {
-        res.status(400).json({ error: "description must be between 1 and 500 characters" });
-        return;
-      }
-      updates.description = body.description.trim();
-      hasUpdates = true;
+  if (Object.hasOwn(body, "description")) {
+    if (
+      typeof body.description !== "string" ||
+      body.description.trim().length === 0 ||
+      body.description.trim().length > 500
+    ) {
+      res.status(400).json({ error: "description must be between 1 and 500 characters" });
+      return;
     }
+    updates.description = body.description.trim();
+    hasUpdates = true;
+  }
 
-    if (Object.hasOwn(body, "notes")) {
-      if (body.notes !== null && typeof body.notes !== "string") {
-        res.status(400).json({ error: "notes must be a string or null" });
-        return;
-      }
-      updates.notes = body.notes === null ? null : body.notes.trim();
-      hasUpdates = true;
+  if (Object.hasOwn(body, "notes")) {
+    if (body.notes !== null && typeof body.notes !== "string") {
+      res.status(400).json({ error: "notes must be a string or null" });
+      return;
     }
+    updates.notes = body.notes === null ? null : body.notes.trim();
+    hasUpdates = true;
+  }
 
+  if (Object.hasOwn(body, "bookedOn")) {
+    if (!isDateOnly(body.bookedOn)) {
+      res.status(400).json({ error: "bookedOn must use YYYY-MM-DD format" });
+      return;
+    }
+    updates.bookedOn = body.bookedOn;
+    hasUpdates = true;
+  }
+
+  if (Object.hasOwn(body, "status")) {
+    if (!isTransactionStatus(body.status)) {
+      res.status(400).json({ error: "status must be pending, cleared, or void" });
+      return;
+    }
+    updates.status = body.status;
+    hasUpdates = true;
+  }
     if (Object.hasOwn(body, "bookedOn")) {
       if (!isDateOnly(body.bookedOn)) {
         res.status(400).json({ error: "bookedOn must use YYYY-MM-DD format" });
@@ -240,19 +241,19 @@ transactionsRouter.patch("/:transactionId", async (req, res, next) => {
       hasUpdates = true;
     }
 
-    if (Object.hasOwn(body, "occurredAt")) {
-      if (body.occurredAt !== null && !isIsoTimestamp(body.occurredAt)) {
-        res.status(400).json({ error: "occurredAt must be a valid ISO 8601 timestamp or null" });
-        return;
-      }
-      updates.occurredAt = body.occurredAt === null ? null : new Date(body.occurredAt);
-      hasUpdates = true;
-    }
-
-    if (!hasUpdates) {
-      res.status(400).json({ error: "Provide at least one editable transaction field" });
+  if (Object.hasOwn(body, "occurredAt")) {
+    if (body.occurredAt !== null && !isIsoTimestamp(body.occurredAt)) {
+      res.status(400).json({ error: "occurredAt must be a valid ISO 8601 timestamp or null" });
       return;
     }
+    updates.occurredAt = body.occurredAt === null ? null : new Date(body.occurredAt);
+    hasUpdates = true;
+  }
+
+  if (!hasUpdates) {
+    res.status(400).json({ error: "Provide at least one editable transaction field" });
+    return;
+  }
 
     const candidateAmount = updates.amountMinor ?? transaction.amountMinor;
     const candidateCategoryId = Object.hasOwn(updates, "categoryId")
@@ -269,11 +270,8 @@ transactionsRouter.patch("/:transactionId", async (req, res, next) => {
       return;
     }
 
-    const updatedTransaction = await updateTransaction(transaction.id, updates);
-    res.json(updatedTransaction);
-  } catch (error) {
-    next(error);
-  }
+  const updatedTransaction = await updateTransaction(transaction.id, updates);
+  res.json(updatedTransaction);
 });
 
 /** Permanently deletes a transaction owned by the authenticated user. */

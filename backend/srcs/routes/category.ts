@@ -22,17 +22,13 @@ export const categoriesRouter = Router();
 categoriesRouter.use(requireAuthenticatedUser);
 
 /** Returns all active categories belonging to the authenticated user. */
-categoriesRouter.get("/", async (_req, res, next) => {
-  try {
-    const rows = await listActiveCategories(res.locals.userId);
-    res.json(rows);
-  } catch (error) {
-    next(error);
-  }
+categoriesRouter.get("/", async (_req, res) => {
+  const rows = await listActiveCategories(res.locals.userId);
+  res.json(rows);
 });
 
 /** Creates an expense, income, or transfer category for the authenticated user. */
-categoriesRouter.post("/", async (req, res, next) => {
+categoriesRouter.post("/", async (req, res) => {
   const { name, icon, color, kind } = req.body ?? {};
 
   if (typeof name !== "string" || name.trim().length === 0 || name.trim().length > 80) {
@@ -55,49 +51,41 @@ categoriesRouter.post("/", async (req, res, next) => {
     return;
   }
 
-  try {
-    const existingCategory = await findCategoryByNameAndKind(res.locals.userId, name.trim(), kind);
-    if (existingCategory) {
-      res.status(409).json({ error: "A category with this name and kind already exists" });
-      return;
-    }
-
-    const category = await insertCategory({
-      userId: res.locals.userId,
-      name: name.trim(),
-      icon: icon.trim(),
-      color: color.toUpperCase(),
-      kind,
-    });
-
-    res.status(201).json(category);
-  } catch (error) {
-    next(error);
+  const existingCategory = await findCategoryByNameAndKind(res.locals.userId, name.trim(), kind);
+  if (existingCategory) {
+    res.status(409).json({ error: "A category with this name and kind already exists" });
+    return;
   }
+
+  const category = await insertCategory({
+    userId: res.locals.userId,
+    name: name.trim(),
+    icon: icon.trim(),
+    color: color.toUpperCase(),
+    kind,
+  });
+
+  res.status(201).json(category);
 });
 
 /** Returns one category owned by the authenticated user. */
-categoriesRouter.get("/:categoryId", async (req, res, next) => {
+categoriesRouter.get("/:categoryId", async (req, res) => {
   if (!isUuid(req.params.categoryId)) {
     res.status(400).json({ error: "categoryId must be a valid UUID" });
     return;
   }
 
-  try {
-    const category = await findOwnedCategory(req.params.categoryId, res.locals.userId);
-    if (!category) {
-      res.status(404).json({ error: "Category not found" });
-      return;
-    }
-
-    res.json(category);
-  } catch (error) {
-    next(error);
+  const category = await findOwnedCategory(req.params.categoryId, res.locals.userId);
+  if (!category) {
+    res.status(404).json({ error: "Category not found" });
+    return;
   }
+
+  res.json(category);
 });
 
 /** Updates the display properties of a category owned by the authenticated user. */
-categoriesRouter.patch("/:categoryId", async (req, res, next) => {
+categoriesRouter.patch("/:categoryId", async (req, res) => {
   if (!isUuid(req.params.categoryId)) {
     res.status(400).json({ error: "categoryId must be a valid UUID" });
     return;
@@ -148,24 +136,20 @@ categoriesRouter.patch("/:categoryId", async (req, res, next) => {
     return;
   }
 
-  try {
-    const category = await findOwnedCategory(req.params.categoryId, res.locals.userId);
-    if (!category) {
-      res.status(404).json({ error: "Category not found" });
+  const category = await findOwnedCategory(req.params.categoryId, res.locals.userId);
+  if (!category) {
+    res.status(404).json({ error: "Category not found" });
+    return;
+  }
+
+  if (updates.name) {
+    const existingCategory = await findCategoryByNameAndKind(res.locals.userId, updates.name, category.kind);
+    if (existingCategory && existingCategory.id !== category.id) {
+      res.status(409).json({ error: "A category with this name and kind already exists" });
       return;
     }
-
-    if (updates.name) {
-      const existingCategory = await findCategoryByNameAndKind(res.locals.userId, updates.name, category.kind);
-      if (existingCategory && existingCategory.id !== category.id) {
-        res.status(409).json({ error: "A category with this name and kind already exists" });
-        return;
-      }
-    }
-
-    const updatedCategory = await updateCategory(category.id, updates);
-    res.json(updatedCategory);
-  } catch (error) {
-    next(error);
   }
+
+  const updatedCategory = await updateCategory(category.id, updates);
+  res.json(updatedCategory);
 });

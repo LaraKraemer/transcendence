@@ -23,17 +23,13 @@ export const accountsRouter = Router();
 accountsRouter.use(requireAuthenticatedUser);
 
 /** Returns all non-archived accounts belonging to the authenticated user. */
-accountsRouter.get("/", async (_req, res, next) => {
-  try {
-    const rows = await listActiveAccounts(res.locals.userId);
-    res.json(rows);
-  } catch (error) {
-    next(error);
-  }
+accountsRouter.get("/", async (_req, res) => {
+  const rows = await listActiveAccounts(res.locals.userId);
+  res.json(rows);
 });
 
 /** Creates an account owned by the authenticated user. */
-accountsRouter.post("/", async (req, res, next) => {
+accountsRouter.post("/", async (req, res) => {
   const { name, type, openingBalanceMinor, institution, accountRef, currencyCode } = req.body ?? {};
 
   if (typeof name !== "string" || name.trim().length === 0 || name.trim().length > 100) {
@@ -66,67 +62,56 @@ accountsRouter.post("/", async (req, res, next) => {
     return;
   }
 
-  try {
-    const account = await insertAccount({
-      userId: res.locals.userId,
-      name: name.trim(),
-      type,
-      ...(openingBalanceMinor === undefined ? {} : { openingBalanceMinor }),
-      ...(institution === undefined ? {} : { institution: institution.trim() }),
-      ...(accountRef === undefined ? {} : { accountRef: accountRef.trim() }),
-      ...(currencyCode === undefined ? {} : { currencyCode }),
-    });
+  const account = await insertAccount({
+    userId: res.locals.userId,
+    name: name.trim(),
+    type,
+    ...(openingBalanceMinor === undefined ? {} : { openingBalanceMinor }),
+    ...(institution === undefined ? {} : { institution: institution.trim() }),
+    ...(accountRef === undefined ? {} : { accountRef: accountRef.trim() }),
+    ...(currencyCode === undefined ? {} : { currencyCode }),
+  });
 
-    res.status(201).json(account);
-  } catch (error) {
-    next(error);
-  }
+  res.status(201).json(account);
 });
 
 /** Calculates the balance of an owned account, including archived accounts. */
-accountsRouter.get("/:accountId/balance", async (req, res, next) => {
+accountsRouter.get("/:accountId/balance", async (req, res) => {
   if (!isUuid(req.params.accountId)) {
     res.status(400).json({ error: "accountId must be a valid UUID" });
     return;
   }
 
-  try {
-    const account = await findOwnedAccount(req.params.accountId, res.locals.userId);
-    if (!account) {
-      res.status(404).json({ error: "Account not found" });
-      return;
-    }
+	const account = await findOwnedAccount(req.params.accountId, res.locals.userId);
+	if (!account) {
+		res.status(404).json({ error: "Account not found" });
+		return;
+	}
 
-    const transactionSum = await sumTransactions(account.id);
-    const balanceMinor = account.openingBalanceMinor + transactionSum;
-    res.json({ balanceMinor, currencyCode: account.currencyCode });
-  } catch (error) {
-    next(error);
-  }
+	const transactionSum = await sumTransactions(account.id);
+	const balanceMinor = account.openingBalanceMinor + transactionSum;
+	res.json({ balanceMinor, currencyCode: account.currencyCode });
+
 });
 
 /** Returns one account owned by the authenticated user. */
-accountsRouter.get("/:accountId", async (req, res, next) => {
+accountsRouter.get("/:accountId", async (req, res) => {
   if (!isUuid(req.params.accountId)) {
     res.status(400).json({ error: "accountId must be a valid UUID" });
     return;
   }
 
-  try {
-    const account = await findOwnedAccount(req.params.accountId, res.locals.userId);
-    if (!account) {
-      res.status(404).json({ error: "Account not found" });
-      return;
-    }
-
-    res.json(account);
-  } catch (error) {
-    next(error);
+  const account = await findOwnedAccount(req.params.accountId, res.locals.userId);
+  if (!account) {
+    res.status(404).json({ error: "Account not found" });
+    return;
   }
+
+  res.json(account);
 });
 
 /** Updates the editable properties of an account owned by the authenticated user. */
-accountsRouter.patch("/:accountId", async (req, res, next) => {
+accountsRouter.patch("/:accountId", async (req, res) => {
   if (!isUuid(req.params.accountId)) {
     res.status(400).json({ error: "accountId must be a valid UUID" });
     return;
@@ -216,9 +201,6 @@ accountsRouter.patch("/:accountId", async (req, res, next) => {
       return;
     }
 
-    const updatedAccount = await updateAccount(account.id, updates);
-    res.json(updatedAccount);
-  } catch (error) {
-    next(error);
-  }
+  const updatedAccount = await updateAccount(account.id, updates);
+  res.json(updatedAccount);
 });
