@@ -1,0 +1,82 @@
+{
+  "metadata": {
+    "appTitle": "ردیاب هزینه‌ها",
+    "appDescription": "درآمدها و هزینه‌هایتان را پیگیری کنید.",
+    "signInTitle": "ورود",
+    "signUpTitle": "ساخت حساب کاربری"
+  },
+  "common": {
+    "language": "زبان",
+    "comingSoon": "به‌زودی",
+    "switchToDark": "تغییر به پوسته تیره",
+    "switchToLight": "تغییر به پوسته روشن"
+  },
+  "auth": {
+    "continueWithGoogle": "ادامه با گوگل",
+    "showPassword": "نمایش رمز عبور",
+    "fields": {
+      "email": "نشانی ایمیل",
+      "emailPlaceholder": "sara.mohammadi@email.com",
+      "displayName": "نام کامل",
+      "displayNamePlaceholder": "سارا محمدی",
+      "password": "رمز عبور"
+    },
+    "signIn": {
+      "title": "ورود",
+      "subtitle": "خوش برگشتید. برای ادامه، اطلاعات خود را وارد کنید.",
+      "divider": "یا ورود با ایمیل",
+      "forgotPassword": "رمز عبور را فراموش کرده‌اید؟",
+      "keepSignedIn": "مرا به خاطر بسپار",
+      "submit": "ورود",
+      "submitting": "در حال ورود…",
+      "noAccount": "تازه به Poolaki آمده‌اید؟",
+      "createAccount": "ساخت حساب کاربری"
+    },
+    "signUp": {
+      "badge": "طرح رایگان همیشگی",
+      "title": "حساب کاربری خود را بسازید",
+      "subtitle": "بدون نیاز به کارت بانکی. راه‌اندازی در کمتر از یک دقیقه.",
+      "divider": "یا ادامه با ایمیل",
+      "terms": "با شرایط استفاده و سیاست حریم خصوصی موافقم",
+      "submit": "ساخت حساب رایگان",
+      "submitting": "در حال ساخت حساب…",
+      "haveAccount": "حساب کاربری دارید؟",
+      "logIn": "وارد شوید"
+    },
+    "strength": {
+      "tooShort": "خیلی کوتاه",
+      "good": "رمز عبور خوب",
+      "strong": "رمز عبور قوی"
+    },
+    "hero": {
+      "signIn": {
+        "title": "به شفافیت خوش برگشتید.",
+        "description": "از همان جایی که ماندید ادامه دهید؛ بودجه‌ها، اهداف و هزینه‌های خانوادگی‌تان منتظر شما هستند.",
+        "netBalance": "تراز خالص · {month}",
+        "goal": "هدف سفر اروپا"
+      },
+      "signUp": {
+        "title": "هر یورو، ثبت‌شده و قابل‌فهم.",
+        "description": "به هزاران نفری بپیوندید که هوشمندانه‌تر بودجه‌بندی می‌کنند، سریع‌تر پس‌انداز می‌کنند و همیشه می‌دانند پولشان کجا رفته است.",
+        "thisMonth": "این ماه",
+        "groceries": "خواربار",
+        "salary": "حقوق",
+        "income": "درآمد",
+        "rent": "اجاره",
+        "housing": "مسکن"
+      }
+    },
+    "errors": {
+      "emailInvalid": "یک نشانی ایمیل معتبر وارد کنید",
+      "passwordRequired": "رمز عبور را وارد کنید",
+      "passwordTooShort": "رمز عبور باید دست‌کم {min, number} نویسه باشد",
+      "passwordTooLong": "رمز عبور بیش از حد طولانی است",
+      "displayNameRequired": "وارد کردن نام الزامی است",
+      "displayNameTooLong": "نام بیش از حد طولانی است",
+      "emailTaken": "حسابی با این ایمیل از قبل وجود دارد",
+      "invalidCredentials": "ایمیل یا رمز عبور نادرست است",
+      "network": "ارتباط با سرور برقرار نشد. لطفاً بعداً دوباره تلاش کنید.",
+      "generic": "مشکلی پیش آمد. لطفاً دوباره تلاش کنید."
+    }
+  }
+}

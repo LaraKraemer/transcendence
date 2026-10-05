@@ -1,0 +1,82 @@
+{
+  "metadata": {
+    "appTitle": "Expense Tracker",
+    "appDescription": "Track your income and expenses.",
+    "signInTitle": "Sign in",
+    "signUpTitle": "Create account"
+  },
+  "common": {
+    "language": "Language",
+    "comingSoon": "Coming soon",
+    "switchToDark": "Switch to dark theme",
+    "switchToLight": "Switch to light theme"
+  },
+  "auth": {
+    "continueWithGoogle": "Continue with Google",
+    "showPassword": "Show password",
+    "fields": {
+      "email": "Email address",
+      "emailPlaceholder": "jane.appleseed@email.com",
+      "displayName": "Full name",
+      "displayNamePlaceholder": "Jane Appleseed",
+      "password": "Password"
+    },
+    "signIn": {
+      "title": "Sign in",
+      "subtitle": "Welcome back. Enter your details to continue.",
+      "divider": "or sign in with email",
+      "forgotPassword": "Forgot password?",
+      "keepSignedIn": "Keep me signed in",
+      "submit": "Sign in",
+      "submitting": "Signing in…",
+      "noAccount": "New to Poolaki?",
+      "createAccount": "Create an account"
+    },
+    "signUp": {
+      "badge": "Free forever plan",
+      "title": "Create your account",
+      "subtitle": "No credit card required. Set up in under a minute.",
+      "divider": "or continue with email",
+      "terms": "I agree to the Terms & Privacy Policy",
+      "submit": "Create free account",
+      "submitting": "Creating account…",
+      "haveAccount": "Already have an account?",
+      "logIn": "Log in"
+    },
+    "strength": {
+      "tooShort": "Too short",
+      "good": "Good password",
+      "strong": "Strong password"
+    },
+    "hero": {
+      "signIn": {
+        "title": "Welcome back to clarity.",
+        "description": "Pick up right where you left off — your budgets, goals, and family spending are waiting.",
+        "netBalance": "Net balance · {month}",
+        "goal": "Europe Trip Goal"
+      },
+      "signUp": {
+        "title": "Every euro, tracked and understood.",
+        "description": "Join thousands who budget smarter, save faster, and never wonder where their money went.",
+        "thisMonth": "This month",
+        "groceries": "Groceries",
+        "salary": "Salary",
+        "income": "Income",
+        "rent": "Rent",
+        "housing": "Housing"
+      }
+    },
+    "errors": {
+      "emailInvalid": "Enter a valid email address",
+      "passwordRequired": "Enter your password",
+      "passwordTooShort": "Password must be at least {min, number} characters",
+      "passwordTooLong": "Password is too long",
+      "displayNameRequired": "Display name is required",
+      "displayNameTooLong": "Display name is too long",
+      "emailTaken": "An account with this email already exists",
+      "invalidCredentials": "Invalid email or password",
+      "network": "Could not reach the server. Please try again later.",
+      "generic": "Something went wrong. Please try again."
+    }
+  }
+}

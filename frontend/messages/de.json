@@ -1,0 +1,82 @@
+{
+  "metadata": {
+    "appTitle": "Ausgaben-Tracker",
+    "appDescription": "Behalte deine Einnahmen und Ausgaben im Blick.",
+    "signInTitle": "Anmelden",
+    "signUpTitle": "Konto erstellen"
+  },
+  "common": {
+    "language": "Sprache",
+    "comingSoon": "Demnächst verfügbar",
+    "switchToDark": "Zum dunklen Design wechseln",
+    "switchToLight": "Zum hellen Design wechseln"
+  },
+  "auth": {
+    "continueWithGoogle": "Weiter mit Google",
+    "showPassword": "Passwort anzeigen",
+    "fields": {
+      "email": "E-Mail-Adresse",
+      "emailPlaceholder": "erika.mustermann@email.com",
+      "displayName": "Vollständiger Name",
+      "displayNamePlaceholder": "Erika Mustermann",
+      "password": "Passwort"
+    },
+    "signIn": {
+      "title": "Anmelden",
+      "subtitle": "Willkommen zurück. Gib deine Daten ein, um fortzufahren.",
+      "divider": "oder mit E-Mail anmelden",
+      "forgotPassword": "Passwort vergessen?",
+      "keepSignedIn": "Angemeldet bleiben",
+      "submit": "Anmelden",
+      "submitting": "Anmeldung läuft…",
+      "noAccount": "Neu bei Poolaki?",
+      "createAccount": "Konto erstellen"
+    },
+    "signUp": {
+      "badge": "Für immer kostenlos",
+      "title": "Erstelle dein Konto",
+      "subtitle": "Keine Kreditkarte nötig. In weniger als einer Minute eingerichtet.",
+      "divider": "oder mit E-Mail fortfahren",
+      "terms": "Ich stimme den AGB und der Datenschutzerklärung zu",
+      "submit": "Kostenloses Konto erstellen",
+      "submitting": "Konto wird erstellt…",
+      "haveAccount": "Du hast schon ein Konto?",
+      "logIn": "Anmelden"
+    },
+    "strength": {
+      "tooShort": "Zu kurz",
+      "good": "Gutes Passwort",
+      "strong": "Starkes Passwort"
+    },
+    "hero": {
+      "signIn": {
+        "title": "Willkommen zurück zur Klarheit.",
+        "description": "Mach genau da weiter, wo du aufgehört hast – deine Budgets, Ziele und Familienausgaben warten schon.",
+        "netBalance": "Nettosaldo · {month}",
+        "goal": "Sparziel Europareise"
+      },
+      "signUp": {
+        "title": "Jeder Euro – erfasst und verstanden.",
+        "description": "Schließ dich Tausenden an, die klüger budgetieren, schneller sparen und immer wissen, wohin ihr Geld geflossen ist.",
+        "thisMonth": "Diesen Monat",
+        "groceries": "Lebensmittel",
+        "salary": "Gehalt",
+        "income": "Einnahmen",
+        "rent": "Miete",
+        "housing": "Wohnen"
+      }
+    },
+    "errors": {
+      "emailInvalid": "Gib eine gültige E-Mail-Adresse ein",
+      "passwordRequired": "Gib dein Passwort ein",
+      "passwordTooShort": "Das Passwort muss mindestens {min, number} Zeichen lang sein",
+      "passwordTooLong": "Das Passwort ist zu lang",
+      "displayNameRequired": "Bitte gib deinen Namen ein",
+      "displayNameTooLong": "Der Name ist zu lang",
+      "emailTaken": "Mit dieser E-Mail-Adresse existiert bereits ein Konto",
+      "invalidCredentials": "E-Mail-Adresse oder Passwort ist falsch",
+      "network": "Der Server ist nicht erreichbar. Bitte versuche es später erneut.",
+      "generic": "Etwas ist schiefgelaufen. Bitte versuche es erneut."
+    }
+  }
+}
