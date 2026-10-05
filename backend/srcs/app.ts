@@ -39,6 +39,16 @@ export function createApp() {
   });
 
   app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    if (error instanceof Error && "type" in error) {
+      if (error.type === "entity.parse.failed") {
+        res.status(400).json({ error: "Malformed JSON" });
+        return;
+      }
+      if (error.type === "entity.too.large") {
+        res.status(413).json({ error: "Request body too large" });
+        return;
+      }
+    }
     console.error("Unhandled request error:", error);
     res.status(500).json({ error: "Internal server error" });
   });

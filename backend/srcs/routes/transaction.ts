@@ -58,6 +58,11 @@ transactionsRouter.get("/", async (req, res, next) => {
     return;
   }
 
+  if (!isUuid(accountId)) {
+    res.status(400).json({ error: "accountId must be a valid UUID" });
+    return;
+  }
+
   const limit = parsePaginationInt(req.query.limit, 50);
   const offset = parsePaginationInt(req.query.offset, 0);
   const { from, to } = req.query;
