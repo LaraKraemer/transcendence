@@ -16,6 +16,19 @@ import { getSessionCookieHeader } from "@/lib/session";
 import type { User } from "@/lib/types";
 
 /**
+ * Server-side `fetchApi` that forwards the inbound session cookie to the
+ * backend. Needed because `credentials: "include"` is a browser-only concept:
+ * a fetch made from a Server Component or server action carries no cookies
+ * unless they are set on the request explicitly.
+ */
+export async function fetchApiServer<T>(path: string, init?: RequestInit): Promise<T> {
+  const cookie = await getSessionCookieHeader();
+  const headers = new Headers(init?.headers);
+  if (cookie) headers.set("cookie", cookie);
+  return fetchApi<T>(path, { ...init, headers });
+}
+
+/**
  * Returns the authenticated user for the current request, or `null` when there
  * is no active session.
  *
@@ -28,13 +41,11 @@ import type { User } from "@/lib/types";
  * share one `/auth/me` call per request instead of each making their own.
  */
 export const getCurrentUser = cache(async (): Promise<User | null> => {
-  const cookie = await getSessionCookieHeader();
-  if (!cookie) return null;
+  // Skip the backend round-trip entirely for visitors with no session cookie.
+  if (!(await getSessionCookieHeader())) return null;
 
   try {
-    const { user } = await fetchApi<{ user: User }>("/auth/me", {
-      headers: { cookie },
-    });
+    const { user } = await fetchApiServer<{ user: User }>("/auth/me");
     return user;
   } catch (error) {
     if (error instanceof ApiError && error.status === 401) return null;
