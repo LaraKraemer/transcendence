@@ -9,16 +9,9 @@ import {
   listTransactionsByAccount,
   summarizeTransactionsByCategory,
   updateTransaction,
-  voidTransaction,
+  deleteTransaction,
 } from "../db/transactions.ts";
 import { isDateOnly, isIsoTimestamp, isUuid } from "../validation.ts";
-
-const TRANSACTION_STATUSES = ["pending", "cleared", "void"] as const;
-type TransactionStatus = (typeof TRANSACTION_STATUSES)[number];
-
-function isTransactionStatus(value: unknown): value is TransactionStatus {
-  return typeof value === "string" && TRANSACTION_STATUSES.includes(value as TransactionStatus);
-}
 
 function parsePaginationInt(value: unknown, defaultValue: number): number | null {
   if (value === undefined) return defaultValue;
@@ -106,7 +99,7 @@ transactionsRouter.get("/", async (req, res, next) => {
   }
 });
 
-/** Returns non-void transaction totals by category, including uncategorized transactions. */
+/** Returns transaction totals by category, including uncategorized transactions. */
 transactionsRouter.get("/summary", async (req, res, next) => {
   const accountId = typeof req.query.accountId === "string" ? req.query.accountId : undefined;
   const { from, to } = req.query;
@@ -188,7 +181,6 @@ transactionsRouter.patch("/:transactionId", async (req, res, next) => {
       description?: string;
       notes?: string | null;
       bookedOn?: string;
-      status?: TransactionStatus;
       occurredAt?: Date | null;
       updatedAt: Date;
     } = { updatedAt: new Date() };
@@ -243,15 +235,6 @@ transactionsRouter.patch("/:transactionId", async (req, res, next) => {
       hasUpdates = true;
     }
 
-    if (Object.hasOwn(body, "status")) {
-      if (!isTransactionStatus(body.status)) {
-        res.status(400).json({ error: "status must be pending, cleared, or void" });
-        return;
-      }
-      updates.status = body.status;
-      hasUpdates = true;
-    }
-
     if (Object.hasOwn(body, "occurredAt")) {
       if (body.occurredAt !== null && !isIsoTimestamp(body.occurredAt)) {
         res.status(400).json({ error: "occurredAt must be a valid ISO 8601 timestamp or null" });
@@ -288,7 +271,7 @@ transactionsRouter.patch("/:transactionId", async (req, res, next) => {
   }
 });
 
-/** Voids a transaction instead of deleting financial history permanently. */
+/** Permanently deletes a transaction owned by the authenticated user. */
 transactionsRouter.delete("/:transactionId", async (req, res, next) => {
   if (!isUuid(req.params.transactionId)) {
     res.status(400).json({ error: "transactionId must be a valid UUID" });
@@ -302,7 +285,7 @@ transactionsRouter.delete("/:transactionId", async (req, res, next) => {
       return;
     }
 
-    await voidTransaction(transaction.id);
+    await deleteTransaction(transaction.id);
     res.status(204).send();
   } catch (error) {
     next(error);
@@ -314,7 +297,7 @@ transactionsRouter.delete("/:transactionId", async (req, res, next) => {
  * authenticated user.
  */
 transactionsRouter.post("/", async (req, res, next) => {
-  const { accountId, categoryId, amountMinor, description, notes, bookedOn, status, occurredAt } = req.body ?? {};
+  const { accountId, categoryId, amountMinor, description, notes, bookedOn, occurredAt } = req.body ?? {};
 
   if (!isUuid(accountId)) {
     res.status(400).json({ error: "accountId must be a valid UUID" });
@@ -333,11 +316,6 @@ transactionsRouter.post("/", async (req, res, next) => {
 
   if (!isDateOnly(bookedOn)) {
     res.status(400).json({ error: "bookedOn must use YYYY-MM-DD format" });
-    return;
-  }
-
-  if (status !== undefined && !isTransactionStatus(status)) {
-    res.status(400).json({ error: "status must be pending, cleared, or void" });
     return;
   }
 
@@ -377,7 +355,6 @@ transactionsRouter.post("/", async (req, res, next) => {
       description: description.trim(),
       ...(notes === undefined ? {} : { notes: notes.trim() }),
       bookedOn,
-      ...(status === undefined ? {} : { status }),
       ...(occurredAt === undefined ? {} : { occurredAt: occurredAt === null ? null : new Date(occurredAt) }),
     });
 

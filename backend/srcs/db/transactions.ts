@@ -1,4 +1,4 @@
-import { and, count, desc, eq, getTableColumns, gte, lte, ne, sql } from "drizzle-orm";
+import { and, count, desc, eq, getTableColumns, gte, lte, sql } from "drizzle-orm";
 
 import { db } from "./client.ts";
 import { accounts, categories, transactions } from "./schema.ts";
@@ -72,7 +72,6 @@ export async function summarizeTransactionsByCategory(accountId: string, from?: 
     .where(
       and(
         eq(transactions.accountId, accountId),
-        ne(transactions.status, "void"),
         ...(from ? [gte(transactions.bookedOn, from)] : []),
         ...(to ? [lte(transactions.bookedOn, to)] : []),
       ),
@@ -98,9 +97,7 @@ export async function updateTransaction(
   return transaction;
 }
 
-export async function voidTransaction(transactionId: string) {
-  await db
-    .update(transactions)
-    .set({ status: "void", updatedAt: new Date() })
-    .where(eq(transactions.id, transactionId));
+/** Permanently deletes a transaction after the caller has checked ownership. */
+export async function deleteTransaction(transactionId: string) {
+  await db.delete(transactions).where(eq(transactions.id, transactionId));
 }

@@ -11,4 +11,4 @@ captures account, category, and transaction IDs as Bruno runtime variables.
 Bruno keeps the session cookie after registration, so the following protected
 requests run as that user.
 
-The final request voids, rather than deletes, the created transaction.
+The collection deletes the created transaction and checks that fetching it returns 404.

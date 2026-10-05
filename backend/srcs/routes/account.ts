@@ -1,13 +1,7 @@
 import { Router } from "express";
 
 import { requireAuthenticatedUser } from "../auth.ts";
-import {
-  findOwnedAccount,
-  insertAccount,
-  listActiveAccounts,
-  sumNonVoidTransactions,
-  updateAccount,
-} from "../db/accounts.ts";
+import { findOwnedAccount, insertAccount, listActiveAccounts, sumTransactions, updateAccount } from "../db/accounts.ts";
 import { isCurrencyCode, isUuid } from "../validation.ts";
 
 const ACCOUNT_TYPES = ["checking", "savings", "cash"] as const;
@@ -96,7 +90,7 @@ accountsRouter.get("/:accountId/balance", async (req, res, next) => {
       return;
     }
 
-    const transactionSum = await sumNonVoidTransactions(account.id);
+    const transactionSum = await sumTransactions(account.id);
     const balanceMinor = account.openingBalanceMinor + transactionSum;
     res.json({ balanceMinor, currencyCode: account.currencyCode });
   } catch (error) {
