@@ -21,8 +21,12 @@ export class ApiError extends Error {
  *
  * - Prepends the backend base URL: `API_URL` (server-side/internal) falls back
  *   to `NEXT_PUBLIC_API_URL` (browser-facing). See frontend/.env.example.
- * - Sends cookies on every request (`credentials: "include"`) so the session
- *   cookie travels with the call.
+ * - Sends cookies on every request (`credentials: "include"`). This only has an
+ *   effect in the browser; on the server there is no cookie jar, so server code
+ *   must forward the session cookie itself (see `fetchApiServer` in lib/dal.ts).
+ * - Sets `Content-Type: application/json` only for string (JSON) bodies, so
+ *   `FormData`/`Blob` bodies keep the content type `fetch` derives for them and
+ *   body-less requests don't trigger a CORS preflight.
  * - On a non-2xx response, reads `{ error }` from the JSON body and throws an
  *   `ApiError` with that message and the HTTP status.
  * - Returns `undefined` for `204 No Content`.
@@ -32,13 +36,15 @@ export class ApiError extends Error {
 export async function fetchApi<T>(path: string, init?: RequestInit): Promise<T> {
   const base = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "";
 
+  const headers = new Headers(init?.headers);
+  if (typeof init?.body === "string" && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+
   const res = await fetch(`${base}${path}`, {
     ...init,
     credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      ...(init?.headers ?? {}),
-    },
+    headers,
   });
 
   if (!res.ok) {
