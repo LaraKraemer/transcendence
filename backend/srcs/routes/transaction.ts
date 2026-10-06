@@ -139,13 +139,13 @@ transactionsRouter.get("/:transactionId", async (req, res) => {
     return;
   }
 
-  const transaction = await findOwnedTransaction(req.params.transactionId, res.locals.userId);
-  if (!transaction) {
+  const ownedTransaction = await findOwnedTransaction(req.params.transactionId, res.locals.userId);
+  if (!ownedTransaction) {
     res.status(404).json({ error: "Transaction not found" });
     return;
   }
 
-  res.json(transaction);
+  res.json(ownedTransaction.transaction);
 });
 
 /** Updates a transaction while preserving account ownership and category rules. */
@@ -157,11 +157,18 @@ transactionsRouter.patch("/:transactionId", async (req, res) => {
 
   const body = req.body ?? {};
 
-  const transaction = await findOwnedTransaction(req.params.transactionId, res.locals.userId);
-  if (!transaction) {
+  const ownedTransaction = await findOwnedTransaction(req.params.transactionId, res.locals.userId);
+  if (!ownedTransaction) {
     res.status(404).json({ error: "Transaction not found" });
     return;
   }
+
+  if (ownedTransaction.accountIsArchived) {
+    res.status(409).json({ error: "Account is archived. Restore it before making changes." });
+    return;
+  }
+
+  const { transaction } = ownedTransaction;
 
   const updates: {
     categoryId?: string | null;
@@ -263,11 +270,18 @@ transactionsRouter.delete("/:transactionId", async (req, res) => {
     return;
   }
 
-  const transaction = await findOwnedTransaction(req.params.transactionId, res.locals.userId);
-  if (!transaction) {
+  const ownedTransaction = await findOwnedTransaction(req.params.transactionId, res.locals.userId);
+  if (!ownedTransaction) {
     res.status(404).json({ error: "Transaction not found" });
     return;
   }
+
+  if (ownedTransaction.accountIsArchived) {
+    res.status(409).json({ error: "Account is archived. Restore it before making changes." });
+    return;
+  }
+
+  const { transaction } = ownedTransaction;
 
   await deleteTransaction(transaction.id);
   res.status(204).send();
@@ -315,9 +329,14 @@ transactionsRouter.post("/", async (req, res) => {
     return;
   }
 
-  const account = await findOwnedAccount(accountId, res.locals.userId, false);
+  const account = await findOwnedAccount(accountId, res.locals.userId);
   if (!account) {
     res.status(404).json({ error: "Account not found" });
+    return;
+  }
+
+  if (account.isArchived) {
+    res.status(409).json({ error: "Account is archived. Restore it before making changes." });
     return;
   }
 
