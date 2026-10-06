@@ -56,17 +56,16 @@ authRouter.post("/login", async (req, res) => {
     return;
   }
 
-  try {
-    const user = await findUserByEmail(normalizedEmail);
-    if (!user) {
-      await verifyPassword(password, await dummyPasswordHash);
-      res.status(401).json({ error: "Invalid email or password" });
-      return;
-    }
-    if (!(await verifyPassword(password, user.passwordHash))) {
-      res.status(401).json({ error: "Invalid email or password" });
-      return;
-    }
+  const user = await findUserByEmail(normalizedEmail);
+  if (!user) {
+    await verifyPassword(password, await dummyPasswordHash);
+    res.status(401).json({ error: "Invalid email or password" });
+    return;
+  }
+  if (!(await verifyPassword(password, user.passwordHash))) {
+    res.status(401).json({ error: "Invalid email or password" });
+    return;
+  }
 
   await createSession(req, res, user.id);
   res.json({ user: { id: user.id, email: user.email, displayName: user.displayName } });
