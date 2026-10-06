@@ -6,7 +6,7 @@ vi.mock("../../srcs/db/client.ts", async () => {
   return { db: drizzle({ query } as unknown as import("pg").Pool) };
 });
 
-import { findOwnedAccount, sumTransactions } from "../../srcs/db/accounts.ts";
+import { findOwnedAccount, hasTransactions, sumTransactions } from "../../srcs/db/accounts.ts";
 
 const accountId = "550e8400-e29b-41d4-a716-446655440000";
 const userId = "550e8400-e29b-41d4-a716-446655440001";
@@ -77,5 +77,18 @@ describe("sumTransactions", () => {
   it("returns the numeric sum", async () => {
     query.mockResolvedValueOnce({ rows: [["3000"]] });
     expect(await sumTransactions(accountId)).toBe(3000);
+  });
+});
+
+describe("hasTransactions", () => {
+  it.each([true, false])("returns %s for current transaction existence", async (exists) => {
+    query.mockResolvedValueOnce({ rows: exists ? [["transaction-id"]] : [] });
+
+    expect(await hasTransactions(accountId)).toBe(exists);
+    const sql: string = query.mock.calls[0]![0].text;
+    expect(sql).toContain('"transaction"."account_id" = $1');
+    expect(sql).toContain("limit $2");
+    expect(sql).not.toContain("sum(");
+    expect(query.mock.calls[0]![1]).toEqual([accountId, 1]);
   });
 });

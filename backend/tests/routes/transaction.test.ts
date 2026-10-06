@@ -591,7 +591,7 @@ describe("POST /transactions — category rule", () => {
       url: "/",
       body: { ...validBody, categoryId },
     });
-    expect(result.status).toBe(404);
+    expect(result).toEqual({ status: 404, body: { error: "Category not found" } });
   });
 
   it("returns 400 for expense category with positive amount", async () => {
@@ -602,7 +602,7 @@ describe("POST /transactions — category rule", () => {
       url: "/",
       body: { ...validBody, amountMinor: 1000, categoryId },
     });
-    expect(result.status).toBe(400);
+    expect(result).toEqual({ status: 400, body: { error: "An income transaction requires an income category" } });
   });
 
   it("returns 400 for income category with negative amount", async () => {
@@ -613,7 +613,7 @@ describe("POST /transactions — category rule", () => {
       url: "/",
       body: { ...validBody, amountMinor: -1000, categoryId },
     });
-    expect(result.status).toBe(400);
+    expect(result).toEqual({ status: 400, body: { error: "An expense transaction requires an expense category" } });
   });
 
   it("accepts transfer category with any sign", async () => {
@@ -651,7 +651,7 @@ describe("PATCH /transactions/:transactionId — category rule", () => {
       url: `/${transactionId}`,
       body: { amountMinor: 1000 },
     });
-    expect(result.status).toBe(400);
+    expect(result).toEqual({ status: 400, body: { error: "An income transaction requires an income category" } });
   });
 
   it("returns 400 when new categoryId doesn't match amount sign", async () => {
@@ -662,7 +662,7 @@ describe("PATCH /transactions/:transactionId — category rule", () => {
       url: `/${transactionId}`,
       body: { categoryId },
     });
-    expect(result.status).toBe(400);
+    expect(result).toEqual({ status: 400, body: { error: "An expense transaction requires an expense category" } });
   });
 
   it("allows keeping an archived category when categoryId is not in the body (allowArchived=true)", async () => {
@@ -686,7 +686,7 @@ describe("PATCH /transactions/:transactionId — category rule", () => {
       url: `/${transactionId}`,
       body: { categoryId },
     });
-    expect(result.status).toBe(404);
+    expect(result).toEqual({ status: 404, body: { error: "Category not found" } });
   });
 
   it("skips category query when categoryId: null is sent", async () => {
