@@ -125,6 +125,8 @@ Browser → Next.js `:3000` → Express `:3001` → Postgres `:5432` (bound to 1
 
 ## Keeping docs current
 
+Whenever the database schema changes, update `docs/full-db-schema.md` in the same change to reflect the affected fields and relationships.
+
 After editing code, re-read `AGENTS.md` and `README.md`. If your change made anything in them outdated (commands, routes, domain rules, conventions, setup steps), suggest the concrete edits to the user.
 
 ## Git
