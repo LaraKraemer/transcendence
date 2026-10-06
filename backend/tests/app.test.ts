@@ -325,14 +325,11 @@ describe("authentication rate limits", () => {
     },
   );
 
-  it.each(["AUTH_RATE_LIMIT_MAX", "LOGIN_RATE_LIMIT_MAX"])(
-    "rejects invalid %s values at startup",
-    async (name) => {
-      for (const value of ["0", "-1", "1.5", "abc", "9007199254740992"]) {
-        await expect(startAppServer({ [name]: value })).rejects.toThrow(`${name} must be a positive integer`);
-      }
-    },
-  );
+  it.each(["AUTH_RATE_LIMIT_MAX", "LOGIN_RATE_LIMIT_MAX"])("rejects invalid %s values at startup", async (name) => {
+    for (const value of ["0", "-1", "1.5", "abc", "9007199254740992"]) {
+      await expect(startAppServer({ [name]: value })).rejects.toThrow(`${name} must be a positive integer`);
+    }
+  });
 
   it("rejects invalid proxy hop counts at startup", async () => {
     for (const value of ["-1", "1.5", "true", "9007199254740992"]) {
