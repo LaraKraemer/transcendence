@@ -1,3 +1,5 @@
+import { randomBytes } from "node:crypto";
+
 import { Router } from "express";
 
 import {
@@ -11,6 +13,8 @@ import {
 import { createUser, findUserByEmail, findUserById } from "../db/users.ts";
 
 export const authRouter = Router();
+// Unknown emails must do the same bcrypt work as a wrong password for an existing user.
+const dummyPasswordHash = hashPassword(randomBytes(32).toString("hex"));
 
 // Registers a new local user and immediately starts a browser session.
 authRouter.post("/register", async (req, res, next) => {
@@ -58,7 +62,12 @@ authRouter.post("/login", async (req, res, next) => {
 
   try {
     const user = await findUserByEmail(normalizedEmail);
-    if (!user || !(await verifyPassword(password, user.passwordHash))) {
+    if (!user) {
+      await verifyPassword(password, await dummyPasswordHash);
+      res.status(401).json({ error: "Invalid email or password" });
+      return;
+    }
+    if (!(await verifyPassword(password, user.passwordHash))) {
       res.status(401).json({ error: "Invalid email or password" });
       return;
     }

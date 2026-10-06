@@ -12,7 +12,7 @@ const authMocks = vi.hoisted(() => ({
   clearSessionCookie: vi.fn(),
   getAuthenticatedUserId: vi.fn(),
   revokeCurrentSession: vi.fn(),
-  hashPassword: vi.fn(),
+  hashPassword: vi.fn().mockResolvedValue("$2b$12$dummy"),
   verifyPassword: vi.fn(),
 }));
 vi.mock("../../srcs/auth.ts", () => ({
@@ -263,6 +263,7 @@ describe("POST /login", () => {
     query.mockResolvedValueOnce({ rows: [] });
     const result = await login({ email: "nobody@example.com", password: "somepassword" });
     expect(result).toEqual({ status: 401, body: { error: "Invalid email or password" } });
+    expect(authMocks.verifyPassword).toHaveBeenCalledWith("somepassword", "$2b$12$dummy");
     expect(authMocks.createSession).not.toHaveBeenCalled();
   });
 

@@ -225,6 +225,19 @@ Passwords must be 12 to 72 bytes. Password hashes, not passwords, are stored
 in the database. Google and other provider logins will be added later through
 a separate account-identity table.
 
+Registration and login share a per-IP limit of 100 requests per 15 minutes.
+Login also allows 10 attempts per client IP and normalized email per 15
+minutes. Override the maximum request counts with `AUTH_RATE_LIMIT_MAX` and
+`LOGIN_RATE_LIMIT_MAX`. The default limiter stores counts in memory, so they
+reset when the backend restarts and are not shared across backend instances.
+
+By default, forwarded client-IP headers are ignored. If the backend is behind
+a trusted reverse proxy, set `TRUST_PROXY` to the number of trusted proxy hops
+(for example, `1` for one proxy); leave it unset when connecting directly.
+Only enable this when every request reaches the backend through the configured
+proxy chain. The proxy must overwrite or sanitize client-supplied forwarding
+headers, and clients must not be able to connect directly to the backend.
+
 
 <br>
 
