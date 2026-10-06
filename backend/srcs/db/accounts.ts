@@ -33,6 +33,17 @@ export async function insertAccount(values: NewAccount) {
   return account;
 }
 
+/** Checks whether an account currently contains any transactions. */
+export async function hasTransactions(accountId: string) {
+  const [transaction] = await db
+    .select({ id: transactions.id })
+    .from(transactions)
+    .where(eq(transactions.accountId, accountId))
+    .limit(1);
+
+  return transaction !== undefined;
+}
+
 export async function sumTransactions(accountId: string) {
   const [result] = await db
     .select({ total: sum(transactions.amountMinor) })

@@ -240,6 +240,10 @@ modify another user's financial data.
 | Categories | `GET`, `POST` `/categories`; `GET`, `PATCH`, `DELETE` `/categories/:categoryId` |
 | Transactions | `GET`, `POST` `/transactions`; `GET`, `PATCH`, `DELETE` `/transactions/:transactionId` |
 
+`PATCH /accounts/:accountId` rejects a different `currencyCode` with `409` while
+transactions currently exist in the account. Submitting the current currency used is allowed. Accounts without transactions may change currency, even with an opening
+balance; this does not convert the opening balance, so we need to review and adjust it as needed.
+
 `GET /transactions` requires an `accountId` query parameter. Account and
 category deletion archives the resource; transaction deletion permanently removes the row.
 

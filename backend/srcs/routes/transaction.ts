@@ -26,18 +26,18 @@ async function validateCategory(
   amountMinor: number,
   userId: string,
   allowArchived = false,
-): Promise<string | undefined> {
+): Promise<{ status: 400 | 404; error: string } | undefined> {
   if (categoryId === null) return undefined;
 
   const category = await findCategoryKind(categoryId, userId, allowArchived);
 
-  if (!category) return "Category not found";
+  if (!category) return { status: 404, error: "Category not found" };
   if (category.kind === "transfer") return undefined;
 
   const requiredKind = amountMinor < 0 ? "expense" : "income";
   return category.kind === requiredKind
     ? undefined
-    : `A ${requiredKind} transaction requires an ${requiredKind} category`;
+    : { status: 400, error: `An ${requiredKind} transaction requires an ${requiredKind} category` };
 }
 
 export const transactionsRouter = Router();
@@ -265,7 +265,7 @@ transactionsRouter.patch("/:transactionId", async (req, res, next) => {
       !Object.hasOwn(body, "categoryId"),
     );
     if (categoryError) {
-      res.status(categoryError === "Category not found" ? 404 : 400).json({ error: categoryError });
+      res.status(categoryError.status).json({ error: categoryError.error });
       return;
     }
 
@@ -348,7 +348,7 @@ transactionsRouter.post("/", async (req, res, next) => {
 
     const categoryError = await validateCategory(categoryId ?? null, amountMinor, res.locals.userId);
     if (categoryError) {
-      res.status(categoryError === "Category not found" ? 404 : 400).json({ error: categoryError });
+      res.status(categoryError.status).json({ error: categoryError.error });
       return;
     }
 

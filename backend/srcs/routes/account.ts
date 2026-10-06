@@ -1,7 +1,14 @@
 import { Router } from "express";
 
 import { requireAuthenticatedUser } from "../auth.ts";
-import { findOwnedAccount, insertAccount, listActiveAccounts, sumTransactions, updateAccount } from "../db/accounts.ts";
+import {
+  findOwnedAccount,
+  hasTransactions,
+  insertAccount,
+  listActiveAccounts,
+  sumTransactions,
+  updateAccount,
+} from "../db/accounts.ts";
 import { isCurrencyCode, isUuid } from "../validation.ts";
 
 const ACCOUNT_TYPES = ["checking", "savings", "cash"] as const;
@@ -195,6 +202,17 @@ accountsRouter.patch("/:accountId", async (req, res, next) => {
     const account = await findOwnedAccount(req.params.accountId, res.locals.userId);
     if (!account) {
       res.status(404).json({ error: "Account not found" });
+      return;
+    }
+
+    if (
+      updates.currencyCode !== undefined &&
+      updates.currencyCode !== account.currencyCode &&
+      (await hasTransactions(account.id))
+    ) {
+      res.status(409).json({
+        error: "currencyCode cannot be changed while the account contains transactions",
+      });
       return;
     }
 
