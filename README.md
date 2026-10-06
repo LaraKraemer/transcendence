@@ -234,6 +234,9 @@ reset when the backend restarts and are not shared across backend instances.
 By default, forwarded client-IP headers are ignored. If the backend is behind
 a trusted reverse proxy, set `TRUST_PROXY` to the number of trusted proxy hops
 (for example, `1` for one proxy); leave it unset when connecting directly.
+Only enable this when every request reaches the backend through the configured
+proxy chain. The proxy must overwrite or sanitize client-supplied forwarding
+headers, and clients must not be able to connect directly to the backend.
 
 
 <br>

@@ -13,6 +13,7 @@ import {
 import { createUser, findUserByEmail, findUserById } from "../db/users.ts";
 
 export const authRouter = Router();
+// Unknown emails must do the same bcrypt work as a wrong password for an existing user.
 const dummyPasswordHash = hashPassword(randomBytes(32).toString("hex"));
 
 // Registers a new local user and immediately starts a browser session.
