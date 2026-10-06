@@ -155,6 +155,14 @@ describe("GET /transactions/summary", () => {
 // ─── GET / ────────────────────────────────────────────────────────────────────
 
 describe("GET /transactions", () => {
+  it("rejects an invalid accountId before querying the database", async () => {
+    expect(await dispatch(transactionsRouter, { url: "/", query: { accountId: "invalid" } })).toEqual({
+      status: 400,
+      body: { error: "accountId must be a valid UUID" },
+    });
+    expect(query).not.toHaveBeenCalled();
+  });
+
   it.each([
     ...["0", "201", "1.5", "20abc", "", ["20", "30"]].map((limit): [Record<string, unknown>, string] => [
       { accountId, limit },

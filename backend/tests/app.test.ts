@@ -144,3 +144,19 @@ describe("wiring", () => {
     expect(await res.json()).toEqual({ error: "Internal server error" });
   });
 });
+
+describe("JSON input errors", () => {
+  it.each([
+    ["{", 400, "Malformed JSON"],
+    [JSON.stringify({ value: "x".repeat(100 * 1024) }), 413, "Request body too large"],
+  ])("rejects invalid body %#", async (body, status, error) => {
+    const res = await fetch(`${base}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body,
+    });
+    expect(res.status).toBe(status);
+    expect(await res.json()).toEqual({ error });
+    expect(query).not.toHaveBeenCalled();
+  });
+});
