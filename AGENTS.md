@@ -18,6 +18,7 @@ Bug fix = root cause, not symptom: a report names a symptom. Grep every caller o
 
 Rules:
 
+- Always use clear, descriptive variable and parameter names. Give meaningful values such as durations a name that includes their units (e.g. `sessionPurgeIntervalMs`), instead of using unexplained numbers inline. Use `const` when the value is not reassigned and `let` when it is.
 - No abstractions that weren't explicitly requested.
 - No new dependency if it can be avoided.
 - No boilerplate nobody asked for.
