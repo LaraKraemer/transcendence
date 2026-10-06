@@ -15,13 +15,17 @@ import { createApp } from "../srcs/app.ts";
 let server: Server;
 let base: string;
 
+async function startAppServer() {
+  const appServer = createApp().listen(0);
+  await new Promise<void>((resolve) => appServer.once("listening", resolve));
+  const { port } = appServer.address() as AddressInfo;
+  return { server: appServer, base: `http://127.0.0.1:${port}` };
+}
+
 beforeAll(() => {
-  return new Promise<void>((resolve) => {
-    server = createApp().listen(0, () => {
-      const { port } = server.address() as AddressInfo;
-      base = `http://127.0.0.1:${port}`;
-      resolve();
-    });
+  return startAppServer().then((started) => {
+    server = started.server;
+    base = started.base;
   });
 });
 
@@ -142,6 +146,110 @@ describe("wiring", () => {
     });
     expect(res.status).toBe(500);
     expect(await res.json()).toEqual({ error: "Internal server error" });
+  });
+
+  it("redacts database error parameters and detail from logs", async () => {
+    query.mockRejectedValueOnce(
+      Object.assign(new Error("duplicate key violates unique constraint"), {
+        code: "23505",
+        constraint: "app_user_email_unique",
+        detail: "private row value",
+      }),
+    );
+    const errorLog = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const res = await fetch(`${base}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: "redacted@example.com", password: "secretPassword12" }),
+    });
+
+    expect(res.status).toBe(500);
+    expect(errorLog).toHaveBeenCalledTimes(1);
+    const [label, details] = errorLog.mock.calls[0]!;
+    expect(label).toBe("Database query failed");
+    expect(details).toMatchObject({
+      code: "23505",
+      constraint: "app_user_email_unique",
+      message: "duplicate key violates unique constraint",
+    });
+    expect(details).toHaveProperty("query");
+    expect(details).not.toHaveProperty("params");
+    expect(details).not.toHaveProperty("detail");
+    const serializedLog = JSON.stringify(errorLog.mock.calls);
+    expect(serializedLog).not.toContain("redacted@example.com");
+    expect(serializedLog).not.toContain("secretPassword12");
+    expect(serializedLog).not.toContain("private row value");
+  });
+});
+
+describe("authentication rate limits", () => {
+  async function withRateLimitedApp(env: Record<string, string>, run: (url: string) => Promise<void>) {
+    for (const [name, value] of Object.entries(env)) vi.stubEnv(name, value);
+    const started = await startAppServer();
+    try {
+      await run(started.base);
+    } finally {
+      vi.unstubAllEnvs();
+      await new Promise<void>((resolve) => started.server.close(() => resolve()));
+    }
+  }
+
+  it("shares the per-IP limit across register and login and ignores spoofed forwarding headers", async () => {
+    await withRateLimitedApp({ AUTH_RATE_LIMIT_MAX: "1" }, async (url) => {
+      const first = await fetch(`${url}/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      expect(first.status).toBe(400);
+
+      const second = await fetch(`${url}/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Forwarded-For": "198.51.100.25",
+        },
+        body: JSON.stringify({ email: "alice@example.com", password: "password" }),
+      });
+      expect(second.status).toBe(429);
+      expect(await second.json()).toEqual({
+        error: "Too many requests, please try again later.",
+      });
+      expect(second.headers.get("ratelimit")).not.toBeNull();
+    });
+  });
+
+  it("uses the configured trust-proxy hop count for client IPs", async () => {
+    await withRateLimitedApp({ AUTH_RATE_LIMIT_MAX: "1", TRUST_PROXY: "1" }, async (url) => {
+      for (const ip of ["198.51.100.25", "198.51.100.26"]) {
+        const res = await fetch(`${url}/auth/register`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Forwarded-For": ip,
+          },
+          body: JSON.stringify({}),
+        });
+        expect(res.status).toBe(400);
+      }
+    });
+  });
+
+  it("limits normalized email attempts separately for the same IP", async () => {
+    query.mockResolvedValue({ rows: [] });
+    await withRateLimitedApp({ AUTH_RATE_LIMIT_MAX: "100", LOGIN_RATE_LIMIT_MAX: "1" }, async (url) => {
+      const login = (email: string) =>
+        fetch(`${url}/auth/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password: "somepassword" }),
+        });
+
+      expect((await login(" Alice@Example.com ")).status).toBe(401);
+      expect((await login("alice@example.com")).status).toBe(429);
+      expect((await login("bob@example.com")).status).toBe(401);
+    });
   });
 });
 
