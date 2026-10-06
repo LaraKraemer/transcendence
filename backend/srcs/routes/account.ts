@@ -188,6 +188,11 @@ accountsRouter.patch("/:accountId", async (req, res) => {
     return;
   }
 
+  if (account.isArchived && !(Object.keys(updates).length === 1 && updates.isArchived !== undefined)) {
+    res.status(409).json({ error: "Account is archived. Restore it before making changes." });
+    return;
+  }
+
   if (
     updates.currencyCode !== undefined &&
     updates.currencyCode !== account.currencyCode &&
