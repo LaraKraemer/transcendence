@@ -41,8 +41,10 @@ function compact<F extends string>(errors: Record<F, ValidationErrorCode | undef
   return Object.fromEntries(Object.entries(errors).filter(([, code]) => code)) as FieldErrors<F>;
 }
 
+// Login only requires a password, not the sign-up length rule: like signIn in
+// lib/actions/auth.ts, a length check here would lock out older passwords.
 export function validateLogin({ email, password }: LoginFields): FieldErrors<keyof LoginFields> {
-  return compact({ email: validateEmail(email), password: validatePassword(password) });
+  return compact({ email: validateEmail(email), password: password ? undefined : "passwordRequired" });
 }
 
 export function validateRegister({ email, displayName, password }: RegisterFields): FieldErrors<keyof RegisterFields> {
