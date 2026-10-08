@@ -111,7 +111,6 @@ erDiagram
         text        notes                   "NULL"
         date        booked_on               "NOT NULL — the date users filter by"
         timestamptz occurred_at             "NULL — precise timestamp when known"
-        text        status                  "NOT NULL — pending|cleared|void"
         uuid        recurring_rule_id   FK  "NULL — set if auto-generated"
         tsvector    search_vector           "generated — full-text search"
         timestamptz created_at              "NOT NULL DEFAULT now()"

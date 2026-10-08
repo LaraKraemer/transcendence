@@ -12,6 +12,7 @@ import {
   createSession,
   getAuthenticatedUserId,
   hashPassword,
+  purgeStaleSessions,
   requireAuthenticatedUser,
   revokeCurrentSession,
   verifyPassword,
@@ -270,15 +271,14 @@ describe("requireAuthenticatedUser", () => {
     expect(next).toHaveBeenCalledWith();
   });
 
-  it("calls next(error) when the session query fails", async () => {
+  it("rejects when the session query fails", async () => {
     const error = new Error("DB down");
     query.mockRejectedValueOnce(error);
     const req = makeReq({ cookies: { session: "tok" } });
     const res = makeRes();
     const next = vi.fn();
-    await requireAuthenticatedUser(req, res, next);
-
-    expect(next).toHaveBeenCalledWith(expect.any(Error));
+    await expect(requireAuthenticatedUser(req, res, next)).rejects.toMatchObject({ cause: { message: "DB down" } });
+    expect(next).not.toHaveBeenCalled();
   });
 });
 
@@ -300,5 +300,28 @@ describe("revokeCurrentSession", () => {
     const hash = createHash("sha256").update(token).digest("hex");
     expect(sql.text).toContain('"revoked_at"');
     expect(params).toContain(hash);
+  });
+});
+
+describe("purgeStaleSessions", () => {
+  it("deletes only sessions expired or revoked before the seven-day cutoff", async () => {
+    vi.setSystemTime(new Date("2026-10-05T12:00:00.000Z"));
+    query.mockResolvedValueOnce({ rows: [], rowCount: 2 });
+
+    expect(await purgeStaleSessions()).toBe(2);
+
+    const [sql, params] = query.mock.calls[0]!;
+    expect(sql.text).toMatch(/delete from "session" where \(.*"expires_at" < \$1 or .*"revoked_at" < \$2\)/);
+    expect(params).toEqual(["2026-09-28T12:00:00.000Z", "2026-09-28T12:00:00.000Z"]);
+  });
+
+  it("returns zero when no sessions are stale", async () => {
+    query.mockResolvedValueOnce({ rows: [], rowCount: 0 });
+    expect(await purgeStaleSessions()).toBe(0);
+  });
+
+  it("rejects when deletion fails", async () => {
+    query.mockRejectedValueOnce(new Error("DB down"));
+    await expect(purgeStaleSessions()).rejects.toMatchObject({ cause: { message: "DB down" } });
   });
 });

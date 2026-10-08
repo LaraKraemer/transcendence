@@ -203,7 +203,8 @@ later requires recreating the volume.
 
 The backend supports email/password registration and session-based login. The
 session is stored in an HTTP-only cookie; clients must send requests with
-credentials enabled.
+credentials enabled. Sessions expired or revoked more than seven days ago are
+deleted at startup and every six hours.
 
 | Method | Endpoint | Purpose |
 |---|---|---|
@@ -225,6 +226,19 @@ Passwords must be 12 to 72 bytes. Password hashes, not passwords, are stored
 in the database. Google and other provider logins will be added later through
 a separate account-identity table.
 
+Registration and login share a per-IP limit of 100 requests per 15 minutes.
+Login also allows 10 attempts per client IP and normalized email per 15
+minutes. Override the maximum request counts with `AUTH_RATE_LIMIT_MAX` and
+`LOGIN_RATE_LIMIT_MAX`. The default limiter stores counts in memory, so they
+reset when the backend restarts and are not shared across backend instances.
+
+By default, forwarded client-IP headers are ignored. If the backend is behind
+a trusted reverse proxy, set `TRUST_PROXY` to the number of trusted proxy hops
+(for example, `1` for one proxy); leave it unset when connecting directly.
+Only enable this when every request reaches the backend through the configured
+proxy chain. The proxy must overwrite or sanitize client-supplied forwarding
+headers, and clients must not be able to connect directly to the backend.
+
 
 <br>
 
@@ -240,9 +254,12 @@ modify another user's financial data.
 | Categories | `GET`, `POST` `/categories`; `GET`, `PATCH`, `DELETE` `/categories/:categoryId` |
 | Transactions | `GET`, `POST` `/transactions`; `GET`, `PATCH`, `DELETE` `/transactions/:transactionId` |
 
+`PATCH /accounts/:accountId` rejects a different `currencyCode` with `409` while
+transactions currently exist in the account. Submitting the current currency used is allowed. Accounts without transactions may change currency, even with an opening
+balance; this does not convert the opening balance, so we need to review and adjust it as needed.
+
 `GET /transactions` requires an `accountId` query parameter. Account and
-category deletion archives the resource; transaction deletion changes its
-status to `void` so financial history is retained.
+category deletion archives the resource; transaction deletion permanently removes the row.
 
 
 <br>
@@ -251,7 +268,7 @@ status to `void` so financial history is retained.
 
 The repository includes a Bruno collection for repeatable local API testing in
 `backend/bruno/`. It registers a disposable user, creates an account, category,
-and transaction, then updates and voids that transaction.
+and transaction, then updates and deletes that transaction.
 
 1. Start the services:
 
@@ -270,6 +287,13 @@ and transaction, then updates and voids that transaction.
 
 4. Open the `backend/bruno/` folder as a collection in the Bruno desktop app,
    choose the `local` environment, and run requests in numerical order.
+  
+	OR run bruno test from CLI
+
+	```bash
+   cd backend/bruno
+	npx bru run --env local
+   ```
 
 See [the Bruno collection guide](backend/bruno/README.md) for details. The
 local `.env` file and any `cookies.txt` files are ignored by Git.
@@ -476,7 +500,7 @@ git checkout -b feature/<feature-name>
 Commit changes:
 
 ```bash
-git add .
+git add -p
 
 git commit -m "Describe your change"
 ```

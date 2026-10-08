@@ -1,4 +1,4 @@
-import { and, eq, ne, sum } from "drizzle-orm";
+import { and, eq, sum } from "drizzle-orm";
 
 import { db } from "./client.ts";
 import { accounts, transactions } from "./schema.ts";
@@ -33,11 +33,22 @@ export async function insertAccount(values: NewAccount) {
   return account;
 }
 
-export async function sumNonVoidTransactions(accountId: string) {
+/** Checks whether an account currently contains any transactions. */
+export async function hasTransactions(accountId: string) {
+  const [transaction] = await db
+    .select({ id: transactions.id })
+    .from(transactions)
+    .where(eq(transactions.accountId, accountId))
+    .limit(1);
+
+  return transaction !== undefined;
+}
+
+export async function sumTransactions(accountId: string) {
   const [result] = await db
     .select({ total: sum(transactions.amountMinor) })
     .from(transactions)
-    .where(and(eq(transactions.accountId, accountId), ne(transactions.status, "void")));
+    .where(eq(transactions.accountId, accountId));
 
   return Number(result?.total ?? 0);
 }

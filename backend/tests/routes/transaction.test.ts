@@ -23,7 +23,7 @@ const userId = "550e8400-e29b-41d4-a716-446655440001";
 
 // Transaction row in schema column order:
 // id, accountId, categoryId, createdById, amountMinor, description, notes,
-// bookedOn, occurredAt, status, createdAt, updatedAt
+// bookedOn, occurredAt, createdAt, updatedAt
 function txRow(overrides: Record<string, unknown> = {}) {
   return [
     overrides.id ?? transactionId,
@@ -35,7 +35,6 @@ function txRow(overrides: Record<string, unknown> = {}) {
     overrides.notes ?? null,
     overrides.bookedOn ?? "2025-01-15",
     overrides.occurredAt ?? null,
-    overrides.status ?? "cleared",
     overrides.createdAt ?? new Date().toISOString(),
     overrides.updatedAt ?? new Date().toISOString(),
   ];
@@ -103,7 +102,7 @@ describe("GET /transactions/summary", () => {
     expect(query.mock.calls[0]![1]).toEqual([accountId, "550e8400-e29b-41d4-a716-446655440001", 1]);
   });
 
-  it("groups by category, excludes voids, and converts database totals to numbers", async () => {
+  it("groups remaining transactions by category and converts database totals to numbers", async () => {
     query.mockResolvedValueOnce({ rows: [[accountId]] });
     query.mockResolvedValueOnce({
       rows: [
@@ -122,11 +121,11 @@ describe("GET /transactions/summary", () => {
     const [statement, values] = query.mock.calls[1]!;
     expect(statement.text).toContain('SUM("amount_minor")');
     expect(statement.text).toContain("COUNT(*)");
-    expect(statement.text).toContain('"transaction"."status" <>');
+    expect(statement.text).not.toContain('"status"');
     expect(statement.text).toContain('"transaction"."booked_on" >=');
     expect(statement.text).toContain('"transaction"."booked_on" <=');
     expect(statement.text).toContain('group by "transaction"."category_id"');
-    expect(values).toEqual([accountId, "void", "2025-01-01", "2025-03-31"]);
+    expect(values).toEqual([accountId, "2025-01-01", "2025-03-31"]);
   });
 
   it.each([{}, { from: "2025-01-01" }, { to: "2025-03-31" }])(
@@ -135,7 +134,7 @@ describe("GET /transactions/summary", () => {
       query.mockResolvedValueOnce({ rows: [[accountId]] });
       query.mockResolvedValueOnce({ rows: [] });
       expect(await summary({ accountId, ...dates })).toEqual({ status: 200, body: [] });
-      expect(query.mock.calls[1]![1]).toEqual([accountId, "void", ...Object.values(dates)]);
+      expect(query.mock.calls[1]![1]).toEqual([accountId, ...Object.values(dates)]);
     },
   );
 
@@ -156,6 +155,14 @@ describe("GET /transactions/summary", () => {
 // ─── GET / ────────────────────────────────────────────────────────────────────
 
 describe("GET /transactions", () => {
+  it("rejects an invalid accountId before querying the database", async () => {
+    expect(await dispatch(transactionsRouter, { url: "/", query: { accountId: "invalid" } })).toEqual({
+      status: 400,
+      body: { error: "accountId must be a valid UUID" },
+    });
+    expect(query).not.toHaveBeenCalled();
+  });
+
   it.each([
     ...["0", "201", "1.5", "20abc", "", ["20", "30"]].map((limit): [Record<string, unknown>, string] => [
       { accountId, limit },
@@ -208,6 +215,7 @@ describe("GET /transactions", () => {
       expect(sql).toContain('"transaction"."account_id" =');
       expect(sql).toContain('"transaction"."booked_on" >=');
       expect(sql).toContain('"transaction"."booked_on" <=');
+      expect(sql).not.toContain('"status"');
     }
     expect(query.mock.calls[1]![0].text).toMatch(/limit \$\d+ offset \$\d+/);
     expect(query.mock.calls[1]![1]).toEqual([accountId, "2025-01-01", "2025-03-31", 20, 20]);
@@ -273,18 +281,16 @@ describe("GET /transactions", () => {
     expect(result.body).toMatchObject({ items: [{ id: transactionId }], total: 1 });
   });
 
-  it("includes archived account's transactions and void transactions", async () => {
+  it("includes archived account's transactions", async () => {
     query.mockResolvedValueOnce({ rows: [acctRow({ isArchived: true })] });
-    query.mockResolvedValueOnce({ rows: [txRow({ status: "void" })] });
+    query.mockResolvedValueOnce({ rows: [txRow()] });
     query.mockResolvedValueOnce({ rows: [["1"]] });
     const result = await dispatch(transactionsRouter, { url: "/", query: { accountId } });
     expect(result.status).toBe(200);
-    // list does not filter by status; WHERE clause only checks accountId
     const listSql: string = query.mock.calls[1]![0].text;
     expect(listSql).not.toContain('"is_archived"');
-    // Should NOT exclude void: no "void" in WHERE params
     const listParams: unknown[] = query.mock.calls[1]![1];
-    expect(listParams).not.toContain("void");
+    expect(listParams).toEqual([accountId, 50]);
   });
 
   it("converts amountMinor bigint string to number", async () => {
@@ -367,7 +373,6 @@ describe("POST /transactions", () => {
     [{ ...validBody, bookedOn: undefined }, "bookedOn must use YYYY-MM-DD format"],
     [{ ...validBody, bookedOn: "2025/01/01" }, "bookedOn must use YYYY-MM-DD format"],
     [{ ...validBody, bookedOn: "2025-1-1" }, "bookedOn must use YYYY-MM-DD format"],
-    [{ ...validBody, status: "done" }, "status must be pending, cleared, or void"],
     [{ ...validBody, notes: 123 }, "notes must be a string"],
     [{ ...validBody, categoryId: "not-a-uuid" }, "categoryId must be a valid UUID"],
     [{ ...validBody, occurredAt: "not-a-date" }, "occurredAt must be a valid ISO 8601 timestamp or null"],
@@ -413,18 +418,18 @@ describe("POST /transactions", () => {
     expect(insertParams).not.toContain("  Coffee  ");
   });
 
-  it("omits optional fields not sent (status defaults to cleared)", async () => {
+  it("omits optional fields not sent", async () => {
     query.mockResolvedValueOnce({ rows: [acctRow()] });
     query.mockResolvedValueOnce({ rows: [txRow()] });
     await post(validBody);
     // Drizzle uses "default" for omitted columns — params won't include explicit notes/occurredAt
     const insertParams: unknown[] = query.mock.calls[1]![1];
     // Only amountMinor, description, bookedOn, userId, accountId are bound explicitly
-    // notes, status, occurredAt go in as default → not in params list
+    // notes, occurredAt go in as default → not in params list
     const insertSql: string = query.mock.calls[1]![0].text;
     expect(insertSql).toContain("default"); // confirms defaults are used
-    // status default is "cleared" (set in schema) — verify no explicit status param
-    expect(insertParams).not.toContain("cleared");
+    expect(insertSql).not.toContain('"status"');
+    expect(insertParams).toEqual([accountId, userId, -1000, "Coffee", "2025-01-15"]);
   });
 
   it("does not run category query when categoryId is not sent", async () => {
@@ -476,7 +481,6 @@ describe("PATCH /transactions/:transactionId", () => {
     [{ description: "a".repeat(501) }, "description must be between 1 and 500 characters"],
     [{ notes: 123 }, "notes must be a string or null"],
     [{ bookedOn: "2025/01/01" }, "bookedOn must use YYYY-MM-DD format"],
-    [{ status: "done" }, "status must be pending, cleared, or void"],
     [{ occurredAt: "not-a-date" }, "occurredAt must be a valid ISO 8601 timestamp or null"],
   ])("returns 400 for invalid field %j (found tx)", async (body, error) => {
     query.mockResolvedValueOnce({ rows: [txRow()] }); // findOwnedTransaction
@@ -539,18 +543,17 @@ describe("DELETE /transactions/:transactionId", () => {
     expect((await del(transactionId)).status).toBe(404);
   });
 
-  it("returns 204 via UPDATE setting status=void and updated_at, never DELETE", async () => {
+  it("returns 204 after permanently deleting the owned transaction", async () => {
     query.mockResolvedValueOnce({ rows: [txRow()] }); // findOwnedTransaction
-    query.mockResolvedValueOnce({ rows: [] }); // voidTransaction
+    query.mockResolvedValueOnce({ rows: [] }); // deleteTransaction
 
     const result = await del(transactionId);
     expect(result.status).toBe(204);
 
-    const voidSql: string = query.mock.calls[1]![0].text;
-    expect(voidSql.toLowerCase()).toContain("update");
-    expect(voidSql.toLowerCase()).not.toContain("delete");
-    expect(query.mock.calls[1]![1]).toContain("void");
-    expect(voidSql).toContain('"updated_at"');
+    const deleteSql: string = query.mock.calls[1]![0].text;
+    expect(deleteSql).toContain('delete from "transaction"');
+    expect(query.mock.calls[1]![1]).toEqual([transactionId]);
+    expect(query.mock.calls[0]![1]).toEqual([transactionId, userId, 1]);
   });
 
   it("forwards errors", async () => {
@@ -588,7 +591,7 @@ describe("POST /transactions — category rule", () => {
       url: "/",
       body: { ...validBody, categoryId },
     });
-    expect(result.status).toBe(404);
+    expect(result).toEqual({ status: 404, body: { error: "Category not found" } });
   });
 
   it("returns 400 for expense category with positive amount", async () => {
@@ -599,7 +602,7 @@ describe("POST /transactions — category rule", () => {
       url: "/",
       body: { ...validBody, amountMinor: 1000, categoryId },
     });
-    expect(result.status).toBe(400);
+    expect(result).toEqual({ status: 400, body: { error: "An income transaction requires an income category" } });
   });
 
   it("returns 400 for income category with negative amount", async () => {
@@ -610,7 +613,7 @@ describe("POST /transactions — category rule", () => {
       url: "/",
       body: { ...validBody, amountMinor: -1000, categoryId },
     });
-    expect(result.status).toBe(400);
+    expect(result).toEqual({ status: 400, body: { error: "An expense transaction requires an expense category" } });
   });
 
   it("accepts transfer category with any sign", async () => {
@@ -648,7 +651,7 @@ describe("PATCH /transactions/:transactionId — category rule", () => {
       url: `/${transactionId}`,
       body: { amountMinor: 1000 },
     });
-    expect(result.status).toBe(400);
+    expect(result).toEqual({ status: 400, body: { error: "An income transaction requires an income category" } });
   });
 
   it("returns 400 when new categoryId doesn't match amount sign", async () => {
@@ -659,7 +662,7 @@ describe("PATCH /transactions/:transactionId — category rule", () => {
       url: `/${transactionId}`,
       body: { categoryId },
     });
-    expect(result.status).toBe(400);
+    expect(result).toEqual({ status: 400, body: { error: "An expense transaction requires an expense category" } });
   });
 
   it("allows keeping an archived category when categoryId is not in the body (allowArchived=true)", async () => {
@@ -683,7 +686,7 @@ describe("PATCH /transactions/:transactionId — category rule", () => {
       url: `/${transactionId}`,
       body: { categoryId },
     });
-    expect(result.status).toBe(404);
+    expect(result).toEqual({ status: 404, body: { error: "Category not found" } });
   });
 
   it("skips category query when categoryId: null is sent", async () => {

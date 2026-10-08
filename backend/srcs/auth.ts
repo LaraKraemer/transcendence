@@ -2,13 +2,15 @@ import { createHash, randomBytes } from "node:crypto";
 
 import bcrypt from "bcryptjs";
 import type { NextFunction, Request, Response } from "express";
-import { and, eq, gt, isNull } from "drizzle-orm";
+import { and, eq, gt, isNull, lt, or } from "drizzle-orm";
 
 import { db } from "./db/client.ts";
 import { appUsers, sessions } from "./db/schema.ts";
 
 const SESSION_COOKIE = "session";
 const SESSION_LIFETIME_MS = 1000 * 60 * 60 * 24 * 30;
+// Retain expired or revoked sessions for seven days.
+const STALE_SESSION_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
 const BCRYPT_COST_FACTOR = 12;
 const isProduction = process.env.NODE_ENV === "production";
 
@@ -88,18 +90,14 @@ export async function getAuthenticatedUserId(req: Request): Promise<string | und
  * authenticated user's ID available as `res.locals.userId` to later handlers.
  */
 export async function requireAuthenticatedUser(req: Request, res: Response, next: NextFunction): Promise<void> {
-  try {
-    const userId = await getAuthenticatedUserId(req);
-    if (!userId) {
-      res.status(401).json({ error: "Authentication required" });
-      return;
-    }
-
-    res.locals.userId = userId;
-    next();
-  } catch (error) {
-    next(error);
+  const userId = await getAuthenticatedUserId(req);
+  if (!userId) {
+    res.status(401).json({ error: "Authentication required" });
+    return;
   }
+
+  res.locals.userId = userId;
+  next();
 }
 
 /** Creates a bcrypt password hash suitable for persistent storage. */
@@ -121,4 +119,11 @@ export async function revokeCurrentSession(req: Request): Promise<void> {
     .update(sessions)
     .set({ revokedAt: new Date() })
     .where(and(eq(sessions.tokenHash, hashToken(token)), isNull(sessions.revokedAt)));
+}
+
+/** Deletes sessions expired or revoked more than seven days ago. */
+export async function purgeStaleSessions(now = new Date()): Promise<number> {
+  const cutoff = new Date(now.getTime() - STALE_SESSION_RETENTION_MS);
+  const result = await db.delete(sessions).where(or(lt(sessions.expiresAt, cutoff), lt(sessions.revokedAt, cutoff)));
+  return result.rowCount ?? 0;
 }

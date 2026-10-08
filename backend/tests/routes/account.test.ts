@@ -80,7 +80,7 @@ describe("GET /accounts/:accountId/balance", () => {
     });
   });
 
-  it("sums only non-void transactions", async () => {
+  it("sums transactions for the requested account", async () => {
     query.mockResolvedValueOnce({ rows: [accountRow()] });
     query.mockResolvedValueOnce({ rows: [[null]] });
 
@@ -88,8 +88,7 @@ describe("GET /accounts/:accountId/balance", () => {
 
     const sumSql = query.mock.calls[1]![0].text as string;
     expect(sumSql).toContain('"transaction"."account_id"');
-    expect(sumSql).toContain('"transaction"."status"');
-    expect(query.mock.calls[1]![1]).toContain("void");
+    expect(query.mock.calls[1]![1]).toEqual([accountId]);
   });
 
   it("checks ownership including archived accounts", async () => {
@@ -326,6 +325,49 @@ describe("PATCH /accounts/:accountId", () => {
     const updateParams: unknown[] = query.mock.calls[1]![1];
     expect(updateParams).toContain("New");
     expect(updateParams).not.toContain("  New  ");
+  });
+
+  it("rejects a currency change when transactions exist without updating any fields", async () => {
+    query.mockResolvedValueOnce({ rows: [accountRow()] });
+    query.mockResolvedValueOnce({ rows: [["transaction-id"]] });
+
+    expect(await patch(accountId, { currencyCode: "USD", name: "New" })).toEqual({
+      status: 409,
+      body: { error: "currencyCode cannot be changed while the account contains transactions" },
+    });
+    expect(query).toHaveBeenCalledTimes(2);
+  });
+
+  it("allows a currency change without transactions, preserving the opening balance", async () => {
+    query.mockResolvedValueOnce({ rows: [accountRow()] });
+    query.mockResolvedValueOnce({ rows: [] });
+    query.mockResolvedValueOnce({ rows: [accountRow({ currencyCode: "USD" })] });
+
+    expect(await patch(accountId, { currencyCode: "USD" })).toMatchObject({
+      status: 200,
+      body: { currencyCode: "USD", openingBalanceMinor: 10000 },
+    });
+    expect(query.mock.calls[2]![1]).toContain("USD");
+  });
+
+  it("accepts the current currency and other edits without checking transactions", async () => {
+    query.mockResolvedValueOnce({ rows: [accountRow()] });
+    query.mockResolvedValueOnce({ rows: [accountRow({ name: "New" })] });
+
+    expect(await patch(accountId, { currencyCode: "EUR", name: "New" })).toMatchObject({
+      status: 200,
+      body: { currencyCode: "EUR", name: "New" },
+    });
+    expect(query).toHaveBeenCalledTimes(2);
+    expect(query.mock.calls[1]![0].text).toContain("update");
+  });
+
+  it("forwards transaction lookup errors without updating the account", async () => {
+    query.mockResolvedValueOnce({ rows: [accountRow()] });
+    query.mockRejectedValueOnce(new Error("DB down"));
+
+    await expect(patch(accountId, { currencyCode: "USD" })).rejects.toThrow();
+    expect(query).toHaveBeenCalledTimes(2);
   });
 
   it("null clears institution and accountRef", async () => {
