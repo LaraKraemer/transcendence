@@ -32,34 +32,21 @@ export function AuthProvider({ initialUser, children }: { initialUser: User | nu
   // User is resolved on the server and passed in, so nothing loads on the client.
   const isLoading = false;
 
-  const login = useCallback(
-    async (data: SignInInput) => {
-      const result = await signIn(data);
-      if (result.success && result.user) {
-        setUser(result.user);
-        router.refresh();
-      }
-      return result;
-    },
-    [router],
-  );
+  const login = useCallback(async (data: SignInInput) => {
+    const result = await signIn(data);
+    if (result.success && result.user) setUser(result.user);
+    return result;
+  }, []);
 
-  const register = useCallback(
-    async (data: SignUpInput) => {
-      const result = await signUp(data);
-      if (result.success && result.user) {
-        setUser(result.user);
-        router.refresh();
-      }
-      return result;
-    },
-    [router],
-  );
+  const register = useCallback(async (data: SignUpInput) => {
+    const result = await signUp(data);
+    if (result.success && result.user) setUser(result.user);
+    return result;
+  }, []);
 
   const logout = useCallback(async () => {
     await signOut();
     setUser(null);
-    router.refresh();
     router.push("/login");
   }, [router]);
 
