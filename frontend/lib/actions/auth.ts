@@ -13,13 +13,24 @@ import { z } from "zod";
 
 import { clearSession, getSessionCookieHeader, persistSessionFromSetCookie } from "@/lib/session";
 import type { ActionResponse, User } from "@/lib/types";
+import {
+  MAX_DISPLAY_NAME_LENGTH,
+  MAX_PASSWORD_BYTES,
+  MIN_PASSWORD_LENGTH,
+  passwordByteLength,
+  type ValidationErrorCode,
+} from "@/lib/validation";
+
+// Error messages are the ValidationErrorCodes from lib/validation.ts, not
+// sentences, so the forms can translate server-side field errors exactly like
+// their own client-side ones.
 
 // Login only needs a non-empty password: the backend's login route checks that
 // the password is a string, not its length. Enforcing a length here would lock
 // out any account whose password predates (or differs from) the sign-up rule.
 const SignInSchema = z.object({
-  email: z.email("A valid email is required"),
-  password: z.string().min(1, "Password is required"),
+  email: z.email({ error: "emailInvalid" satisfies ValidationErrorCode }),
+  password: z.string().min(1, { error: "passwordRequired" satisfies ValidationErrorCode }),
 });
 
 // Mirror the backend's register rule exactly (routes/auth.ts): at least 12
@@ -27,12 +38,18 @@ const SignInSchema = z.object({
 // a plain .max(72) counts characters, so multi-byte input (ä, emoji) would slip
 // past Zod and only fail at the backend with a generic message.
 const SignUpSchema = z.object({
-  email: z.email("A valid email is required"),
+  email: z.email({ error: "emailInvalid" satisfies ValidationErrorCode }),
   password: z
     .string()
-    .min(12, "Password must be at least 12 characters")
-    .refine((p) => new TextEncoder().encode(p).length <= 72, "Password must be at most 72 bytes"),
-  displayName: z.string().trim().min(1, "Display name is required").max(100, "Display name is too long"),
+    .min(MIN_PASSWORD_LENGTH, { error: "passwordTooShort" satisfies ValidationErrorCode })
+    .refine((p) => passwordByteLength(p) <= MAX_PASSWORD_BYTES, {
+      error: "passwordTooLong" satisfies ValidationErrorCode,
+    }),
+  displayName: z
+    .string()
+    .trim()
+    .min(1, { error: "displayNameRequired" satisfies ValidationErrorCode })
+    .max(MAX_DISPLAY_NAME_LENGTH, { error: "displayNameTooLong" satisfies ValidationErrorCode }),
 });
 
 export type SignInInput = z.infer<typeof SignInSchema>;
@@ -64,7 +81,7 @@ async function startSession(path: string, payload: unknown, successMessage: stri
   const body = await res.json().catch(() => ({}));
 
   if (!res.ok) {
-    return { success: false, message: body?.error ?? res.statusText };
+    return { success: false, message: body?.error ?? res.statusText, status: res.status };
   }
 
   await persistSessionFromSetCookie(res.headers.getSetCookie());

@@ -20,10 +20,13 @@ export type User = {
  * - `message` — human-readable summary for the UI.
  * - `errors` — per-field validation messages, keyed by field name (from Zod).
  * - `user` — the authenticated user on a successful login/register.
+ * - `status` — the backend's HTTP status when it rejected the request, so the UI
+ *   can tell e.g. "email taken" (409) from "wrong credentials" (401).
  */
 export type ActionResponse = {
   success: boolean;
   message: string;
   errors?: Record<string, string[]>;
   user?: User;
+  status?: number;
 };

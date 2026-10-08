@@ -1,26 +1,118 @@
 @import "tailwindcss";
 
+/*
+ * Design tokens from docs/design/README.md, named after their shadcn/ui
+ * equivalents (see the README's "Token mapping" table). Light theme on :root,
+ * dark theme on .dark — toggled by the `dark` class on <html>.
+ */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f6f8fb;
+  --foreground: #0f1b2d;
+  --card: #ffffff;
+  --card-foreground: #0f1b2d;
+  --border: #e7ecf2;
+  --input: #e7ecf2;
+  --primary: #1e3352;
+  --primary-foreground: #ffffff;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --accent: #eef2f7;
+  --accent-foreground: #1e3352;
+  --ring: #94a3b8;
+  --destructive: #dc2626;
+
+  /* No shadcn/ui equivalent — custom tokens. */
+  --success: #15803d;
+  --success-bg: #dcfce7;
+  --danger-bg: #fee2e2;
+  --navy: #152238;
+  --field: #f6f8fb;
+  /* Angles are tokens so RTL can mirror them: green always starts at inline-start. */
+  --grad-angle: 100deg;
+  --grad-panel-angle: 150deg;
+  --grad: linear-gradient(var(--grad-angle), #15803d 0%, #1e3352 55%, #152238 100%);
+  /* Steeper variant used on the tall auth hero panels. */
+  --grad-panel: linear-gradient(var(--grad-panel-angle), #15803d 0%, #1e3352 55%, #152238 100%);
+
+  --radius: 14px;
+}
+
+.dark {
+  --background: #080e19;
+  --foreground: #e6ecf5;
+  --card: #101a2c;
+  --card-foreground: #e6ecf5;
+  --border: #233149;
+  --input: #233149;
+  --primary: #3d5c88;
+  --primary-foreground: #ffffff;
+  --muted: #18243a;
+  --muted-foreground: #94a4bf;
+  --accent: #18243b;
+  --accent-foreground: #c7d6ec;
+  --ring: #3d5c88;
+  --destructive: #f05252;
+
+  --success: #22c55e;
+  --success-bg: #0e2a1b;
+  --danger-bg: #361619;
+  --navy: #0d1626;
+  --field: #111c31;
+  --grad: linear-gradient(var(--grad-angle), #125a2d 0%, #182b47 55%, #0d1626 100%);
+  --grad-panel: linear-gradient(var(--grad-panel-angle), #125a2d 0%, #182b47 55%, #0d1626 100%);
+}
+
+[dir="rtl"] {
+  --grad-angle: 260deg;
+  --grad-panel-angle: 210deg;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-ring: var(--ring);
+  --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-success-bg: var(--success-bg);
+  --color-danger-bg: var(--danger-bg);
+  --color-navy: var(--navy);
+  --color-field: var(--field);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --radius-lg: var(--radius);
+
+  --font-sans: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-geist-mono);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+}
+
+/*
+ * Persian. Geist has no Arabic glyphs, and its metric-matched local fallback
+ * (Arial) does, so Vazirmatn must lead the stack rather than follow Geist.
+ * Scoped to :lang(fa) so other languages never download it. These rules are
+ * unlayered, so they beat the (layered) Tailwind utilities without !important.
+ */
+:lang(fa) body {
+  font-family: var(--font-vazirmatn), var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+}
+
+/* Letter-spacing pulls apart the joined letters of Arabic script, so Persian
+   ignores the tight tracking used on Latin headings. */
+:lang(fa) * {
+  letter-spacing: normal;
 }
