@@ -1,4 +1,4 @@
-import { Briefcase, House, ShoppingBag, TrendingUp, type LucideIcon } from "lucide-react";
+import { TrendingUp } from "lucide-react";
 import { getFormatter, getTranslations } from "next-intl/server";
 import Link from "next/link";
 import type { ReactNode } from "react";
