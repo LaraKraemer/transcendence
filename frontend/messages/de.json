@@ -25,8 +25,6 @@
       "title": "Anmelden",
       "subtitle": "Willkommen zurück. Gib deine Daten ein, um fortzufahren.",
       "divider": "oder mit E-Mail anmelden",
-      "forgotPassword": "Passwort vergessen?",
-      "keepSignedIn": "Angemeldet bleiben",
       "submit": "Anmelden",
       "submitting": "Anmeldung läuft…",
       "noAccount": "Neu bei Poolaki?",
@@ -37,7 +35,6 @@
       "title": "Erstelle dein Konto",
       "subtitle": "Keine Kreditkarte nötig. In weniger als einer Minute eingerichtet.",
       "divider": "oder mit E-Mail fortfahren",
-      "terms": "Ich stimme den AGB und der Datenschutzerklärung zu",
       "submit": "Kostenloses Konto erstellen",
       "submitting": "Konto wird erstellt…",
       "haveAccount": "Du hast schon ein Konto?",
@@ -51,19 +48,13 @@
     "hero": {
       "signIn": {
         "title": "Willkommen zurück zur Klarheit.",
-        "description": "Mach genau da weiter, wo du aufgehört hast – deine Budgets, Ziele und Familienausgaben warten schon.",
-        "netBalance": "Nettosaldo · {month}",
-        "goal": "Sparziel Europareise"
+        "description": "Kleine Einträge, großer Überblick. Trag deine Ausgaben von heute ein und sieh, wie sich deine Gewohnheiten abzeichnen.",
+        "netBalance": "Nettosaldo · {month}"
       },
       "signUp": {
         "title": "Jeder Euro – erfasst und verstanden.",
-        "description": "Schließ dich Tausenden an, die klüger budgetieren, schneller sparen und immer wissen, wohin ihr Geld geflossen ist.",
-        "thisMonth": "Diesen Monat",
-        "groceries": "Lebensmittel",
-        "salary": "Gehalt",
-        "income": "Einnahmen",
-        "rent": "Miete",
-        "housing": "Wohnen"
+        "description": "Sei von Anfang an dabei: Erfasse ab heute deine Ausgaben und gestalte mit, was als Nächstes kommt.",
+        "thisMonth": "Diesen Monat"
       }
     },
     "errors": {

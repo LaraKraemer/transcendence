@@ -25,8 +25,6 @@
       "title": "Sign in",
       "subtitle": "Welcome back. Enter your details to continue.",
       "divider": "or sign in with email",
-      "forgotPassword": "Forgot password?",
-      "keepSignedIn": "Keep me signed in",
       "submit": "Sign in",
       "submitting": "Signing in…",
       "noAccount": "New to Poolaki?",
@@ -37,7 +35,6 @@
       "title": "Create your account",
       "subtitle": "No credit card required. Set up in under a minute.",
       "divider": "or continue with email",
-      "terms": "I agree to the Terms & Privacy Policy",
       "submit": "Create free account",
       "submitting": "Creating account…",
       "haveAccount": "Already have an account?",
@@ -51,19 +48,13 @@
     "hero": {
       "signIn": {
         "title": "Welcome back to clarity.",
-        "description": "Pick up right where you left off — your budgets, goals, and family spending are waiting.",
-        "netBalance": "Net balance · {month}",
-        "goal": "Europe Trip Goal"
+        "description": "Small entries, big picture. Log today's spending and watch your habits take shape.",
+        "netBalance": "Net balance · {month}"
       },
       "signUp": {
         "title": "Every euro, tracked and understood.",
-        "description": "Join thousands who budget smarter, save faster, and never wonder where their money went.",
-        "thisMonth": "This month",
-        "groceries": "Groceries",
-        "salary": "Salary",
-        "income": "Income",
-        "rent": "Rent",
-        "housing": "Housing"
+        "description": "Be one of our very first users. Start tracking your spending today and help shape what comes next.",
+        "thisMonth": "This month"
       }
     },
     "errors": {
