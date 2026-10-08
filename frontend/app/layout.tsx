@@ -30,7 +30,7 @@ const vazirmatn = Vazirmatn({
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("metadata");
   return {
-    title: {default: t("appTitle"), template: `%s . ${t("appTitle")}`},
+    title: {default: t("appTitle"), template: `%s · ${t("appTitle")}`},
     description: t("appDescription"),
   };
 }
