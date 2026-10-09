@@ -7,7 +7,7 @@ import type { NewTransaction } from "./schema.ts";
 /** Finds a transaction only when its account belongs to the authenticated user, including archived accounts. */
 export async function findOwnedTransaction(transactionId: string, userId: string) {
   const [transaction] = await db
-    .select(getTableColumns(transactions))
+    .select({ transaction: getTableColumns(transactions), accountIsArchived: accounts.isArchived })
     .from(transactions)
     .innerJoin(accounts, eq(transactions.accountId, accounts.id))
     .where(and(eq(transactions.id, transactionId), eq(accounts.userId, userId)))

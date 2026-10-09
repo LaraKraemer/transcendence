@@ -15,6 +15,7 @@ vi.mock("../../srcs/auth.ts", () => ({
 }));
 
 import { transactionsRouter } from "../../srcs/routes/transaction.ts";
+import { accountsRouter } from "../../srcs/routes/account.ts";
 
 const accountId = "550e8400-e29b-41d4-a716-446655440000";
 const transactionId = "550e8400-e29b-41d4-a716-446655440003";
@@ -37,6 +38,7 @@ function txRow(overrides: Record<string, unknown> = {}) {
     overrides.occurredAt ?? null,
     overrides.createdAt ?? new Date().toISOString(),
     overrides.updatedAt ?? new Date().toISOString(),
+    overrides.accountIsArchived ?? false,
   ];
 }
 
@@ -332,12 +334,14 @@ describe("GET /transactions/:transactionId", () => {
   });
 
   it("is readable for transactions belonging to archived accounts (#15 regression)", async () => {
-    query.mockResolvedValueOnce({ rows: [txRow()] });
+    query.mockResolvedValueOnce({ rows: [txRow({ accountIsArchived: true })] });
     const result = await dispatch(transactionsRouter, { url: `/${transactionId}` });
     expect(result.status).toBe(200);
     // findOwnedTransaction uses inner join with no is_archived filter
     const sql: string = query.mock.calls[0]![0].text;
-    expect(sql).not.toContain('"is_archived"');
+    expect(sql).not.toMatch(/where.*is_archived/);
+    expect(result.body).not.toHaveProperty("accountIsArchived");
+    expect(result.body).not.toHaveProperty("transaction");
   });
 
   it("forwards errors", async () => {
@@ -386,10 +390,11 @@ describe("POST /transactions", () => {
     expect(query).not.toHaveBeenCalled();
   });
 
-  it("returns 404 for an archived account (lookup uses allowArchived=false)", async () => {
-    query.mockResolvedValueOnce({ rows: [] }); // findOwnedAccount with is_archived=false → not found
+  it("blocks creation on an archived account", async () => {
+    query.mockResolvedValueOnce({ rows: [acctRow({ isArchived: true })] });
     const result = await post(validBody);
-    expect(result.status).toBe(404);
+    expect(result).toEqual({ status: 409, body: { error: "Account is archived. Restore it before making changes." } });
+    expect(query).toHaveBeenCalledTimes(1);
     const sql: string = query.mock.calls[0]![0].text;
     expect(sql).toContain('"is_archived"');
   });
@@ -699,5 +704,91 @@ describe("PATCH /transactions/:transactionId — category rule", () => {
     });
     expect(result.status).toBe(200);
     expect(query).toHaveBeenCalledTimes(2); // no category lookup
+  });
+});
+
+describe("archived account transaction writes", () => {
+  it.each(["PATCH", "DELETE"])("blocks %s after ownership lookup", async (method) => {
+    query.mockResolvedValueOnce({ rows: [txRow({ accountIsArchived: true })] });
+    expect(
+      await dispatch(transactionsRouter, {
+        method,
+        url: `/${transactionId}`,
+        body: { description: "New" },
+      }),
+    ).toEqual({ status: 409, body: { error: "Account is archived. Restore it before making changes." } });
+    expect(query).toHaveBeenCalledTimes(1);
+    expect(query.mock.calls[0]![1]).toEqual([transactionId, userId, 1]);
+  });
+});
+
+describe("restored account writes", () => {
+  it("allows account edits and transaction creation, editing, and deletion after restoration", async () => {
+    query.mockResolvedValueOnce({ rows: [acctRow({ isArchived: true })] });
+    query.mockResolvedValueOnce({ rows: [acctRow()] });
+    expect(
+      await dispatch(accountsRouter, {
+        method: "PATCH",
+        url: `/${accountId}`,
+        body: { isArchived: false },
+      }),
+    ).toMatchObject({ status: 200, body: { isArchived: false } });
+
+    query.mockResolvedValueOnce({ rows: [acctRow()] });
+    query.mockResolvedValueOnce({ rows: [acctRow({ name: "New" })] });
+    expect(
+      await dispatch(accountsRouter, {
+        method: "PATCH",
+        url: `/${accountId}`,
+        body: { name: "New" },
+      }),
+    ).toMatchObject({ status: 200, body: { name: "New" } });
+
+    query.mockResolvedValueOnce({ rows: [acctRow()] });
+    query.mockResolvedValueOnce({ rows: [txRow()] });
+    expect(
+      (
+        await dispatch(transactionsRouter, {
+          method: "POST",
+          url: "/",
+          body: {
+            accountId,
+            amountMinor: -1000,
+            description: "Coffee",
+            bookedOn: "2025-01-15",
+          },
+        })
+      ).status,
+    ).toBe(201);
+
+    query.mockResolvedValueOnce({ rows: [txRow()] });
+    query.mockResolvedValueOnce({ rows: [txRow({ description: "New" })] });
+    expect(
+      await dispatch(transactionsRouter, {
+        method: "PATCH",
+        url: `/${transactionId}`,
+        body: { description: "New" },
+      }),
+    ).toMatchObject({ status: 200, body: { description: "New" } });
+
+    query.mockResolvedValueOnce({ rows: [txRow()] });
+    query.mockResolvedValueOnce({ rows: [] });
+    expect(
+      (
+        await dispatch(transactionsRouter, {
+          method: "DELETE",
+          url: `/${transactionId}`,
+        })
+      ).status,
+    ).toBe(204);
+  });
+
+  it("keeps archived account summaries readable", async () => {
+    query.mockResolvedValueOnce({ rows: [acctRow({ isArchived: true })] });
+    query.mockResolvedValueOnce({ rows: [[null, "-1000", "1"]] });
+    expect(await summary({ accountId })).toEqual({
+      status: 200,
+      body: [{ categoryId: null, totalMinor: -1000, count: 1 }],
+    });
   });
 });
