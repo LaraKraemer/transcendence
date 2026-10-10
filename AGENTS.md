@@ -89,7 +89,7 @@ Browser → Next.js `:3000` → Express `:3001` → Postgres `:5432` (bound to 1
 | Mount | Routes |
 |---|---|
 | `/auth` | `POST /register`, `POST /login`, `PATCH /password`, `POST /logout`, `GET /me`, `DELETE /me` |
-| `/accounts` | `GET /`, `POST /`, `GET /:accountId`, `PATCH /:accountId`, `GET /:accountId/balance` |
+| `/accounts` | `GET /`, `POST /`, `GET /:accountId`, `PATCH /:accountId`, `DELETE /:accountId`, `GET /:accountId/balance` |
 | `/categories` | `GET /`, `POST /`, `GET /:categoryId`, `PATCH /:categoryId` |
 | `/currencies` | `GET /` (authenticated, global reference data ordered by code) |
 | `/transactions` | `GET /?accountId=&limit=&offset=&from=&to=`, `GET /summary?accountId=&from=&to=`, `POST /`, `GET /:transactionId`, `PATCH /:transactionId`, `DELETE /:transactionId` |
@@ -99,8 +99,8 @@ Browser → Next.js `:3000` → Express `:3001` → Postgres `:5432` (bound to 1
 - Money is integer minor units (`amountMinor`, `openingBalanceMinor`), validated with `Number.isSafeInteger`. Postgres aggregates return strings, so wrap them with `Number(...)` or `.mapWith(Number)`.
 - Currency reference data provides `code`, `name`, `symbol`, and `minorUnit` (JPY: 0, KWD: 3, others: 2). It has no foreign keys to ledger tables; account currency validation checks only the three-uppercase-letter format.
 - A transaction's sign is its direction: negative = expense, positive = income. Zero is rejected (by the app and a DB CHECK). The category `kind` must match the sign; `transfer` accepts either. `kind` is immutable; `(user, name, kind)` is unique (409).
-- Accounts and categories are archived and unarchived via `PATCH {"isArchived": bool}`. `DELETE /transactions/:id` permanently removes the transaction. Users have no soft-delete field or deletion endpoint.
-- Archived accounts are hidden from lists but readable by ID, and can't receive new transactions. Existing transactions remain editable and deletable without restoring the account; account detail edits still require restoration. Archived categories can't be newly assigned, but existing assignments survive.
+- Accounts and categories are archived and unarchived via `PATCH {"isArchived": bool}`. `DELETE /accounts/:id` permanently deletes an owned account and all its transactions, including archived accounts. `DELETE /transactions/:id` permanently deletes one transaction. `DELETE /auth/me` permanently deletes the authenticated profile and cascades to accounts (including archived), categories, transactions, and sessions in one atomic statement, then clears the cookie. Transaction account and creator foreign keys use `ON DELETE CASCADE`. Users have no soft-delete field.
+- Archived accounts are hidden from lists but readable by ID, and can't receive new transactions. Archived categories can't be newly assigned, but existing assignments survive.
 - `bookedOn` is a `YYYY-MM-DD` date (filters and reports). `occurredAt` is an optional ISO 8601 timestamp.
 - Enum-like columns are plain `text`. Allowed values are `as const` arrays plus type guards at the top of each router (`ACCOUNT_TYPES`, `CATEGORY_KINDS`), so adding a value needs no migration.
 
