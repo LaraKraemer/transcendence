@@ -107,6 +107,13 @@ describe("CORS", () => {
 // ─── Wiring ───────────────────────────────────────────────────────────────────
 
 describe("wiring", () => {
+  it("/currencies without a cookie → 401 JSON without querying the database", async () => {
+    const res = await fetch(`${base}/currencies`);
+    expect(res.status).toBe(401);
+    expect(await res.json()).toEqual({ error: "Authentication required" });
+    expect(query).not.toHaveBeenCalled();
+  });
+
   it("/auth/me without a cookie → 401 JSON", async () => {
     // session lookup returns nothing
     query.mockResolvedValueOnce({ rows: [] });

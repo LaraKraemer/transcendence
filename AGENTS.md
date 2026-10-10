@@ -68,7 +68,7 @@ docker compose exec backend npm run db:generate   # after editing srcs/db/schema
 docker compose exec db psql -U expense -d expense_tracker
 ```
 
-The server applies migrations on startup. `db:seed` is intentionally a no-op, because all data is user-owned.
+The server applies migrations on startup. The currency table's creation migration also inserts 19 global reference currencies.
 
 API smoke test (CI runs it too): copy `backend/bruno/.env.example` to `backend/bruno/.env`, set `TEST_PASSWORD` (at least 12 chars), then `cd backend/bruno && npx bru run --env local` with the stack running.
 
@@ -82,7 +82,7 @@ Browser → Next.js `:3000` → Express `:3001` → Postgres `:5432` (bound to 1
 - `srcs/db/client.ts` throws at import time without `DATABASE_URL`, so entry points import `"dotenv/config"` first and tests must mock it. Host dev: `DATABASE_URL=postgres://expense:expense@localhost:5432/expense_tracker` in `backend/.env`.
 - Auth: email/password, bcrypt cost 12, password 12–72 bytes, emails trimmed and lowercased. The raw session token lives only in the HTTP-only `session` cookie (30 days); the DB stores its SHA-256 hash. `requireAuthenticatedUser` sets `res.locals.userId`.
 - CORS allows `FRONTEND_ORIGIN` (default `http://localhost:3000`) with credentials, so frontend fetches to `NEXT_PUBLIC_API_URL` must use `credentials: "include"`.
-- Queries live in `srcs/db/{accounts,categories,transactions,users}.ts`; routers in `srcs/routes/` call them. Reuse these helpers, e.g. `findOwnedAccount`.
+- Queries live in `srcs/db/{accounts,categories,currencies,transactions,users}.ts`; routers in `srcs/routes/` call them. Reuse these helpers, e.g. `findOwnedAccount`.
 - The schema's source of truth is `srcs/db/schema.ts`. `docs/*-db-schema.md` are target designs that include tables not built yet.
 
 | Mount | Routes |
@@ -90,11 +90,13 @@ Browser → Next.js `:3000` → Express `:3001` → Postgres `:5432` (bound to 1
 | `/auth` | `POST /register`, `POST /login`, `POST /logout`, `GET /me` |
 | `/accounts` | `GET /`, `POST /`, `GET /:accountId`, `PATCH /:accountId`, `GET /:accountId/balance` |
 | `/categories` | `GET /`, `POST /`, `GET /:categoryId`, `PATCH /:categoryId` |
+| `/currencies` | `GET /` (authenticated, global reference data ordered by code) |
 | `/transactions` | `GET /?accountId=&limit=&offset=&from=&to=`, `GET /summary?accountId=&from=&to=`, `POST /`, `GET /:transactionId`, `PATCH /:transactionId`, `DELETE /:transactionId` |
 
 ## Domain rules (enforced across routers, keep them consistent)
 
 - Money is integer minor units (`amountMinor`, `openingBalanceMinor`), validated with `Number.isSafeInteger`. Postgres aggregates return strings, so wrap them with `Number(...)` or `.mapWith(Number)`.
+- Currency reference data provides `code`, `name`, `symbol`, and `minorUnit` (JPY: 0, KWD: 3, others: 2). It has no foreign keys to ledger tables; account currency validation checks only the three-uppercase-letter format.
 - A transaction's sign is its direction: negative = expense, positive = income. Zero is rejected (by the app and a DB CHECK). The category `kind` must match the sign; `transfer` accepts either. `kind` is immutable; `(user, name, kind)` is unique (409).
 - Nothing is hard-deleted. Accounts and categories are archived and unarchived via `PATCH {"isArchived": bool}`. `DELETE /transactions/:id` sets `status: "void"`. Void transactions are listed but excluded from balance and summary.
 - Archived accounts are hidden from lists but readable by ID, and can't receive new transactions. Archived categories can't be newly assigned, but existing assignments survive.
@@ -106,7 +108,7 @@ Browser → Next.js `:3000` → Express `:3001` → Postgres `:5432` (bound to 1
 - ESM/NodeNext: relative imports use `.ts` extensions; type-only imports use `import type`. Import order: `node:` built-ins, then packages, then local files, separated by blank lines.
 - `exactOptionalPropertyTypes` and `noUncheckedIndexedAccess` are on. Add optional fields with conditional spreads (`...(x === undefined ? {} : { x })`) and check `const [row] = await …` before use.
 - Handlers validate with early returns (`res.status(400).json({ error: "<field> must …" }); return;`) and wrap DB work in `try { … } catch (error) { next(error); }`. Error bodies are always `{ error: string }`. Give handlers and helpers a short `/** … */` comment.
-- Scope every query to `res.locals.userId` and return **404, never 403**, for missing or foreign resources. Validate `:id` params with `isUuid`. Transactions are owned through `account.user_id`.
+- Scope user-owned resource queries to `res.locals.userId` and return **404, never 403**, for missing or foreign resources. Global currency reference queries have no user filter but require authentication. Validate `:id` params with `isUuid`. Transactions are owned through `account.user_id`.
 - PATCH: detect fields with `Object.hasOwn(body, field)` (explicit `null` clears nullable columns). Return 400 when no editable field is given. Set `updatedAt: new Date()` manually (`category` has no `updatedAt`).
 - Register static sub-routes (e.g. `/summary`) before `/:id`.
 - Put reusable pure validators in `srcs/validation.ts`. Resource-specific guards stay in their router.

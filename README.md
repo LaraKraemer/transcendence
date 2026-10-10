@@ -176,10 +176,9 @@ docker compose exec db psql -U expense -d expense_tracker
 
 # Run migrations manually, if needed
 docker compose exec backend npm run db:migrate
-
-# Add the sample expenses (safe to re-run)
-docker compose exec backend npm run db:seed
 ```
+
+The currency table's creation migration also inserts 19 reference currencies.
 
 Inside `psql`, list tables with `\dt` and inspect transactions with:
 
@@ -253,6 +252,14 @@ modify another user's financial data.
 | Accounts | `GET`, `POST` `/accounts`; `GET`, `PATCH`, `DELETE` `/accounts/:accountId` |
 | Categories | `GET`, `POST` `/categories`; `GET`, `PATCH`, `DELETE` `/categories/:categoryId` |
 | Transactions | `GET`, `POST` `/transactions`; `GET`, `PATCH`, `DELETE` `/transactions/:transactionId` |
+| Currencies | `GET` `/currencies` |
+
+`GET /currencies` requires an active session and returns global reference data
+ordered by code. Each object contains `code`, `name`, `symbol`, and numeric
+`minorUnit` (JPY: `0`, KWD: `3`, others: `2`). Convert integer minor units with
+`amountMinor / 10 ** minorUnit` and use locale-aware formatting for display.
+The catalog is not an exhaustive ISO 4217
+validator; accounts still accept any three-uppercase-letter currency code.
 
 `PATCH /accounts/:accountId` rejects a different `currencyCode` with `409` while
 transactions currently exist in the account. Submitting the current currency used is allowed. Accounts without transactions may change currency, even with an opening
@@ -269,6 +276,7 @@ category deletion archives the resource; transaction deletion permanently remove
 The repository includes a Bruno collection for repeatable local API testing in
 `backend/bruno/`. It registers a disposable user, creates an account, category,
 and transaction, then updates and deletes that transaction.
+It also checks the currency catalog populated by migrations.
 
 1. Start the services:
 
@@ -320,7 +328,7 @@ To ignore the dedicated formatting commit in local blame output, run
 
 Backend CI runs these checks and unit tests, plus the complete Bruno collection
 against a fresh PostgreSQL 17 database. API startup applies migrations; CI waits
-for `/health` before running requests and prints the API log if a step fails.
+for `/health`, then runs requests and prints the API log if a step fails.
 
 From `frontend/`, run `npm ci`, `npm run lint` and `npm run build`. Frontend CI
 runs lint and build. Both workflows run on relevant pull requests and pushes to
@@ -347,9 +355,10 @@ Test files live in `backend/tests/`, mirroring `backend/srcs/`:
 |---|---|
 | `tests/auth.test.ts` | session lifecycle, hashing, middleware |
 | `tests/routes/auth.test.ts` | register, login, logout, me |
-| `tests/routes/protection.test.ts` | all 16 protected routes reject unauthenticated requests |
+| `tests/routes/protection.test.ts` | protected routes reject unauthenticated requests |
 | `tests/routes/account.test.ts` | account CRUD + balance |
 | `tests/routes/category.test.ts` | category CRUD |
+| `tests/routes/currency.test.ts` | currency metadata, ordering, empty results, errors |
 | `tests/routes/transaction.test.ts` | transaction CRUD + category sign rule |
 | `tests/validation.test.ts` | isUuid, isCurrencyCode, isIsoTimestamp, isDateOnly, isHexColor |
 | `tests/db/accounts.test.ts` | findOwnedAccount ownership filter |
