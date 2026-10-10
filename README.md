@@ -177,9 +177,12 @@ docker compose exec db psql -U expense -d expense_tracker
 # Run migrations manually, if needed
 docker compose exec backend npm run db:migrate
 
-# Add the sample expenses (safe to re-run)
+# Add currency reference data (safe to re-run)
 docker compose exec backend npm run db:seed
 ```
+
+Run the seed command after migrations to populate 19 reference currencies,
+including UAH. Seeding is explicit and creates no user-owned ledger data.
 
 Inside `psql`, list tables with `\dt` and inspect transactions with:
 
@@ -253,6 +256,14 @@ modify another user's financial data.
 | Accounts | `GET`, `POST` `/accounts`; `GET`, `PATCH`, `DELETE` `/accounts/:accountId` |
 | Categories | `GET`, `POST` `/categories`; `GET`, `PATCH`, `DELETE` `/categories/:categoryId` |
 | Transactions | `GET`, `POST` `/transactions`; `GET`, `PATCH`, `DELETE` `/transactions/:transactionId` |
+| Currencies | `GET` `/currencies` |
+
+`GET /currencies` requires an active session and returns global reference data
+ordered by code. Each object contains `code`, `name`, `symbol`, and numeric
+`minorUnit` (JPY: `0`, KWD: `3`, UAH: `2`). Before seeding, it returns an empty
+array. Convert integer minor units with `amountMinor / 10 ** minorUnit` and use
+locale-aware formatting for display. The catalog is not an exhaustive ISO 4217
+validator; accounts still accept any three-uppercase-letter currency code.
 
 `PATCH /accounts/:accountId` rejects a different `currencyCode` with `409` while
 transactions currently exist in the account. Submitting the current currency used is allowed. Accounts without transactions may change currency, even with an opening
@@ -269,6 +280,7 @@ category deletion archives the resource; transaction deletion permanently remove
 The repository includes a Bruno collection for repeatable local API testing in
 `backend/bruno/`. It registers a disposable user, creates an account, category,
 and transaction, then updates and deletes that transaction.
+It also checks the seeded currency catalog.
 
 1. Start the services:
 
@@ -276,16 +288,22 @@ and transaction, then updates and deletes that transaction.
    make rebuild
    ```
 
-2. Create your untracked Bruno environment file:
+2. Seed the currency catalog after the backend has started and applied migrations:
+
+   ```bash
+   docker compose exec backend npm run db:seed
+   ```
+
+3. Create your untracked Bruno environment file:
 
    ```bash
    cp backend/bruno/.env.example backend/bruno/.env
    ```
 
-3. Set `TEST_PASSWORD` in `backend/bruno/.env` to a password of at least 12
+4. Set `TEST_PASSWORD` in `backend/bruno/.env` to a password of at least 12
    characters.
 
-4. Open the `backend/bruno/` folder as a collection in the Bruno desktop app,
+5. Open the `backend/bruno/` folder as a collection in the Bruno desktop app,
    choose the `local` environment, and run requests in numerical order.
   
 	OR run bruno test from CLI
@@ -320,7 +338,8 @@ To ignore the dedicated formatting commit in local blame output, run
 
 Backend CI runs these checks and unit tests, plus the complete Bruno collection
 against a fresh PostgreSQL 17 database. API startup applies migrations; CI waits
-for `/health` before running requests and prints the API log if a step fails.
+for `/health`, seeds currencies twice to check idempotency, then runs requests
+and prints the API log if a step fails.
 
 From `frontend/`, run `npm ci`, `npm run lint` and `npm run build`. Frontend CI
 runs lint and build. Both workflows run on relevant pull requests and pushes to
@@ -347,9 +366,10 @@ Test files live in `backend/tests/`, mirroring `backend/srcs/`:
 |---|---|
 | `tests/auth.test.ts` | session lifecycle, hashing, middleware |
 | `tests/routes/auth.test.ts` | register, login, logout, me |
-| `tests/routes/protection.test.ts` | all 16 protected routes reject unauthenticated requests |
+| `tests/routes/protection.test.ts` | protected routes reject unauthenticated requests |
 | `tests/routes/account.test.ts` | account CRUD + balance |
 | `tests/routes/category.test.ts` | category CRUD |
+| `tests/routes/currency.test.ts` | currency metadata, ordering, empty results, errors |
 | `tests/routes/transaction.test.ts` | transaction CRUD + category sign rule |
 | `tests/validation.test.ts` | isUuid, isCurrencyCode, isIsoTimestamp, isDateOnly, isHexColor |
 | `tests/db/accounts.test.ts` | findOwnedAccount ownership filter |

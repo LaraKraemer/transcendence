@@ -8,6 +8,7 @@ import { createAuthRateLimiter, createLoginRateLimiter } from "./rate-limit.ts";
 import { accountsRouter } from "./routes/account.ts";
 import { authRouter } from "./routes/auth.ts";
 import { categoriesRouter } from "./routes/category.ts";
+import { currenciesRouter } from "./routes/currency.ts";
 import { transactionsRouter } from "./routes/transaction.ts";
 
 export function createApp() {
@@ -36,6 +37,7 @@ export function createApp() {
   app.use("/accounts", accountsRouter);
   app.use("/auth", authRouter);
   app.use("/categories", categoriesRouter);
+  app.use("/currencies", currenciesRouter);
   app.use("/transactions", transactionsRouter);
 
   app.get("/", (_, res) => {

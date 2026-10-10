@@ -2,6 +2,12 @@
 
 Full scope: multiple owners per account, planning and goals features, recurring transactions.
 
+The `currency` table is implemented as global reference data, with 19 currencies
+seeded explicitly, including UAH (`₴`, minor-unit exponent 2). Its code column is
+`text`. Currency foreign keys and related fields elsewhere in this diagram are
+planned; the current account currency column has no foreign key and is validated
+only for the three-uppercase-letter format.
+
 ```mermaid
 erDiagram
 
@@ -44,7 +50,7 @@ erDiagram
 
     %% ── Money containers ────────────────────────────────────────────────────
     CURRENCY {
-        char3       code                PK  "ISO 4217 — EUR, USD"
+        text        code                PK  "ISO 4217 — EUR, USD, UAH"
         text        name                    "NOT NULL"
         text        symbol                  "NOT NULL"
         smallint    minor_unit              "NOT NULL DEFAULT 2 — JPY=0, KWD=3"
