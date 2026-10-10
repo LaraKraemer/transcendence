@@ -7,7 +7,7 @@ and set a local test password of at least 12 characters. The `.env` file is
 ignored by Git.
 
 Backend startup applies migrations and populates the currency catalog.
-The collection checks all 19 currencies, including UAH.
+The collection checks all 19 currencies.
 
 Run requests in numeric order. The collection creates a disposable user and
 captures account, category, and transaction IDs as Bruno runtime variables.

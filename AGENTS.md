@@ -68,7 +68,7 @@ docker compose exec backend npm run db:generate   # after editing srcs/db/schema
 docker compose exec db psql -U expense -d expense_tracker
 ```
 
-The server applies migrations on startup. The currency table's creation migration also inserts 19 global reference currencies, including UAH.
+The server applies migrations on startup. The currency table's creation migration also inserts 19 global reference currencies.
 
 API smoke test (CI runs it too): copy `backend/bruno/.env.example` to `backend/bruno/.env`, set `TEST_PASSWORD` (at least 12 chars), then `cd backend/bruno && npx bru run --env local` with the stack running.
 
@@ -96,7 +96,7 @@ Browser → Next.js `:3000` → Express `:3001` → Postgres `:5432` (bound to 1
 ## Domain rules (enforced across routers, keep them consistent)
 
 - Money is integer minor units (`amountMinor`, `openingBalanceMinor`), validated with `Number.isSafeInteger`. Postgres aggregates return strings, so wrap them with `Number(...)` or `.mapWith(Number)`.
-- Currency reference data provides `code`, `name`, `symbol`, and `minorUnit` (JPY: 0, KWD: 3, UAH: 2). It has no foreign keys to ledger tables; account currency validation checks only the three-uppercase-letter format.
+- Currency reference data provides `code`, `name`, `symbol`, and `minorUnit` (JPY: 0, KWD: 3, others: 2). It has no foreign keys to ledger tables; account currency validation checks only the three-uppercase-letter format.
 - A transaction's sign is its direction: negative = expense, positive = income. Zero is rejected (by the app and a DB CHECK). The category `kind` must match the sign; `transfer` accepts either. `kind` is immutable; `(user, name, kind)` is unique (409).
 - Nothing is hard-deleted. Accounts and categories are archived and unarchived via `PATCH {"isArchived": bool}`. `DELETE /transactions/:id` sets `status: "void"`. Void transactions are listed but excluded from balance and summary.
 - Archived accounts are hidden from lists but readable by ID, and can't receive new transactions. Archived categories can't be newly assigned, but existing assignments survive.

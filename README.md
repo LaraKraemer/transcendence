@@ -178,8 +178,7 @@ docker compose exec db psql -U expense -d expense_tracker
 docker compose exec backend npm run db:migrate
 ```
 
-The currency table's creation migration also inserts 19 reference currencies,
-including UAH.
+The currency table's creation migration also inserts 19 reference currencies.
 
 Inside `psql`, list tables with `\dt` and inspect transactions with:
 
@@ -257,7 +256,7 @@ modify another user's financial data.
 
 `GET /currencies` requires an active session and returns global reference data
 ordered by code. Each object contains `code`, `name`, `symbol`, and numeric
-`minorUnit` (JPY: `0`, KWD: `3`, UAH: `2`). Convert integer minor units with
+`minorUnit` (JPY: `0`, KWD: `3`, others: `2`). Convert integer minor units with
 `amountMinor / 10 ** minorUnit` and use locale-aware formatting for display.
 The catalog is not an exhaustive ISO 4217
 validator; accounts still accept any three-uppercase-letter currency code.
