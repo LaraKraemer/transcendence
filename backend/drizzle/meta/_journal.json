@@ -64,6 +64,13 @@
       "when": 1791807777097,
       "tag": "0008_remove_user_deleted_at",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791821651972,
+      "tag": "0009_account_delete_cascade",
+      "breakpoints": true
     }
   ]
 }
