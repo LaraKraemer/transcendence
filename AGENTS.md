@@ -68,9 +68,9 @@ docker compose exec backend npm run db:generate   # after editing srcs/db/schema
 docker compose exec db psql -U expense -d expense_tracker
 ```
 
-The server applies migrations on startup. Run `db:seed` explicitly after migrations to insert 19 global reference currencies, including UAH. Repeated seeding preserves existing rows; no user-owned ledger data is seeded.
+The server applies migrations on startup. The currency table's creation migration also inserts 19 global reference currencies, including UAH.
 
-API smoke test (CI runs it too): copy `backend/bruno/.env.example` to `backend/bruno/.env`, set `TEST_PASSWORD` (at least 12 chars), then `cd backend/bruno && npx bru run --env local` with the stack running and currencies seeded.
+API smoke test (CI runs it too): copy `backend/bruno/.env.example` to `backend/bruno/.env`, set `TEST_PASSWORD` (at least 12 chars), then `cd backend/bruno && npx bru run --env local` with the stack running.
 
 Frontend (`cd frontend`): `npm run lint && npm run build` (matches CI).
 

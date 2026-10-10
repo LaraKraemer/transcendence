@@ -36,7 +36,7 @@ describe("GET /currencies", () => {
     expect(query).toHaveBeenCalledOnce();
   });
 
-  it("returns an empty list before seeding", async () => {
+  it("returns an empty list when the currency table is empty", async () => {
     query.mockResolvedValueOnce({ rows: [] });
     expect(await dispatch(currenciesRouter, { url: "/" })).toEqual({ status: 200, body: [] });
   });

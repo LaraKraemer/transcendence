@@ -6,8 +6,8 @@ Before running the collection, create `backend/bruno/.env` from `.env.example`
 and set a local test password of at least 12 characters. The `.env` file is
 ignored by Git.
 
-After migrations, run `docker compose exec backend npm run db:seed` to populate
-the currency catalog. The collection checks all 19 seeded currencies, including UAH.
+Backend startup applies migrations and populates the currency catalog.
+The collection checks all 19 currencies, including UAH.
 
 Run requests in numeric order. The collection creates a disposable user and
 captures account, category, and transaction IDs as Bruno runtime variables.

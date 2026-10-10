@@ -176,13 +176,10 @@ docker compose exec db psql -U expense -d expense_tracker
 
 # Run migrations manually, if needed
 docker compose exec backend npm run db:migrate
-
-# Add currency reference data (safe to re-run)
-docker compose exec backend npm run db:seed
 ```
 
-Run the seed command after migrations to populate 19 reference currencies,
-including UAH. Seeding is explicit and creates no user-owned ledger data.
+The currency table's creation migration also inserts 19 reference currencies,
+including UAH.
 
 Inside `psql`, list tables with `\dt` and inspect transactions with:
 
@@ -260,9 +257,9 @@ modify another user's financial data.
 
 `GET /currencies` requires an active session and returns global reference data
 ordered by code. Each object contains `code`, `name`, `symbol`, and numeric
-`minorUnit` (JPY: `0`, KWD: `3`, UAH: `2`). Before seeding, it returns an empty
-array. Convert integer minor units with `amountMinor / 10 ** minorUnit` and use
-locale-aware formatting for display. The catalog is not an exhaustive ISO 4217
+`minorUnit` (JPY: `0`, KWD: `3`, UAH: `2`). Convert integer minor units with
+`amountMinor / 10 ** minorUnit` and use locale-aware formatting for display.
+The catalog is not an exhaustive ISO 4217
 validator; accounts still accept any three-uppercase-letter currency code.
 
 `PATCH /accounts/:accountId` rejects a different `currencyCode` with `409` while
@@ -280,7 +277,7 @@ category deletion archives the resource; transaction deletion permanently remove
 The repository includes a Bruno collection for repeatable local API testing in
 `backend/bruno/`. It registers a disposable user, creates an account, category,
 and transaction, then updates and deletes that transaction.
-It also checks the seeded currency catalog.
+It also checks the currency catalog populated by migrations.
 
 1. Start the services:
 
@@ -288,22 +285,16 @@ It also checks the seeded currency catalog.
    make rebuild
    ```
 
-2. Seed the currency catalog after the backend has started and applied migrations:
-
-   ```bash
-   docker compose exec backend npm run db:seed
-   ```
-
-3. Create your untracked Bruno environment file:
+2. Create your untracked Bruno environment file:
 
    ```bash
    cp backend/bruno/.env.example backend/bruno/.env
    ```
 
-4. Set `TEST_PASSWORD` in `backend/bruno/.env` to a password of at least 12
+3. Set `TEST_PASSWORD` in `backend/bruno/.env` to a password of at least 12
    characters.
 
-5. Open the `backend/bruno/` folder as a collection in the Bruno desktop app,
+4. Open the `backend/bruno/` folder as a collection in the Bruno desktop app,
    choose the `local` environment, and run requests in numerical order.
   
 	OR run bruno test from CLI
@@ -338,8 +329,7 @@ To ignore the dedicated formatting commit in local blame output, run
 
 Backend CI runs these checks and unit tests, plus the complete Bruno collection
 against a fresh PostgreSQL 17 database. API startup applies migrations; CI waits
-for `/health`, seeds currencies twice to check idempotency, then runs requests
-and prints the API log if a step fails.
+for `/health`, then runs requests and prints the API log if a step fails.
 
 From `frontend/`, run `npm ci`, `npm run lint` and `npm run build`. Frontend CI
 runs lint and build. Both workflows run on relevant pull requests and pushes to

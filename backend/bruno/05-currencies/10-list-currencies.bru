@@ -11,7 +11,7 @@ get {
 }
 
 tests {
-  test("seeded currencies are complete and ordered by code", function () {
+  test("currency catalog is complete and ordered by code", function () {
     expect(res.getStatus()).to.equal(200);
     const currencies = res.getBody();
     const expectedCodes = [
