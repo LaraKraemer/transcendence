@@ -2,6 +2,7 @@ import { Router } from "express";
 
 import { requireAuthenticatedUser } from "../auth.ts";
 import {
+  deleteOwnedAccount,
   findOwnedAccount,
   hasTransactions,
   insertAccount,
@@ -201,4 +202,24 @@ accountsRouter.patch("/:accountId", async (req, res) => {
 
   const updatedAccount = await updateAccount(account.id, updates);
   res.json(updatedAccount);
+});
+
+/** Permanently deletes an owned account, including all of its transactions. */
+accountsRouter.delete("/:accountId", async (req, res, next) => {
+  if (!isUuid(req.params.accountId)) {
+    res.status(400).json({ error: "accountId must be a valid UUID" });
+    return;
+  }
+
+  try {
+    const deleted = await deleteOwnedAccount(req.params.accountId, res.locals.userId);
+    if (!deleted) {
+      res.status(404).json({ error: "Account not found" });
+      return;
+    }
+
+    res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
 });

@@ -88,7 +88,7 @@ Browser → Next.js `:3000` → Express `:3001` → Postgres `:5432` (bound to 1
 | Mount | Routes |
 |---|---|
 | `/auth` | `POST /register`, `POST /login`, `POST /logout`, `GET /me` |
-| `/accounts` | `GET /`, `POST /`, `GET /:accountId`, `PATCH /:accountId`, `GET /:accountId/balance` |
+| `/accounts` | `GET /`, `POST /`, `GET /:accountId`, `PATCH /:accountId`, `DELETE /:accountId`, `GET /:accountId/balance` |
 | `/categories` | `GET /`, `POST /`, `GET /:categoryId`, `PATCH /:categoryId` |
 | `/transactions` | `GET /?accountId=&limit=&offset=&from=&to=`, `GET /summary?accountId=&from=&to=`, `POST /`, `GET /:transactionId`, `PATCH /:transactionId`, `DELETE /:transactionId` |
 
@@ -96,10 +96,10 @@ Browser → Next.js `:3000` → Express `:3001` → Postgres `:5432` (bound to 1
 
 - Money is integer minor units (`amountMinor`, `openingBalanceMinor`), validated with `Number.isSafeInteger`. Postgres aggregates return strings, so wrap them with `Number(...)` or `.mapWith(Number)`.
 - A transaction's sign is its direction: negative = expense, positive = income. Zero is rejected (by the app and a DB CHECK). The category `kind` must match the sign; `transfer` accepts either. `kind` is immutable; `(user, name, kind)` is unique (409).
-- Nothing is hard-deleted. Accounts and categories are archived and unarchived via `PATCH {"isArchived": bool}`. `DELETE /transactions/:id` sets `status: "void"`. Void transactions are listed but excluded from balance and summary.
+- Accounts and categories are archived and unarchived via `PATCH {"isArchived": bool}`. `DELETE /accounts/:id` permanently deletes an owned account and all its transactions, including archived accounts. `DELETE /transactions/:id` permanently deletes one transaction.
 - Archived accounts are hidden from lists but readable by ID, and can't receive new transactions. Archived categories can't be newly assigned, but existing assignments survive.
 - `bookedOn` is a `YYYY-MM-DD` date (filters and reports). `occurredAt` is an optional ISO 8601 timestamp.
-- Enum-like columns are plain `text`. Allowed values are `as const` arrays plus type guards at the top of each router (`ACCOUNT_TYPES`, `CATEGORY_KINDS`, `TRANSACTION_STATUSES`), so adding a value needs no migration.
+- Enum-like columns are plain `text`. Allowed values are `as const` arrays plus type guards at the top of each router (`ACCOUNT_TYPES`, `CATEGORY_KINDS`), so adding a value needs no migration.
 
 ## Backend conventions
 

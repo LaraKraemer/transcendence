@@ -20,6 +20,7 @@ const ROUTES: Array<{ router: Parameters<typeof dispatch>[0]; method: string; ur
   { router: accountsRouter, method: "POST", url: "/" },
   { router: accountsRouter, method: "GET", url: `/${validUuid}` },
   { router: accountsRouter, method: "PATCH", url: `/${validUuid}` },
+  { router: accountsRouter, method: "DELETE", url: `/${validUuid}` },
   { router: accountsRouter, method: "GET", url: `/${validUuid}/balance` },
   { router: categoriesRouter, method: "GET", url: "/" },
   { router: categoriesRouter, method: "POST", url: "/" },

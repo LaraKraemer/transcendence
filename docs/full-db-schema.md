@@ -97,7 +97,7 @@ erDiagram
     %% ── The ledger ──────────────────────────────────────────────────────────
     TRANSACTION {
         uuid        id                  PK
-        uuid        account_id          FK  "NOT NULL -> ACCOUNT"
+        uuid        account_id          FK  "NOT NULL -> ACCOUNT, ON DELETE CASCADE"
         uuid        category_id         FK  "NULL -> CATEGORY, ON DELETE SET NULL"
         uuid        merchant_id         FK  "NULL -> MERCHANT"
         uuid        created_by_id       FK  "NOT NULL -> APP_USER — who entered it"

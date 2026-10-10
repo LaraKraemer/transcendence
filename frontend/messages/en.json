@@ -11,6 +11,22 @@
     "switchToDark": "Switch to dark theme",
     "switchToLight": "Switch to light theme"
   },
+  "accounts": {
+    "delete": {
+      "trigger": "Delete permanently",
+      "title": "Permanently delete account",
+      "warning": "This cannot be undone. All transactions in this account, including any added before deletion, will be permanently removed.",
+      "transactionCount": "{count, plural, =0 {This account has no transactions.} one {This will permanently delete # transaction.} other {This will permanently delete # transactions.}}",
+      "loading": "Loading transaction count…",
+      "confirmationLabel": "Type the account name exactly to confirm",
+      "cancel": "Cancel",
+      "confirm": "Delete permanently",
+      "deleting": "Deleting…",
+      "retry": "Retry",
+      "countError": "Could not load the transaction count. Retry before deleting.",
+      "deleteError": "Could not delete the account. Please try again."
+    }
+  },
   "auth": {
     "continueWithGoogle": "Continue with Google",
     "showPassword": "Show password",

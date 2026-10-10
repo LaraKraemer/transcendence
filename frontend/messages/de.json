@@ -11,6 +11,22 @@
     "switchToDark": "Zum dunklen Design wechseln",
     "switchToLight": "Zum hellen Design wechseln"
   },
+  "accounts": {
+    "delete": {
+      "trigger": "Endgültig löschen",
+      "title": "Konto endgültig löschen",
+      "warning": "Dies kann nicht rückgängig gemacht werden. Alle Transaktionen dieses Kontos, auch die vor dem Löschen neu hinzugefügten, werden endgültig entfernt.",
+      "transactionCount": "{count, plural, =0 {Dieses Konto hat keine Transaktionen.} one {Dabei wird # Transaktion endgültig gelöscht.} other {Dabei werden # Transaktionen endgültig gelöscht.}}",
+      "loading": "Anzahl der Transaktionen wird geladen…",
+      "confirmationLabel": "Gib zur Bestätigung den Kontonamen exakt ein",
+      "cancel": "Abbrechen",
+      "confirm": "Endgültig löschen",
+      "deleting": "Wird gelöscht…",
+      "retry": "Erneut versuchen",
+      "countError": "Die Anzahl der Transaktionen konnte nicht geladen werden. Versuche es vor dem Löschen erneut.",
+      "deleteError": "Das Konto konnte nicht gelöscht werden. Bitte versuche es erneut."
+    }
+  },
   "auth": {
     "continueWithGoogle": "Weiter mit Google",
     "showPassword": "Passwort anzeigen",

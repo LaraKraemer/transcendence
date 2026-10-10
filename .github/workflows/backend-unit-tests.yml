@@ -72,6 +72,8 @@ jobs:
         run: npx --no-install tsx srcs/index.ts > api.log 2>&1 &
       - name: Wait for API readiness
         run: timeout 60 bash -c 'until curl -fsS http://localhost:3001/health; do sleep 1; done'
+      - name: Check account deletion cascade
+        run: docker exec -i "${{ job.services.postgres.id }}" psql -U expense -d expense_tracker < tests/db/account-delete.sql
       - name: Run API collection
         run: npx --no-install bru run --env local
         working-directory: backend/bruno

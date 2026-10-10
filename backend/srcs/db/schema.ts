@@ -50,7 +50,7 @@ export const transactions = pgTable(
 
     accountId: uuid("account_id")
       .notNull()
-      .references(() => accounts.id),
+      .references(() => accounts.id, { onDelete: "cascade" }),
 
     categoryId: uuid("category_id").references(() => categories.id, {
       onDelete: "set null",

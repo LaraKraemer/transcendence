@@ -1,0 +1,17 @@
+meta {
+  name: 10 - Delete account permanently
+  type: http
+  seq: 11
+}
+
+delete {
+  url: {{baseUrl}}/accounts/{{accountId}}
+  body: none
+  auth: none
+}
+
+tests {
+  test("account is permanently deleted", function () {
+    expect(res.getStatus()).to.equal(204);
+  });
+}

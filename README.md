@@ -251,15 +251,40 @@ modify another user's financial data.
 | Resource | Endpoints |
 |---|---|
 | Accounts | `GET`, `POST` `/accounts`; `GET`, `PATCH`, `DELETE` `/accounts/:accountId` |
-| Categories | `GET`, `POST` `/categories`; `GET`, `PATCH`, `DELETE` `/categories/:categoryId` |
+| Categories | `GET`, `POST` `/categories`; `GET`, `PATCH` `/categories/:categoryId` |
 | Transactions | `GET`, `POST` `/transactions`; `GET`, `PATCH`, `DELETE` `/transactions/:transactionId` |
 
 `PATCH /accounts/:accountId` rejects a different `currencyCode` with `409` while
 transactions currently exist in the account. Submitting the current currency used is allowed. Accounts without transactions may change currency, even with an opening
 balance; this does not convert the opening balance, so we need to review and adjust it as needed.
 
-`GET /transactions` requires an `accountId` query parameter. Account and
-category deletion archives the resource; transaction deletion permanently removes the row.
+`GET /transactions` requires an `accountId` query parameter. Archive or unarchive
+accounts and categories with `PATCH {"isArchived": true}` or `PATCH {"isArchived": false}`.
+`DELETE /accounts/:accountId` permanently removes the owned account and all of its
+transactions, including archived accounts. It returns 204 on success, 404 for a
+missing or foreign account, and 400 for an invalid UUID. `DELETE /transactions/:transactionId`
+permanently removes one transaction.
+
+The account deletion modal is ready for the accounts list/edit/archive screens,
+which remain separate frontend prerequisites. It requires typing the saved account
+name exactly and shows the current transaction count before enabling deletion.
+
+In the prerequisite client account list, render the control with the saved account
+and remove its row when deletion finishes:
+
+```tsx
+import { DeleteAccountDialog } from "@/components/accounts/delete-account-dialog";
+
+<DeleteAccountDialog
+  key={account.id}
+  account={account}
+  onDeleted={(accountId) => setAccounts((accounts) => accounts.filter((account) => account.id !== accountId))}
+/>
+```
+
+Before integration, check exact name matching (including case and whitespace),
+zero and large transaction counts, fast close/reopen, cancel/Escape and focus restoration, failed
+requests and retry, repeated clicks, light/dark themes, and Persian RTL.
 
 
 <br>
@@ -268,7 +293,7 @@ category deletion archives the resource; transaction deletion permanently remove
 
 The repository includes a Bruno collection for repeatable local API testing in
 `backend/bruno/`. It registers a disposable user, creates an account, category,
-and transaction, then updates and deletes that transaction.
+and transaction, then updates and deletes that transaction and permanently deletes the account.
 
 1. Start the services:
 
@@ -312,6 +337,14 @@ npm run lint               # ESLint recommended JavaScript/TypeScript rules
 npm run format:check       # verify Prettier formatting
 npm run format             # apply formatting
 ```
+
+Check the account deletion cascade against the running, migrated database:
+
+```bash
+docker compose exec -T db psql -U expense -d expense_tracker < backend/tests/db/account-delete.sql
+```
+
+This check creates its own rows and rolls them back. CI runs it against PostgreSQL too.
 
 Prettier uses the root `.prettierrc.json` (print width 100). Generated migrations,
 Bruno files, coverage output and the package lockfile are excluded from formatting.
