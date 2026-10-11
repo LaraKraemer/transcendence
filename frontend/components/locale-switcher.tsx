@@ -1,6 +1,6 @@
 "use client";
 
-import { Languages } from "lucide-react";
+import { Check, Languages } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
@@ -12,8 +12,11 @@ import { setLocale } from "@/lib/actions/locale";
  * Language picker. Saves the choice in a cookie (server action), then refreshes
  * so the root layout re-renders with the new `lang`, `dir`, and messages —
  * client state such as half-typed form input survives the switch.
+ *
+ * `variant="list"` renders the languages as a tappable list (the mobile More
+ * page shows it below its own Language button) instead of a `<select>`.
  */
-export function LocaleSwitcher() {
+export function LocaleSwitcher({ variant = "select" }: { variant?: "select" | "list" }) {
   const t = useTranslations("common");
   const locale = useLocale();
   const router = useRouter();
@@ -24,6 +27,30 @@ export function LocaleSwitcher() {
       await setLocale(next);
       router.refresh();
     });
+  }
+
+  if (variant === "list") {
+    return (
+      <ul aria-label={t("language")} className="pb-2">
+        {locales.map((code) => (
+          <li key={code}>
+            <button
+              type="button"
+              lang={code}
+              aria-pressed={code === locale}
+              disabled={isPending}
+              onClick={() => onChange(code)}
+              className="flex w-full cursor-pointer items-center gap-3 rounded-[10px] px-3 py-2.5 text-sm hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-wait disabled:opacity-60 aria-pressed:font-semibold"
+            >
+              <span className="flex w-[22px] justify-center">
+                {code === locale && <Check size={16} aria-hidden className="text-success" />}
+              </span>
+              {localeNames[code]}
+            </button>
+          </li>
+        ))}
+      </ul>
+    );
   }
 
   return (
