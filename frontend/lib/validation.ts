@@ -54,3 +54,38 @@ export function validateRegister({ email, displayName, password }: RegisterField
     password: validatePassword(password),
   });
 }
+
+// Accounts. These mirror the backend's account rules (routes/account.ts).
+export const ACCOUNT_TYPES = ["checking", "savings", "cash"] as const;
+export type AccountType = (typeof ACCOUNT_TYPES)[number];
+export const MAX_ACCOUNT_NAME_LENGTH = 100;
+
+export const accountErrorCodes = [
+  "nameRequired",
+  "nameTooLong",
+  "typeInvalid",
+  "currencyInvalid",
+  "openingBalanceInvalid",
+] as const;
+
+export type AccountErrorCode = (typeof accountErrorCodes)[number];
+
+export function isAccountErrorCode(value: unknown): value is AccountErrorCode {
+  return typeof value === "string" && (accountErrorCodes as readonly string[]).includes(value);
+}
+
+/**
+ * Converts a typed decimal amount ("100.50") to integer minor units for a
+ * currency with `minorUnit` decimals, using string digits rather than float
+ * maths (so "1.005" can't round to 100). Returns `undefined` for anything that
+ * isn't a plain decimal, has more decimals than the currency allows, or doesn't
+ * fit a safe integer.
+ */
+export function toMinorUnits(amount: string, minorUnit: number): number | undefined {
+  const match = /^(-?)(\d+)(?:\.(\d+))?$/.exec(amount.trim());
+  if (!match) return undefined;
+  const [, sign, whole, fraction = ""] = match;
+  if (fraction.length > minorUnit) return undefined;
+  const minor = Number(`${sign}${whole}${fraction.padEnd(minorUnit, "0")}`);
+  return Number.isSafeInteger(minor) ? minor : undefined;
+}
