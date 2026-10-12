@@ -210,6 +210,7 @@ deleted at startup and every six hours.
 |---|---|---|
 | `POST` | `/auth/register` | Create an account and start a session |
 | `POST` | `/auth/login` | Start a session with email and password |
+| `PATCH` | `/auth/password` | Change password and revoke every session |
 | `POST` | `/auth/logout` | Revoke the current session |
 | `GET` | `/auth/me` | Return the current authenticated user |
 
@@ -222,9 +223,19 @@ curl -i -c cookies.txt \
   http://localhost:3001/auth/register
 ```
 
-Passwords must be 12 to 72 bytes. Password hashes, not passwords, are stored
-in the database. Google and other provider logins will be added later through
+Passwords must have at least 12 characters (`.length >= 12`) and at most 72 UTF-8
+bytes. Password hashes, not passwords, are stored in the database. Google and other provider logins will be added later through
 a separate account-identity table.
+
+`PATCH /auth/password` requires authentication and a JSON body:
+`{"currentPassword":"a-secure-password","newPassword":"another-secure-password"}`.
+The new password follows the registration policy. Success returns `204`, atomically
+updates the password hash, `password_changed_at`, and `updated_at`, revokes every
+session (including other devices), and clears the session cookie. Log in again
+with the new password. Missing/non-string fields or invalid new passwords return
+`400`; unauthenticated requests return `401`; incorrect current passwords return
+`401` with `{"error":"Invalid current password"}`. Rejected requests leave the
+password and sessions unchanged.
 
 Registration and login share a per-IP limit of 100 requests per 15 minutes.
 Login also allows 10 attempts per client IP and normalized email per 15
@@ -346,7 +357,7 @@ Test files live in `backend/tests/`, mirroring `backend/srcs/`:
 | Test file | Covers |
 |---|---|
 | `tests/auth.test.ts` | session lifecycle, hashing, middleware |
-| `tests/routes/auth.test.ts` | register, login, logout, me |
+| `tests/routes/auth.test.ts` | register, login, password change, logout, me |
 | `tests/routes/protection.test.ts` | all 16 protected routes reject unauthenticated requests |
 | `tests/routes/account.test.ts` | account CRUD + balance |
 | `tests/routes/category.test.ts` | category CRUD |

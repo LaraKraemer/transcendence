@@ -80,14 +80,15 @@ Browser → Next.js `:3000` → Express `:3001` → Postgres `:5432` (bound to 1
 
 - `srcs/app.ts` exports `createApp()` (CORS, routers, `/health`, global error handler). `srcs/index.ts` runs migrations and then listens.
 - `srcs/db/client.ts` throws at import time without `DATABASE_URL`, so entry points import `"dotenv/config"` first and tests must mock it. Host dev: `DATABASE_URL=postgres://expense:expense@localhost:5432/expense_tracker` in `backend/.env`.
-- Auth: email/password, bcrypt cost 12, password 12–72 bytes, emails trimmed and lowercased. The raw session token lives only in the HTTP-only `session` cookie (30 days); the DB stores its SHA-256 hash. `requireAuthenticatedUser` sets `res.locals.userId`.
+- Auth: email/password, bcrypt cost 12, password minimum `.length >= 12` and maximum 72 UTF-8 bytes, emails trimmed and lowercased. The raw session token lives only in the HTTP-only `session` cookie (30 days); the DB stores its SHA-256 hash. `requireAuthenticatedUser` sets `res.locals.userId`.
+- `PATCH /auth/password` verifies the current password, atomically updates the password hash and timestamps and revokes all user sessions, then clears the session cookie.
 - CORS allows `FRONTEND_ORIGIN` (default `http://localhost:3000`) with credentials, so frontend fetches to `NEXT_PUBLIC_API_URL` must use `credentials: "include"`.
 - Queries live in `srcs/db/{accounts,categories,transactions,users}.ts`; routers in `srcs/routes/` call them. Reuse these helpers, e.g. `findOwnedAccount`.
 - The schema's source of truth is `srcs/db/schema.ts`. `docs/*-db-schema.md` are target designs that include tables not built yet.
 
 | Mount | Routes |
 |---|---|
-| `/auth` | `POST /register`, `POST /login`, `POST /logout`, `GET /me` |
+| `/auth` | `POST /register`, `POST /login`, `PATCH /password`, `POST /logout`, `GET /me` |
 | `/accounts` | `GET /`, `POST /`, `GET /:accountId`, `PATCH /:accountId`, `GET /:accountId/balance` |
 | `/categories` | `GET /`, `POST /`, `GET /:categoryId`, `PATCH /:categoryId` |
 | `/transactions` | `GET /?accountId=&limit=&offset=&from=&to=`, `GET /summary?accountId=&from=&to=`, `POST /`, `GET /:transactionId`, `PATCH /:transactionId`, `DELETE /:transactionId` |

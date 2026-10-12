@@ -8,9 +8,11 @@ import {
   getAuthenticatedUserId,
   hashPassword,
   revokeCurrentSession,
+  requireAuthenticatedUser,
   verifyPassword,
 } from "../auth.ts";
-import { createUser, findUserByEmail, findUserById } from "../db/users.ts";
+import { createUser, findUserByEmail, findUserById, findUserPasswordHash, updateUserPassword } from "../db/users.ts";
+import { isValidPassword } from "../validation.ts";
 
 export const authRouter = Router();
 // Unknown emails must do the same bcrypt work as a wrong password for an existing user.
@@ -25,7 +27,7 @@ authRouter.post("/register", async (req, res) => {
     res.status(400).json({ error: "A valid email is required" });
     return;
   }
-  if (typeof password !== "string" || password.length < 12 || Buffer.byteLength(password, "utf8") > 72) {
+  if (!isValidPassword(password)) {
     res.status(400).json({ error: "Password must be 12 to 72 bytes" });
     return;
   }
@@ -88,4 +90,34 @@ authRouter.get("/me", async (req, res) => {
 
   const user = await findUserById(userId);
   res.json({ user });
+});
+
+/** Verifies the current password, changes it, and signs out every device. */
+authRouter.patch("/password", requireAuthenticatedUser, async (req, res, next) => {
+  const { currentPassword, newPassword } = req.body ?? {};
+  if (typeof currentPassword !== "string" || typeof newPassword !== "string") {
+    res.status(400).json({ error: "currentPassword and newPassword must be strings" });
+    return;
+  }
+  if (!isValidPassword(newPassword)) {
+    res.status(400).json({ error: "Password must be 12 to 72 bytes" });
+    return;
+  }
+
+  try {
+    const userId = res.locals.userId as string;
+    const previousHash = await findUserPasswordHash(userId);
+    if (!previousHash || !(await verifyPassword(currentPassword, previousHash))) {
+      res.status(401).json({ error: "Invalid current password" });
+      return;
+    }
+    if (!(await updateUserPassword(userId, previousHash, await hashPassword(newPassword)))) {
+      res.status(401).json({ error: "Invalid current password" });
+      return;
+    }
+    clearSessionCookie(res);
+    res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
 });
