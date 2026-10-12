@@ -2,20 +2,15 @@
 
 import { Moon, Sun } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { type Theme } from "@/lib/theme";
+import { useTheme } from "@/lib/theme-context";
 
-import { THEME_COOKIE, type Theme } from "@/lib/theme";
-
-const ONE_YEAR = 60 * 60 * 24 * 365;
-
-export function ThemeToggle({ initialTheme }: { initialTheme: Theme }) {
+export function ThemeToggle() {
   const t = useTranslations("common");
-  const [theme, setTheme] = useState<Theme>(initialTheme);
+  const { theme, setTheme } = useTheme();
 
   function toggle() {
     const next: Theme = theme === "dark" ? "light" : "dark";
-    document.documentElement.classList.toggle("dark", next === "dark");
-    document.cookie = `${THEME_COOKIE}=${next}; path=/; max-age=${ONE_YEAR}; samesite=lax`;
     setTheme(next);
   }
 

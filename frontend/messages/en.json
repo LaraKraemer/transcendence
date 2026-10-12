@@ -69,5 +69,19 @@
       "network": "Could not reach the server. Please try again later.",
       "generic": "Something went wrong. Please try again."
     }
+  },
+  "nav": {
+    "main": "Main",
+    "mainNavigation": "Main navigation",
+    "overview": "Overview",
+    "accounts": "Accounts",
+    "categories": "Categories",
+    "transactions": "Transactions",
+    "logout": "Log out",
+    "skipToContent": "Skip to content",
+    "more": "More",
+    "theme": "Theme",
+    "profile": "Profile",
+    "back": "Back"
   }
 }
