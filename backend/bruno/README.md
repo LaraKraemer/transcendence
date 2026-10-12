@@ -6,6 +6,9 @@ Before running the collection, create `backend/bruno/.env` from `.env.example`
 and set a local test password of at least 12 characters. The `.env` file is
 ignored by Git.
 
+Backend startup applies migrations and populates the currency catalog.
+The collection checks all 19 currencies.
+
 Run requests in numeric order. The collection creates a disposable user and
 captures account, category, and transaction IDs as Bruno runtime variables.
 Bruno keeps the session cookie after registration, so the following protected
