@@ -27,3 +27,8 @@ export function isDateOnly(value: unknown): value is string {
 export function isHexColor(value: unknown): value is string {
   return typeof value === "string" && /^#[0-9A-Fa-f]{6}$/.test(value);
 }
+
+/** Uses registration's character minimum and bcrypt's UTF-8 byte limit. */
+export function isValidPassword(value: unknown): value is string {
+  return typeof value === "string" && value.length >= 12 && Buffer.byteLength(value, "utf8") <= 72;
+}
