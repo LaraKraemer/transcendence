@@ -31,7 +31,7 @@ import { dispatch } from "../helpers/dispatch.ts";
 const userId = "550e8400-e29b-41d4-a716-446655440001";
 
 // appUsers select * row order: id, email, passwordHash, displayName, avatarUrl,
-// emailVerifiedAt, passwordChangedAt, createdAt, updatedAt, deletedAt
+// emailVerifiedAt, passwordChangedAt, createdAt, updatedAt
 function userRow(overrides: Record<string, unknown> = {}) {
   return [
     overrides.id ?? userId,
@@ -43,7 +43,6 @@ function userRow(overrides: Record<string, unknown> = {}) {
     new Date().toISOString(), // passwordChangedAt
     new Date().toISOString(), // createdAt
     new Date().toISOString(), // updatedAt
-    null, // deletedAt
   ];
 }
 
@@ -250,14 +249,14 @@ describe("POST /login", () => {
     expect(query).not.toHaveBeenCalled();
   });
 
-  it("normalises email and excludes soft-deleted users in the lookup", async () => {
+  it("normalises email in the lookup", async () => {
     query.mockResolvedValueOnce({ rows: [] }); // user not found
     await login({ email: "  Alice@Example.COM ", password: "somepassword" });
 
     const lookupParams: unknown[] = query.mock.calls[0]![1];
     expect(lookupParams).toContain("alice@example.com");
     const sql: string = query.mock.calls[0]![0].text;
-    expect(sql).toMatch(/"deleted_at" is null/i);
+    expect(sql).not.toContain("deleted_at");
   });
 
   it("returns 401 for unknown email, no session", async () => {

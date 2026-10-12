@@ -231,7 +231,7 @@ describe("getAuthenticatedUserId", () => {
     expect(params).not.toContain(token);
   });
 
-  it("joins appUsers and checks expires_at, revoked_at and deleted_at", async () => {
+  it("joins appUsers and checks expires_at and revoked_at", async () => {
     query.mockResolvedValueOnce({ rows: [] });
     const req = makeReq({ cookies: { session: "tok" } });
     await getAuthenticatedUserId(req);
@@ -240,7 +240,7 @@ describe("getAuthenticatedUserId", () => {
     expect(sql).toContain("inner join");
     expect(sql).toContain('"session"."expires_at"');
     expect(sql).toContain('"session"."revoked_at"');
-    expect(sql).toContain('"app_user"."deleted_at"');
+    expect(sql).not.toContain("deleted_at");
   });
 });
 

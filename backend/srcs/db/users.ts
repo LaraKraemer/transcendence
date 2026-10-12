@@ -4,11 +4,7 @@ import { db } from "./client.ts";
 import { appUsers, sessions } from "./schema.ts";
 
 export async function findUserByEmail(email: string) {
-  const [user] = await db
-    .select()
-    .from(appUsers)
-    .where(and(eq(appUsers.email, email), isNull(appUsers.deletedAt)))
-    .limit(1);
+  const [user] = await db.select().from(appUsers).where(eq(appUsers.email, email)).limit(1);
 
   return user;
 }
@@ -37,7 +33,7 @@ export async function findUserPasswordHash(id: string) {
   const [user] = await db
     .select({ passwordHash: appUsers.passwordHash })
     .from(appUsers)
-    .where(and(eq(appUsers.id, id), isNull(appUsers.deletedAt)))
+    .where(eq(appUsers.id, id))
     .limit(1);
   return user?.passwordHash;
 }
@@ -49,7 +45,7 @@ export async function updateUserPassword(id: string, previousHash: string, passw
     const [user] = await tx
       .update(appUsers)
       .set({ passwordHash, passwordChangedAt: now, updatedAt: now })
-      .where(and(eq(appUsers.id, id), eq(appUsers.passwordHash, previousHash), isNull(appUsers.deletedAt)))
+      .where(and(eq(appUsers.id, id), eq(appUsers.passwordHash, previousHash)))
       .returning({ id: appUsers.id });
     // A concurrent password change must not be overwritten using stale credentials.
     if (!user) return false;

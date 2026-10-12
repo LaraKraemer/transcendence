@@ -180,6 +180,8 @@ docker compose exec backend npm run db:migrate
 
 The currency table's creation migration also inserts 19 reference currencies.
 
+Migration `0008_remove_user_deleted_at` aborts if soft-deleted users exist. Resolve those users explicitly before retrying to avoid unintentionally restoring access.
+
 Inside `psql`, list tables with `\dt` and inspect transactions with:
 
 ```sql
