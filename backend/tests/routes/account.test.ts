@@ -403,3 +403,35 @@ describe("PATCH /accounts/:accountId", () => {
     await expect(patch(accountId, { name: "New" })).rejects.toThrow();
   });
 });
+
+describe("archived account changes", () => {
+  it.each([
+    { name: "New" },
+    { type: "cash" },
+    { openingBalanceMinor: 0 },
+    { institution: null },
+    { accountRef: null },
+    { currencyCode: "USD" },
+    { isArchived: false, name: "New" },
+    { isArchived: true, name: "Checking" },
+  ])("blocks detail changes %j without updating", async (body) => {
+    query.mockResolvedValueOnce({ rows: [accountRow({ isArchived: true })] });
+    expect(await dispatch(accountsRouter, { method: "PATCH", url: `/${accountId}`, body })).toEqual({
+      status: 409,
+      body: { error: "Account is archived. Restore it before making changes." },
+    });
+    expect(query).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps repeated archiving idempotent", async () => {
+    query.mockResolvedValueOnce({ rows: [accountRow({ isArchived: true })] });
+    query.mockResolvedValueOnce({ rows: [accountRow({ isArchived: true })] });
+    expect(
+      await dispatch(accountsRouter, {
+        method: "PATCH",
+        url: `/${accountId}`,
+        body: { isArchived: true },
+      }),
+    ).toMatchObject({ status: 200, body: { isArchived: true } });
+  });
+});
