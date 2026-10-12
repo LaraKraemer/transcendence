@@ -330,6 +330,35 @@ describe("GET /me", () => {
   });
 });
 
+describe("DELETE /me", () => {
+  const remove = (cookies = {}) =>
+    dispatch(authRouter, { method: "DELETE", url: "/me", cookies, body: { userId: "another-user" } });
+
+  it("requires a valid session", async () => {
+    expect((await remove()).status).toBe(401);
+    expect(query).not.toHaveBeenCalled();
+    query.mockResolvedValueOnce({ rows: [] });
+    expect((await remove({ session: "invalid" })).status).toBe(401);
+    expect(authMocks.clearSessionCookie).not.toHaveBeenCalled();
+  });
+
+  it("deletes only the authenticated user and clears the session cookie", async () => {
+    query.mockResolvedValueOnce({ rows: [[userId]] });
+    query.mockResolvedValueOnce({ rows: [] });
+    expect(await remove({ session: "valid" })).toEqual({ status: 204, body: undefined });
+    expect(query.mock.calls[1]![0].text).toMatch(/^delete from "app_user" where "app_user"\."id" = \$1$/);
+    expect(query.mock.calls[1]![1]).toEqual([userId]);
+    expect(authMocks.clearSessionCookie).toHaveBeenCalledOnce();
+  });
+
+  it("forwards deletion failures without clearing the cookie", async () => {
+    query.mockResolvedValueOnce({ rows: [[userId]] });
+    query.mockRejectedValueOnce(new Error("Deletion failed"));
+    await expect(remove({ session: "valid" })).rejects.toThrow();
+    expect(authMocks.clearSessionCookie).not.toHaveBeenCalled();
+  });
+});
+
 describe("PATCH /password", () => {
   const body = { currentPassword: "old-password12", newPassword: "new-password12" };
   const change = (value: unknown = body) =>
