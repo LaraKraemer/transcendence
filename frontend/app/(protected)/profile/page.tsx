@@ -1,6 +1,12 @@
 import { ChevronLeft } from "lucide-react";
+import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("nav");
+  return { title: t("profile") };
+}
 
 // Placeholder page so the /profile avatar links resolve; the real page lands in a later frontend issue.
 export default async function ProfilePage() {

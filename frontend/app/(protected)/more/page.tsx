@@ -1,4 +1,5 @@
 import { ChevronDown, ChevronRight, Languages, SunMoon, type LucideIcon } from "lucide-react";
+import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -11,6 +12,11 @@ import { LocaleSwitcher } from "@/components/locale-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { localeNames } from "@/i18n/config";
 import { getCurrentUser } from "@/lib/dal";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("nav");
+  return { title: t("more") };
+}
 
 function SettingRow({ icon: Icon, label, children }: { icon: LucideIcon; label: string; children: ReactNode }) {
   return (
