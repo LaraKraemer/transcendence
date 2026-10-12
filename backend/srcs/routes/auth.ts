@@ -11,7 +11,14 @@ import {
   requireAuthenticatedUser,
   verifyPassword,
 } from "../auth.ts";
-import { createUser, findUserByEmail, findUserById, findUserPasswordHash, updateUserPassword } from "../db/users.ts";
+import {
+  createUser,
+  deleteUser,
+  findUserByEmail,
+  findUserById,
+  findUserPasswordHash,
+  updateUserPassword,
+} from "../db/users.ts";
 import { isValidPassword } from "../validation.ts";
 
 export const authRouter = Router();
@@ -90,6 +97,17 @@ authRouter.get("/me", async (req, res) => {
 
   const user = await findUserById(userId);
   res.json({ user });
+});
+
+/** Permanently deletes the authenticated profile and signs out every device. */
+authRouter.delete("/me", requireAuthenticatedUser, async (_req, res, next) => {
+  try {
+    await deleteUser(res.locals.userId as string);
+    clearSessionCookie(res);
+    res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
 });
 
 /** Verifies the current password, changes it, and signs out every device. */
