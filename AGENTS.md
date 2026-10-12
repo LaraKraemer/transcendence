@@ -88,7 +88,7 @@ Browser → Next.js `:3000` → Express `:3001` → Postgres `:5432` (bound to 1
 
 | Mount | Routes |
 |---|---|
-| `/auth` | `POST /register`, `POST /login`, `PATCH /password`, `POST /logout`, `GET /me` |
+| `/auth` | `POST /register`, `POST /login`, `PATCH /password`, `POST /logout`, `GET /me`, `DELETE /me` |
 | `/accounts` | `GET /`, `POST /`, `GET /:accountId`, `PATCH /:accountId`, `GET /:accountId/balance` |
 | `/categories` | `GET /`, `POST /`, `GET /:categoryId`, `PATCH /:categoryId` |
 | `/currencies` | `GET /` (authenticated, global reference data ordered by code) |
@@ -99,7 +99,7 @@ Browser → Next.js `:3000` → Express `:3001` → Postgres `:5432` (bound to 1
 - Money is integer minor units (`amountMinor`, `openingBalanceMinor`), validated with `Number.isSafeInteger`. Postgres aggregates return strings, so wrap them with `Number(...)` or `.mapWith(Number)`.
 - Currency reference data provides `code`, `name`, `symbol`, and `minorUnit` (JPY: 0, KWD: 3, others: 2). It has no foreign keys to ledger tables; account currency validation checks only the three-uppercase-letter format.
 - A transaction's sign is its direction: negative = expense, positive = income. Zero is rejected (by the app and a DB CHECK). The category `kind` must match the sign; `transfer` accepts either. `kind` is immutable; `(user, name, kind)` is unique (409).
-- Accounts and categories are archived and unarchived via `PATCH {"isArchived": bool}`. `DELETE /transactions/:id` permanently removes the transaction. Users have no soft-delete field or deletion endpoint.
+- Accounts and categories are archived and unarchived via `PATCH {"isArchived": bool}`. `DELETE /transactions/:id` permanently removes the transaction. `DELETE /auth/me` permanently deletes the authenticated profile and cascades to accounts (including archived), categories, transactions, and sessions in one atomic statement, then clears the cookie. Transaction account and creator foreign keys use `ON DELETE CASCADE`, matching #48. Users have no soft-delete field.
 - Archived accounts are hidden from lists but readable by ID, and can't receive new transactions. Archived categories can't be newly assigned, but existing assignments survive.
 - `bookedOn` is a `YYYY-MM-DD` date (filters and reports). `occurredAt` is an optional ISO 8601 timestamp.
 - Enum-like columns are plain `text`. Allowed values are `as const` arrays plus type guards at the top of each router (`ACCOUNT_TYPES`, `CATEGORY_KINDS`), so adding a value needs no migration.
@@ -117,7 +117,7 @@ Browser → Next.js `:3000` → Express `:3001` → Postgres `:5432` (bound to 1
 
 ## Backend tests
 
-- Vitest, no DB. `tests/` mirrors `srcs/` (`tests/routes/account.test.ts` tests `srcs/routes/account.ts`).
+- Vitest unit tests use no DB. The opt-in `tests/db/user-deletion.integration.test.ts` uses PostgreSQL when `TEST_DATABASE_URL` is set and rolls back its data; run it after migrations. `tests/` mirrors `srcs/` (`tests/routes/account.test.ts` tests `srcs/routes/account.ts`).
 - Fake-pool pattern: `const { query } = vi.hoisted(() => ({ query: vi.fn() }))` and `vi.mock("../../srcs/db/client.ts", …)` returning `drizzle({ query } as unknown as Pool)`. Drizzle uses `rowMode: "array"`, so mocked rows are positional arrays in schema-column order. The helpers `tests/helpers/{dispatch,rows,fake-db}.ts` provide `dispatch` (call a router without a port), `row` (build a positional row from a table and a record) and the shared fakes.
 - Route auth tests mock `srcs/auth.ts` to keep bcrypt out. Real bcrypt tests need a `15_000` ms timeout. Pin time with `vi.useFakeTimers({ toFake: ["Date"] })`. For production-mode tests, use `vi.stubEnv` + `vi.resetModules()` + dynamic `import()`.
 

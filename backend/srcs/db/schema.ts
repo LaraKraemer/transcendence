@@ -61,14 +61,14 @@ export const transactions = pgTable(
 
     accountId: uuid("account_id")
       .notNull()
-      .references(() => accounts.id),
+      .references(() => accounts.id, { onDelete: "cascade" }),
 
     categoryId: uuid("category_id").references(() => categories.id, {
       onDelete: "set null",
     }),
     createdById: uuid("created_by_id")
       .notNull()
-      .references(() => appUsers.id),
+      .references(() => appUsers.id, { onDelete: "cascade" }),
 
     // Negative values are expenses; positive values are income.
     amountMinor: bigint("amount_minor", { mode: "number" }).notNull(),
