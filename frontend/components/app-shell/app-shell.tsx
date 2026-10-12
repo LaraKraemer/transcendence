@@ -38,11 +38,10 @@ function Avatar({ displayName, link }: { displayName: string; link?: { label: st
   return (
     <Link
       href="/profile"
-      aria-label={link.label}
-      title={link.label}
       className={`${avatarClasses} transition-opacity hover:opacity-85 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card focus-visible:outline-none`}
     >
-      <span aria-hidden>{initialsOf(displayName)}</span>
+      <span>{initialsOf(displayName)}</span>
+      <span className="sr-only">, {link.label}</span>
     </Link>
   );
 }
