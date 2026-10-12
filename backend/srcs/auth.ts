@@ -62,7 +62,7 @@ export function clearSessionCookie(res: Response): void {
 
 /**
  * Validates the request's session token and returns its user ID when the
- * session is active, unexpired, and belongs to a non-deleted user.
+ * session is active, unexpired, and belongs to an existing user.
  */
 export async function getAuthenticatedUserId(req: Request): Promise<string | undefined> {
   const token = readSessionToken(req);
@@ -73,12 +73,7 @@ export async function getAuthenticatedUserId(req: Request): Promise<string | und
     .from(sessions)
     .innerJoin(appUsers, eq(sessions.userId, appUsers.id))
     .where(
-      and(
-        eq(sessions.tokenHash, hashToken(token)),
-        gt(sessions.expiresAt, new Date()),
-        isNull(sessions.revokedAt),
-        isNull(appUsers.deletedAt),
-      ),
+      and(eq(sessions.tokenHash, hashToken(token)), gt(sessions.expiresAt, new Date()), isNull(sessions.revokedAt)),
     )
     .limit(1);
 

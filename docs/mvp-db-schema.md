@@ -16,7 +16,6 @@ erDiagram
         char3       base_currency       FK  "NOT NULL DEFAULT 'EUR' -> CURRENCY"
         timestamptz created_at              "NOT NULL DEFAULT now()"
         timestamptz updated_at              "NOT NULL DEFAULT now()"
-        timestamptz deleted_at              "NULL — soft delete"
     }
 
     %% ── Money containers ────────────────────────────────────────────────────
@@ -72,7 +71,6 @@ erDiagram
         date        booked_on               "NOT NULL — the date users filter by"
         timestamptz created_at              "NOT NULL DEFAULT now()"
         timestamptz updated_at              "NOT NULL DEFAULT now()"
-        timestamptz deleted_at              "NULL — soft delete"
     }
 
     TAG {
