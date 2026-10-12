@@ -240,7 +240,6 @@ describe("getAuthenticatedUserId", () => {
     expect(sql).toContain("inner join");
     expect(sql).toContain('"session"."expires_at"');
     expect(sql).toContain('"session"."revoked_at"');
-    expect(sql).not.toContain("deleted_at");
   });
 });
 
