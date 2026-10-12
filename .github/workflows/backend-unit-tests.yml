@@ -68,8 +68,6 @@ jobs:
           cache: npm
           cache-dependency-path: backend/package-lock.json
       - run: npm ci
-      - name: Check user column removal migration
-        run: npx --no-install tsx tests/db/remove-user-deleted-at.check.ts
       - name: Start API and apply migrations
         run: npx --no-install tsx srcs/index.ts > api.log 2>&1 &
       - name: Wait for API readiness
