@@ -15,19 +15,22 @@ const NAV_ITEMS = [
 // Mobile only: on desktop, the More page's controls already sit in the header and sidebar.
 const MORE_ITEM = { href: "/more", labelKey: "more", icon: Menu } as const;
 
+const activePillClasses =
+  "bg-primary font-semibold text-primary-foreground dark:inset-ring dark:inset-ring-ring forced-colors:forced-color-adjust-none forced-colors:bg-[Highlight] forced-colors:text-[HighlightText]";
+
 const variantClasses = {
   sidebar: {
     list: "flex flex-col gap-1",
     link: "flex items-center gap-3 rounded-[10px] p-2.5 text-sm transition-colors",
-    active: "bg-accent font-semibold text-accent-foreground",
+    active: activePillClasses,
     inactive: "font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground",
     iconSize: 18,
   },
   tabs: {
-    list: "grid grid-cols-5",
-    link: "flex flex-col items-center gap-1 py-2.5 text-[11px] font-semibold transition-colors",
-    active: "text-primary dark:text-accent-foreground",
-    inactive: "text-muted-foreground hover:text-foreground",
+    list: "grid grid-cols-5 gap-0.5 p-1",
+    link: "flex h-full flex-col items-center gap-1 rounded-[10px] py-2 text-center text-[10px] hyphens-auto wrap-anywhere transition-colors",
+    active: activePillClasses,
+    inactive: "font-semibold text-muted-foreground hover:bg-accent hover:text-accent-foreground",
     iconSize: 20,
   },
 };
