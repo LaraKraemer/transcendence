@@ -1,10 +1,5 @@
 @import "tailwindcss";
 
-/*
- * Design tokens from docs/design/README.md, named after their shadcn/ui
- * equivalents (see the README's "Token mapping" table). Light theme on :root,
- * dark theme on .dark — toggled by the `dark` class on <html>.
- */
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
@@ -37,9 +32,14 @@
   --grad-panel: linear-gradient(var(--grad-panel-angle), #15803d 0%, #1e3352 55%, #152238 100%);
 
   --radius: 14px;
+
+  color-scheme: light;
 }
 
 .dark {
+  color: var(--foreground);
+  color-scheme: dark;
+
   --background: #080e19;
   --foreground: #e6ecf5;
   --card: #101a2c;

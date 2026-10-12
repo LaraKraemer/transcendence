@@ -6,7 +6,6 @@ import { LogoutButton } from "@/components/app-shell/logout-button";
 import { NavLinks } from "@/components/app-shell/nav-links";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
-import type { Theme } from "@/lib/theme";
 
 /** Up to two initials; `Array.from` keeps a multi-byte first character intact. */
 export function initialsOf(displayName: string): string {
@@ -51,12 +50,10 @@ function Avatar({ displayName, link }: { displayName: string; link?: { label: st
 export async function AppShell({
   displayName,
   email,
-  theme,
   children,
 }: {
   displayName: string;
   email: string;
-  theme: Theme;
   children: ReactNode;
 }) {
   const t = await getTranslations("nav");
@@ -104,7 +101,7 @@ export async function AppShell({
           {/* On mobile these controls live on the More page instead. */}
           <div className="ms-auto hidden shrink-0 gap-2 lg:flex">
             <LocaleSwitcher />
-            <ThemeToggle initialTheme={theme} />
+            <ThemeToggle />
           </div>
         </header>
 

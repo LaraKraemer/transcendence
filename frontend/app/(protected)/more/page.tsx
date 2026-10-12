@@ -11,7 +11,6 @@ import { LocaleSwitcher } from "@/components/locale-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { localeNames } from "@/i18n/config";
 import { getCurrentUser } from "@/lib/dal";
-import { getTheme } from "@/lib/theme.server";
 
 function SettingRow({ icon: Icon, label, children }: { icon: LucideIcon; label: string; children: ReactNode }) {
   return (
@@ -26,8 +25,8 @@ function SettingRow({ icon: Icon, label, children }: { icon: LucideIcon; label: 
 }
 
 export default async function MorePage() {
-  // The user and theme lookups are cached per request, so they reuse the layout's.
-  const [user, theme, locale, t] = await Promise.all([getCurrentUser(), getTheme(), getLocale(), getTranslations()]);
+  // The user lookup is cached per request, so it reuses the layout's.
+  const [user, locale, t] = await Promise.all([getCurrentUser(), getLocale(), getTranslations()]);
   if (!user) {
     redirect("/login");
   }
@@ -69,7 +68,7 @@ export default async function MorePage() {
           <LocaleSwitcher variant="list" />
         </details>
         <SettingRow icon={SunMoon} label={t("nav.theme")}>
-          <ThemeToggle initialTheme={theme} />
+          <ThemeToggle />
         </SettingRow>
       </div>
 

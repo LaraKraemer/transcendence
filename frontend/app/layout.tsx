@@ -8,6 +8,7 @@ import { getDirection } from "@/i18n/config";
 import { AuthProvider } from "@/lib/auth-context";
 import { getCurrentUser } from "@/lib/dal";
 import { getTheme } from "@/lib/theme.server";
+import { ThemeProvider } from "@/lib/theme-context";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,7 +31,7 @@ const vazirmatn = Vazirmatn({
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("metadata");
   return {
-    title: {default: t("appTitle"), template: `%s · ${t("appTitle")}`},
+    title: { default: t("appTitle"), template: `%s · ${t("appTitle")}` },
     description: t("appDescription"),
   };
 }
@@ -42,12 +43,14 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang={locale}
       dir={getDirection(locale)}
-      className={`${geistSans.variable} ${geistMono.variable} ${vazirmatn.variable} h-full antialiased ${theme === "dark" ? "dark" : ""}`}
+      className={`${geistSans.variable} ${geistMono.variable} ${vazirmatn.variable} font-sans text-foreground h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-background font-sans text-foreground">
-        <NextIntlClientProvider>
-          <AuthProvider initialUser={user}>{children}</AuthProvider>
-        </NextIntlClientProvider>
+      <body className="h-full">
+        <ThemeProvider initial={theme}>
+          <NextIntlClientProvider>
+            <AuthProvider initialUser={user}>{children}</AuthProvider>
+          </NextIntlClientProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
