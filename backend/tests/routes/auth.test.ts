@@ -15,7 +15,8 @@ const authMocks = vi.hoisted(() => ({
   hashPassword: vi.fn().mockResolvedValue("$2b$12$dummy"),
   verifyPassword: vi.fn(),
 }));
-vi.mock("../../srcs/auth.ts", () => ({
+vi.mock("../../srcs/auth.ts", async (importOriginal) => ({
+  requireAuthenticatedUser: (await importOriginal<typeof import("../../srcs/auth.ts")>()).requireAuthenticatedUser,
   createSession: authMocks.createSession,
   clearSessionCookie: authMocks.clearSessionCookie,
   getAuthenticatedUserId: authMocks.getAuthenticatedUserId,
@@ -330,4 +331,134 @@ describe("GET /me", () => {
     query.mockRejectedValueOnce(new Error("DB down"));
     await expect(dispatch(authRouter, { method: "GET", url: "/me" })).rejects.toThrow();
   });
+});
+
+describe("PATCH /password", () => {
+  const body = { currentPassword: "old-password12", newPassword: "new-password12" };
+  const change = (value: unknown = body) =>
+    dispatch(authRouter, {
+      method: "PATCH",
+      url: "/password",
+      body: value,
+      cookies: { session: "token" },
+    });
+  function prepare() {
+    query.mockResolvedValueOnce({ rows: [[userId]] });
+    query.mockResolvedValueOnce({ rows: [["old-hash"]] });
+    query.mockResolvedValueOnce({ rows: [] }); // begin
+  }
+
+  it("requires authentication", async () => {
+    expect((await dispatch(authRouter, { method: "PATCH", url: "/password", body })).status).toBe(401);
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    null,
+    {},
+    { newPassword: "new-password12" },
+    { currentPassword: "old-password12" },
+    { ...body, currentPassword: 123 },
+    { ...body, newPassword: null },
+    { ...body, newPassword: "a".repeat(11) },
+    { ...body, newPassword: "a".repeat(73) },
+    { ...body, newPassword: "é".repeat(37) },
+  ])("rejects invalid fields without writes: %j", async (value) => {
+    query.mockResolvedValueOnce({ rows: [[userId]] });
+    expect((await change(value)).status).toBe(400);
+    expect(query).toHaveBeenCalledTimes(1);
+    expect(authMocks.hashPassword).not.toHaveBeenCalled();
+    expect(authMocks.clearSessionCookie).not.toHaveBeenCalled();
+  });
+
+  it("rejects an incorrect current password without writes", async () => {
+    prepare();
+    authMocks.verifyPassword.mockResolvedValueOnce(false);
+    expect(await change()).toEqual({ status: 401, body: { error: "Invalid current password" } });
+    expect(authMocks.verifyPassword).toHaveBeenCalledWith(body.currentPassword, "old-hash");
+    expect(query).toHaveBeenCalledTimes(2);
+    expect(authMocks.hashPassword).not.toHaveBeenCalled();
+    expect(authMocks.clearSessionCookie).not.toHaveBeenCalled();
+  });
+
+  it.each(["a".repeat(12), "a".repeat(72), "é".repeat(36)])(
+    "changes a valid password atomically: %j",
+    async (newPassword) => {
+      prepare();
+      query.mockResolvedValueOnce({ rows: [[userId]] });
+      query.mockResolvedValueOnce({ rows: [] });
+      query.mockResolvedValueOnce({ rows: [] });
+      expect((await change({ ...body, newPassword })).status).toBe(204);
+      expect(authMocks.hashPassword).toHaveBeenCalledWith(newPassword);
+      const update = query.mock.calls[3]!;
+      expect(update[0].text).toContain('"password_changed_at"');
+      expect(update[0].text).toContain('"updated_at"');
+      expect(update[1]).toEqual(expect.arrayContaining(["$2b$12$hashed", "old-hash", userId]));
+      const revoke = query.mock.calls[4]!;
+      expect(revoke[0].text).toMatch(/update "session".*"user_id".*"revoked_at" is null/);
+      expect(revoke[1]).toContain(userId);
+      expect(query.mock.calls[2]![0].text).toBe("begin");
+      expect(query.mock.calls[5]![0].text).toBe("commit");
+      expect(authMocks.clearSessionCookie).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it("does not overwrite a concurrent password change", async () => {
+    prepare();
+    query.mockResolvedValueOnce({ rows: [] });
+    query.mockResolvedValueOnce({ rows: [] });
+    expect((await change()).status).toBe(401);
+    expect(query).toHaveBeenCalledTimes(5);
+    expect(authMocks.clearSessionCookie).not.toHaveBeenCalled();
+  });
+
+  it.each(["password", "sessions"])("rolls back when the %s update fails", async (step) => {
+    prepare();
+    if (step === "sessions") query.mockResolvedValueOnce({ rows: [[userId]] });
+    query.mockRejectedValueOnce(new Error("DB down"));
+    query.mockResolvedValueOnce({ rows: [] });
+    await expect(change()).rejects.toThrow();
+    expect(query.mock.calls.at(-1)![0].text).toBe("rollback");
+    expect(authMocks.clearSessionCookie).not.toHaveBeenCalled();
+  });
+
+  it("uses the new password for login and rejects both devices' revoked tokens", async () => {
+    const realAuth = await vi.importActual<typeof import("../../srcs/auth.ts")>("../../srcs/auth.ts");
+    authMocks.hashPassword.mockImplementation(realAuth.hashPassword);
+    authMocks.verifyPassword.mockImplementation(realAuth.verifyPassword);
+    authMocks.getAuthenticatedUserId.mockImplementation(realAuth.getAuthenticatedUserId);
+    let passwordHash = await realAuth.hashPassword(body.currentPassword);
+    let revoked = false;
+    query.mockImplementation(async (config: { text: string }, params: unknown[] = []) => {
+      const sql = config.text;
+      if (sql.includes('inner join "app_user"')) return { rows: revoked ? [] : [[userId]] };
+      if (sql.startsWith('select "password_hash"')) return { rows: [[passwordHash]] };
+      if (sql.startsWith('select "id", "email", "display_name"')) return { rows: [createdUserRow()] };
+      if (sql.startsWith("select")) return { rows: [userRow({ passwordHash })] };
+      if (sql.startsWith('update "app_user"')) {
+        passwordHash = params[0] as string;
+        return { rows: [[userId]] };
+      }
+      if (sql.startsWith('update "session"')) revoked = true;
+      return { rows: [] };
+    });
+    const me = (token: string) => dispatch(authRouter, { method: "GET", url: "/me", cookies: { session: token } });
+    for (const token of ["token", "other-device-token"]) expect((await me(token)).status).toBe(200);
+    expect((await change()).status).toBe(204);
+    for (const token of ["token", "other-device-token"]) expect((await me(token)).status).toBe(401);
+    for (const [password, status] of [
+      [body.currentPassword, 401],
+      [body.newPassword, 200],
+    ] as const) {
+      expect(
+        (
+          await dispatch(authRouter, {
+            method: "POST",
+            url: "/login",
+            body: { email: "alice@example.com", password },
+          })
+        ).status,
+      ).toBe(status);
+    }
+  }, 15_000);
 });

@@ -1,5 +1,17 @@
 import { sql } from "drizzle-orm";
-import { bigint, boolean, check, date, index, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import {
+  bigint,
+  boolean,
+  check,
+  date,
+  index,
+  pgTable,
+  smallint,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from "drizzle-orm/pg-core";
 
 export const appUsers = pgTable(
   "app_user",
@@ -81,6 +93,13 @@ export const transactions = pgTable(
 
 export type Transaction = typeof transactions.$inferSelect;
 export type NewTransaction = typeof transactions.$inferInsert;
+
+export const currencies = pgTable("currency", {
+  code: text("code").primaryKey(),
+  name: text("name").notNull(),
+  symbol: text("symbol").notNull(),
+  minorUnit: smallint("minor_unit").notNull().default(2),
+});
 
 // account entity
 export const accounts = pgTable(

@@ -1,0 +1,36 @@
+meta {
+  name: 10 - List currencies
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{baseUrl}}/currencies
+  body: none
+  auth: none
+}
+
+tests {
+  test("currency catalog is complete and ordered by code", function () {
+    expect(res.getStatus()).to.equal(200);
+    const currencies = res.getBody();
+    const expectedCodes = [
+      "AUD", "BRL", "CAD", "CHF", "CNY", "CZK", "DKK", "EUR", "GBP", "HUF",
+      "JPY", "KWD", "NOK", "PLN", "RON", "SEK", "TRY", "UAH", "USD"
+    ];
+    expect(currencies.map((currency) => currency.code)).to.deep.equal(expectedCodes);
+    for (const currency of currencies) {
+      expect(currency).to.have.all.keys("code", "name", "symbol", "minorUnit");
+      expect(currency.code).to.be.a("string");
+      expect(currency.name).to.be.a("string").and.not.empty;
+      expect(currency.symbol).to.be.a("string").and.not.empty;
+      expect(currency.minorUnit).to.be.a("number");
+      const expectedMinorUnit = currency.code === "JPY" ? 0 : currency.code === "KWD" ? 3 : 2;
+      expect(currency.minorUnit).to.equal(expectedMinorUnit);
+    }
+    expect(currencies.find((currency) => currency.code === "EUR").symbol).to.equal("€");
+    expect(currencies.find((currency) => currency.code === "UAH")).to.deep.equal({
+      code: "UAH", name: "Ukrainian Hryvnia", symbol: "₴", minorUnit: 2
+    });
+  });
+}
