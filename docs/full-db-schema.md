@@ -24,7 +24,6 @@ erDiagram
         timestamptz password_changed_at     "NOT NULL — invalidates older sessions"
         timestamptz created_at              "NOT NULL DEFAULT now()"
         timestamptz updated_at              "NOT NULL DEFAULT now()"
-        timestamptz deleted_at              "NULL — soft delete"
     }
 
     SESSION {
@@ -121,7 +120,6 @@ erDiagram
         tsvector    search_vector           "generated — full-text search"
         timestamptz created_at              "NOT NULL DEFAULT now()"
         timestamptz updated_at              "NOT NULL DEFAULT now()"
-        timestamptz deleted_at              "NULL — soft delete"
     }
 
     TAG {
