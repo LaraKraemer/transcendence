@@ -21,7 +21,7 @@ export function TextField({ id, label, error, trailing, children, ...inputProps 
       </label>
       <div
         className={`flex items-center rounded-[11px] border bg-field transition-colors focus-within:ring-2 focus-within:ring-ring ${
-          error ? "border-destructive" : "border-border"
+          error ? "border-destructive" : "border-input"
         }`}
       >
         <input
