@@ -11,7 +11,7 @@ export function ThemeToggle() {
 
   function toggle() {
     const next: Theme = theme === "dark" ? "light" : "dark";
-    setTheme?.(next);
+    setTheme(next);
   }
 
   const Icon = theme === "dark" ? Sun : Moon;

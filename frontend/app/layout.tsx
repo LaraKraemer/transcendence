@@ -43,9 +43,9 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang={locale}
       dir={getDirection(locale)}
-      className={`${geistSans.variable} ${geistMono.variable} ${vazirmatn.variable} font-sans text-foreground h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${vazirmatn.variable} h-full antialiased ${theme === "dark" ? "dark" : ""}`}
     >
-      <body className="h-full">
+      <body className="min-h-full flex flex-col bg-background font-sans text-foreground">
         <ThemeProvider initial={theme}>
           <NextIntlClientProvider>
             <AuthProvider initialUser={user}>{children}</AuthProvider>

@@ -37,7 +37,6 @@
 }
 
 .dark {
-  color: var(--foreground);
   color-scheme: dark;
 
   --background: #080e19;
