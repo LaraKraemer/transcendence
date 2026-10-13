@@ -114,9 +114,12 @@
       "nameTooLong": "The name is too long",
       "typeInvalid": "Choose an account type",
       "currencyInvalid": "Choose a currency",
-      "openingBalanceInvalid": "{digits, plural, =0 {Enter a whole amount without decimals} one {Enter an amount with at most # decimal place} other {Enter an amount with at most # decimal places}}",
+      "openingBalanceInvalid": "Enter an amount like {example}",
+      "openingBalanceDecimals": "{digits, plural, =0 {Enter a whole amount without decimals} one {Enter an amount with at most # decimal place} other {Enter an amount with at most # decimal places}}",
+      "openingBalanceTooLarge": "This amount is too large",
       "network": "Could not reach the server. Please try again later.",
       "generic": "Something went wrong. Please try again."
-    }
+    },
+    "balanceUnavailable": "Balance unavailable"
   }
 }

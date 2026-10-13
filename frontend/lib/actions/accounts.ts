@@ -25,9 +25,11 @@ const CreateAccountSchema = z.object({
     .min(1, { error: "nameRequired" satisfies AccountErrorCode })
     .max(MAX_ACCOUNT_NAME_LENGTH, { error: "nameTooLong" satisfies AccountErrorCode }),
   type: z.enum(ACCOUNT_TYPES, { error: "typeInvalid" satisfies AccountErrorCode }),
-  currencyCode: z.string().trim().toUpperCase(),
+  // Normalised before parsing (see createAccount) and checked against the
+  // currency catalogue there, because the allowed decimals depend on it.
+  currencyCode: z.string(),
   // A decimal amount as typed ("100.50"), or empty for no opening balance.
-  openingBalance: z.string().trim(),
+  openingBalance: z.string(),
 });
 
 // Raw form values: everything arrives as a string and is checked here.
@@ -35,29 +37,36 @@ export type CreateAccountInput = Record<keyof z.input<typeof CreateAccountSchema
 
 /** Validates input, creates the account via `POST /accounts`, and refreshes the page's data. */
 export async function createAccount(data: CreateAccountInput): Promise<ActionResponse> {
-  const parsed = CreateAccountSchema.safeParse(data);
+  // Normalise once; everything below reads from `input`.
+  const input = {
+    name: String(data.name),
+    type: String(data.type),
+    currencyCode: String(data.currencyCode).trim().toUpperCase(),
+    openingBalance: String(data.openingBalance).trim(),
+  };
+  const parsed = CreateAccountSchema.safeParse(input);
   const errors: Record<string, string[]> = parsed.success
     ? {}
     : (z.flattenError(parsed.error).fieldErrors as Record<string, string[]>);
 
-  // The currency must come from the catalogue, and the amount's decimals depend on it.
-  const currencyCode = String(data.currencyCode).trim().toUpperCase();
-  const currency = (await getCurrencies()).find((c) => c.code === currencyCode);
-  if (!currency) errors.currencyCode = ["currencyInvalid" satisfies AccountErrorCode];
-
-  const openingBalance = String(data.openingBalance).trim();
-  const openingBalanceMinor = openingBalance && currency ? toMinorUnits(openingBalance, currency.minorUnit) : 0;
-  if (openingBalanceMinor === undefined) errors.openingBalance = ["openingBalanceInvalid" satisfies AccountErrorCode];
-
-  if (!parsed.success || Object.keys(errors).length > 0) {
-    return { success: false, message: "Validation failed", errors };
-  }
-
-  const { name, type } = parsed.data;
+  // Everything that talks to the backend sits in one try, so a failing
+  // /currencies is reported like a failing POST (network vs. HTTP status).
   try {
+    const currency = (await getCurrencies()).find((c) => c.code === input.currencyCode);
+    if (!currency) errors.currencyCode = ["currencyInvalid" satisfies AccountErrorCode];
+
+    const openingBalanceMinor =
+      input.openingBalance && currency ? toMinorUnits(input.openingBalance, currency.minorUnit) : 0;
+    if (typeof openingBalanceMinor === "string") errors.openingBalance = [openingBalanceMinor];
+
+    if (!parsed.success || Object.keys(errors).length > 0) {
+      return { success: false, message: "Validation failed", errors };
+    }
+
+    const { name, type } = parsed.data;
     await fetchApiServer<Account>("/accounts", {
       method: "POST",
-      body: JSON.stringify({ name, type, currencyCode, openingBalanceMinor }),
+      body: JSON.stringify({ name, type, currencyCode: input.currencyCode, openingBalanceMinor }),
     });
   } catch (error) {
     if (error instanceof ApiError) return { success: false, message: error.message, status: error.status };

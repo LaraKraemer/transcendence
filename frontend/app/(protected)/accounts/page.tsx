@@ -2,13 +2,16 @@ import { Banknote, Landmark, PiggyBank, Wallet, type LucideIcon } from "lucide-r
 import type { Metadata } from "next";
 import { getFormatter, getTranslations } from "next-intl/server";
 import Link from "next/link";
+import { Fragment, type ReactNode } from "react";
 
 import { CreateAccountForm } from "@/components/accounts/create-account-form";
 import { fetchApiServer, getCurrencies } from "@/lib/dal";
 import type { Account, AccountBalance } from "@/lib/types";
 import type { AccountType } from "@/lib/validation";
 
-type AccountWithBalance = Account & { balanceMinor: number };
+// `null` when the balance request failed: a wrong number that looks right is
+// worse than none in a money app, so the UI says "unavailable" instead.
+type AccountWithBalance = Account & { balanceMinor: number | null };
 
 const TYPE_STYLE: Record<AccountType, { icon: LucideIcon; className: string }> = {
   checking: { icon: Wallet, className: "bg-accent text-primary dark:text-accent-foreground" },
@@ -21,21 +24,18 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("accountsTitle") };
 }
 
-/**
- * Loads all non-archived accounts with their current balance. If a balance
- * request fails, the account's opening balance is shown instead.
- */
+/** Loads all non-archived accounts with their current balance (`null` if that request fails). */
 async function loadAccounts(): Promise<AccountWithBalance[]> {
   const accounts = await fetchApiServer<Account[]>("/accounts");
   const balances = await Promise.all(
     accounts.map((account) =>
       fetchApiServer<AccountBalance>(`/accounts/${account.id}/balance`).then(
         (balance) => balance.balanceMinor,
-        () => account.openingBalanceMinor,
+        () => null,
       ),
     ),
   );
-  return accounts.map((account, i) => ({ ...account, balanceMinor: balances[i] ?? account.openingBalanceMinor }));
+  return accounts.map((account, i) => ({ ...account, balanceMinor: balances[i] ?? null }));
 }
 
 /**
@@ -58,10 +58,12 @@ export default async function AccountsPage() {
   const money = (amountMinor: number, currency: string) =>
     format.number(amountMinor / 10 ** (minorUnits.get(currency) ?? 2), { style: "currency", currency });
 
-  // Balances in different currencies can't be added up, so total each currency separately.
+  // Balances in different currencies can't be added up, so total each currency
+  // separately. With any balance unavailable the total would be wrong, so none is shown.
   const totals = new Map<string, number>();
+  const allBalancesKnown = accounts.every((account) => account.balanceMinor !== null);
   for (const account of accounts) {
-    totals.set(account.currencyCode, (totals.get(account.currencyCode) ?? 0) + account.balanceMinor);
+    totals.set(account.currencyCode, (totals.get(account.currencyCode) ?? 0) + (account.balanceMinor ?? 0));
   }
 
   return (
@@ -73,7 +75,9 @@ export default async function AccountsPage() {
       </div>
 
       <div className="flex flex-col gap-5">
-        <div className="grid gap-5 sm:grid-cols-2">
+        {/* grid-cols-1 = minmax(0, 1fr): without it the column grows to the longest
+            unbreakable text and the page gets wider than a phone screen. */}
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
           <StatCard
             icon={Wallet}
             iconClassName="bg-accent text-primary dark:text-accent-foreground"
@@ -84,9 +88,16 @@ export default async function AccountsPage() {
             icon={Landmark}
             iconClassName="bg-success-bg text-success"
             value={
-              totals.size === 0
+              totals.size === 0 || !allBalancesKnown
                 ? "—"
-                : [...totals].map(([currency, minor]) => money(minor, currency)).join(" · ")
+                : // Each amount stays on one line ("-KWD 1.005" must not break after the minus);
+                  // the list only wraps between currencies.
+                  [...totals].map(([currency, minor], index) => (
+                    <Fragment key={currency}>
+                      {index > 0 && " · "}
+                      <span className="whitespace-nowrap">{money(minor, currency)}</span>
+                    </Fragment>
+                  ))
             }
             label={t("totalBalance")}
           />
@@ -112,11 +123,12 @@ export default async function AccountsPage() {
                     <span className={`flex size-9.5 shrink-0 items-center justify-center rounded-[10px] ${className}`}>
                       <Icon size={17} aria-hidden />
                     </span>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
+                    <div className="min-w-0 flex-1">
+                      {/* Wraps the badge under the name on narrow screens instead of squeezing the name. */}
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                         <Link
                           href={`/accounts/${account.id}/transactions`}
-                          className="truncate text-sm font-semibold hover:underline"
+                          className="max-w-full truncate text-sm font-semibold hover:underline"
                         >
                           {account.name}
                         </Link>
@@ -128,11 +140,17 @@ export default async function AccountsPage() {
                       </div>
                       <div className="text-[13px] text-muted-foreground">{account.currencyCode}</div>
                     </div>
-                    <span
-                      className={`ms-auto shrink-0 text-sm font-semibold ${account.balanceMinor < 0 ? "text-destructive" : ""}`}
-                    >
-                      {money(account.balanceMinor, account.currencyCode)}
-                    </span>
+                    {account.balanceMinor === null ? (
+                      <span className="ms-auto shrink-0 text-[13px] text-muted-foreground">
+                        {t("balanceUnavailable")}
+                      </span>
+                    ) : (
+                      <span
+                        className={`ms-auto shrink-0 text-sm font-semibold ${account.balanceMinor < 0 ? "text-destructive" : ""}`}
+                      >
+                        {money(account.balanceMinor, account.currencyCode)}
+                      </span>
+                    )}
                   </li>
                 );
               })}
@@ -152,16 +170,17 @@ function StatCard({
 }: {
   icon: LucideIcon;
   iconClassName: string;
-  value: string;
+  value: ReactNode;
   label: string;
 }) {
   return (
-    <div className="flex items-center gap-4 rounded-lg border border-border bg-card p-5">
+    <div className="flex min-w-0 items-center gap-4 rounded-lg border border-border bg-card p-5">
       <span className={`flex size-11 shrink-0 items-center justify-center rounded-xl ${iconClassName}`}>
         <Icon size={20} aria-hidden />
       </span>
       <div className="min-w-0">
-        <div className="truncate text-[15px] font-semibold">{value}</div>
+        {/* Wraps rather than truncates: a money total must never be cut off. */}
+        <div className="text-[15px] font-semibold break-words">{value}</div>
         {label && <div className="truncate text-[13px] text-muted-foreground">{label}</div>}
       </div>
     </div>

@@ -2,7 +2,16 @@
 
 import { ChevronDown, Plus } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
-import { useActionState, useState, type ReactNode, type SelectHTMLAttributes } from "react";
+import {
+  startTransition,
+  useActionState,
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactNode,
+  type SelectHTMLAttributes,
+} from "react";
 
 import { FormAlert, formErrorFor } from "@/components/auth/form-parts";
 import { Button } from "@/components/ui/button";
@@ -17,6 +26,14 @@ import {
 } from "@/lib/validation";
 
 type AccountFields = "name" | "type" | "currencyCode" | "openingBalance";
+
+// The field order on screen, used to focus the first invalid one.
+const FIELD_IDS: Record<AccountFields, string> = {
+  name: "account-name",
+  type: "account-type",
+  currencyCode: "account-currency",
+  openingBalance: "account-opening-balance",
+};
 
 // Errors are stored as codes, so they re-translate if the language changes.
 type CreateAccountState = {
@@ -36,11 +53,20 @@ const DEFAULT_CURRENCY = "EUR";
 export function CreateAccountForm({ currencies }: { currencies: Currency[] }) {
   const t = useTranslations("accounts");
   const [isOpen, setIsOpen] = useState(false);
+  // Set when the form closes (Cancel or success), so keyboard focus returns to
+  // the button instead of falling back to <body>.
+  const returnFocus = useRef(false);
 
   if (!isOpen) {
     return (
       <button
         type="button"
+        ref={(button) => {
+          if (button && returnFocus.current) {
+            returnFocus.current = false;
+            button.focus();
+          }
+        }}
         onClick={() => setIsOpen(true)}
         className="ms-auto flex cursor-pointer items-center gap-1.5 rounded-[8px] bg-success-bg px-3 py-1.75 text-[13px] font-semibold text-success hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
       >
@@ -51,14 +77,20 @@ export function CreateAccountForm({ currencies }: { currencies: Currency[] }) {
   }
 
   // Unmounted on close, so reopening starts with empty values and no stale errors.
-  return <AccountForm currencies={currencies} onClose={() => setIsOpen(false)} />;
+  return (
+    <AccountForm
+      currencies={currencies}
+      onClose={() => {
+        returnFocus.current = true;
+        setIsOpen(false);
+      }}
+    />
+  );
 }
 
 function AccountForm({ currencies, onClose }: { currencies: Currency[]; onClose: () => void }) {
   const t = useTranslations("accounts");
   const locale = useLocale();
-  // Controlled inputs: React resets uncontrolled fields after every form action,
-  // which would wipe what the user typed whenever validation fails.
   const [values, setValues] = useState<Record<AccountFields, string>>(() => ({
     name: "",
     type: "checking",
@@ -71,15 +103,10 @@ function AccountForm({ currencies, onClose }: { currencies: Currency[]; onClose:
     onChange: (e: { target: { value: string } }) => setValues((prev) => ({ ...prev, [name]: e.target.value })),
   });
 
-  const [{ fieldErrors, error }, formAction, isPending] = useActionState(
-    async (_prev: CreateAccountState, formData: FormData): Promise<CreateAccountState> => {
+  const [{ fieldErrors, error }, submitAction, isPending] = useActionState(
+    async (_prev: CreateAccountState, submitted: Record<AccountFields, string>): Promise<CreateAccountState> => {
       try {
-        const result = await createAccount({
-          name: String(formData.get("name") ?? ""),
-          type: String(formData.get("type") ?? ""),
-          currencyCode: String(formData.get("currencyCode") ?? ""),
-          openingBalance: String(formData.get("openingBalance") ?? ""),
-        });
+        const result = await createAccount(submitted);
         if (result.success) {
           onClose();
           return initialState;
@@ -100,14 +127,29 @@ function AccountForm({ currencies, onClose }: { currencies: Currency[]; onClose:
     initialState,
   );
 
+  // Submitting through onSubmit rather than <form action>: React resets a form
+  // after every action, and the <select>s then show their first option while
+  // state still holds the user's choice, so a retry would send different values.
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    startTransition(() => submitAction(values));
+  }
+
+  // After a failed submit, move keyboard focus to the first invalid field.
+  useEffect(() => {
+    const firstInvalid = (Object.keys(FIELD_IDS) as AccountFields[]).find((name) => fieldErrors[name]);
+    if (firstInvalid) document.getElementById(FIELD_IDS[firstInvalid])?.focus();
+  }, [fieldErrors]);
+
   // Currency names in the user's language; the catalogue's names are English.
   const currencyNames = new Intl.DisplayNames(locale, { type: "currency" });
   const minorUnit = currencies.find((c) => c.code === values.currencyCode)?.minorUnit ?? 2;
-  const errorText = (code: AccountErrorCode) => t(`errors.${code}`, { digits: minorUnit });
+  const errorText = (code: AccountErrorCode) =>
+    t(`errors.${code}`, { digits: minorUnit, example: (12.5).toFixed(minorUnit) });
 
   return (
     <form
-      action={formAction}
+      onSubmit={handleSubmit}
       noValidate
       aria-labelledby="create-account-heading"
       // bg-card, not bg-muted: red error text only reaches 4.5:1 contrast on the card colour.
@@ -120,7 +162,7 @@ function AccountForm({ currencies, onClose }: { currencies: Currency[]; onClose:
         <FormAlert message={error && t(`errors.${error}`)} />
 
         <TextField
-          id="account-name"
+          id={FIELD_IDS.name}
           {...field("name")}
           label={t("form.name")}
           type="text"
@@ -133,7 +175,7 @@ function AccountForm({ currencies, onClose }: { currencies: Currency[]; onClose:
 
         <div className="grid gap-x-4 sm:grid-cols-2">
           <SelectField
-            id="account-type"
+            id={FIELD_IDS.type}
             {...field("type")}
             label={t("form.type")}
             error={fieldErrors.type && errorText(fieldErrors.type)}
@@ -146,7 +188,7 @@ function AccountForm({ currencies, onClose }: { currencies: Currency[]; onClose:
           </SelectField>
 
           <SelectField
-            id="account-currency"
+            id={FIELD_IDS.currencyCode}
             {...field("currencyCode")}
             label={t("form.currency")}
             error={fieldErrors.currencyCode && errorText(fieldErrors.currencyCode)}
@@ -160,14 +202,16 @@ function AccountForm({ currencies, onClose }: { currencies: Currency[]; onClose:
         </div>
 
         <TextField
-          id="account-opening-balance"
+          id={FIELD_IDS.openingBalance}
           {...field("openingBalance")}
           label={t("form.openingBalance")}
-          type="number"
+          // Text, not number: a number input submits "" for input it can't parse
+          // (e.g. "12."), which would silently save 0. The server parses the text
+          // and the currency decides how many decimals are allowed (JPY 0, KWD 3).
+          type="text"
           dir="ltr"
-          // The currency decides how many decimals are allowed (JPY 0, EUR 2, KWD 3).
-          step={minorUnit === 0 ? 1 : 10 ** -minorUnit}
           inputMode={minorUnit === 0 ? "numeric" : "decimal"}
+          autoComplete="off"
           placeholder={(0).toFixed(minorUnit)}
           error={fieldErrors.openingBalance && errorText(fieldErrors.openingBalance)}
         />
@@ -213,7 +257,7 @@ function SelectField({
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? errorId : undefined}
           className={`w-full cursor-pointer appearance-none rounded-[11px] border bg-field py-[13px] ps-[15px] pe-10 text-sm outline-none focus:ring-2 focus:ring-ring ${
-            error ? "border-destructive" : "border-border"
+            error ? "border-destructive" : "border-input"
           }`}
           {...selectProps}
         >

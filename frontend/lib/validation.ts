@@ -66,6 +66,8 @@ export const accountErrorCodes = [
   "typeInvalid",
   "currencyInvalid",
   "openingBalanceInvalid",
+  "openingBalanceDecimals",
+  "openingBalanceTooLarge",
 ] as const;
 
 export type AccountErrorCode = (typeof accountErrorCodes)[number];
@@ -75,17 +77,19 @@ export function isAccountErrorCode(value: unknown): value is AccountErrorCode {
 }
 
 /**
- * Converts a typed decimal amount ("100.50") to integer minor units for a
- * currency with `minorUnit` decimals, using string digits rather than float
- * maths (so "1.005" can't round to 100). Returns `undefined` for anything that
- * isn't a plain decimal, has more decimals than the currency allows, or doesn't
- * fit a safe integer.
+ * Converts a typed decimal amount ("100.50", ".5", "12.") to integer minor
+ * units for a currency with `minorUnit` decimals, using string digits rather
+ * than float maths (so "1.005" can't round to 100). On failure it returns the
+ * error code that tells the user what to fix.
  */
-export function toMinorUnits(amount: string, minorUnit: number): number | undefined {
-  const match = /^(-?)(\d+)(?:\.(\d+))?$/.exec(amount.trim());
-  if (!match) return undefined;
-  const [, sign, whole, fraction = ""] = match;
-  if (fraction.length > minorUnit) return undefined;
-  const minor = Number(`${sign}${whole}${fraction.padEnd(minorUnit, "0")}`);
-  return Number.isSafeInteger(minor) ? minor : undefined;
+export function toMinorUnits(
+  amount: string,
+  minorUnit: number,
+): number | "openingBalanceInvalid" | "openingBalanceDecimals" | "openingBalanceTooLarge" {
+  const match = /^(-?)(\d*)(?:\.(\d*))?$/.exec(amount.trim());
+  const [, sign = "", whole = "", fraction = ""] = match ?? [];
+  if (!match || whole.length + fraction.length === 0) return "openingBalanceInvalid";
+  if (fraction.length > minorUnit) return "openingBalanceDecimals";
+  const minor = Number(`${sign}${whole || "0"}${fraction.padEnd(minorUnit, "0")}`);
+  return Number.isSafeInteger(minor) ? minor : "openingBalanceTooLarge";
 }
