@@ -5,6 +5,7 @@
  * the auth server actions. Imported by the API client, the DAL, the server
  * actions, and the auth context.
  */
+import type { AccountType } from "@/lib/validation";
 
 /** The authenticated user, as exposed to the UI (a safe subset of the backend row). */
 export type User = {
@@ -29,4 +30,32 @@ export type ActionResponse = {
   errors?: Record<string, string[]>;
   user?: User;
   status?: number;
+};
+
+/** A financial account, as returned by the backend's /accounts endpoints. */
+export type Account = {
+  id: string;
+  name: string;
+  type: AccountType;
+  currencyCode: string;
+  openingBalanceMinor: number;
+  institution: string | null;
+  accountRef: string | null;
+  isArchived: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+/** Response body of `GET /accounts/:id/balance`. */
+export type AccountBalance = {
+  balanceMinor: number;
+  currencyCode: string;
+};
+
+/** Currency reference data from `GET /currencies`. `minorUnit` is the number of decimals (JPY 0, KWD 3, most 2). */
+export type Currency = {
+  code: string;
+  name: string;
+  symbol: string;
+  minorUnit: number;
 };

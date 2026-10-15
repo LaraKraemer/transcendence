@@ -3,7 +3,8 @@
     "appTitle": "Expense Tracker",
     "appDescription": "Track your income and expenses.",
     "signInTitle": "Sign in",
-    "signUpTitle": "Create account"
+    "signUpTitle": "Create account",
+    "accountsTitle": "Accounts"
   },
   "common": {
     "language": "Language",
@@ -83,5 +84,42 @@
     "theme": "Theme",
     "profile": "Profile",
     "back": "Back"
+  },
+  "accounts": {
+    "title": "Accounts",
+    "subtitle": "An overview of your financial accounts and balances",
+    "listTitle": "Your accounts",
+    "count": "{count, plural, =0 {No accounts} one {# account} other {# accounts}}",
+    "totalBalance": "Total balance",
+    "empty": "No accounts yet. Create your first one.",
+    "newAccount": "New account",
+    "types": {
+      "checking": "Checking",
+      "savings": "Savings",
+      "cash": "Cash"
+    },
+    "form": {
+      "title": "New account",
+      "name": "Name",
+      "namePlaceholder": "e.g. Main checking",
+      "type": "Type",
+      "currency": "Currency",
+      "openingBalance": "Opening balance",
+      "cancel": "Cancel",
+      "submit": "Create account",
+      "submitting": "Creating…"
+    },
+    "errors": {
+      "nameRequired": "Enter a name for the account",
+      "nameTooLong": "The name is too long",
+      "typeInvalid": "Choose an account type",
+      "currencyInvalid": "Choose a currency",
+      "openingBalanceInvalid": "Enter an amount like {example}",
+      "openingBalanceDecimals": "{digits, plural, =0 {Enter a whole amount without decimals} one {Enter an amount with at most # decimal place} other {Enter an amount with at most # decimal places}}",
+      "openingBalanceTooLarge": "This amount is too large",
+      "network": "Could not reach the server. Please try again later.",
+      "generic": "Something went wrong. Please try again."
+    },
+    "balanceUnavailable": "Balance unavailable"
   }
 }

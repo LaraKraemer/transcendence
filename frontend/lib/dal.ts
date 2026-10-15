@@ -13,7 +13,7 @@ import { cache } from "react";
 
 import { ApiError, fetchApi } from "@/lib/api";
 import { getSessionCookieHeader } from "@/lib/session";
-import type { User } from "@/lib/types";
+import type { Currency, User } from "@/lib/types";
 
 /**
  * Server-side `fetchApi` that forwards the inbound session cookie to the
@@ -53,3 +53,9 @@ export const getCurrentUser = cache(async (): Promise<User | null> => {
     return null;
   }
 });
+
+/**
+ * Returns the currency catalogue from `GET /currencies`, ordered by code.
+ * Cached per request, so the accounts page and the create-account action share it.
+ */
+export const getCurrencies = cache((): Promise<Currency[]> => fetchApiServer<Currency[]>("/currencies"));

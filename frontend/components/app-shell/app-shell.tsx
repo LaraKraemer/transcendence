@@ -99,8 +99,9 @@ export async function AppShell({
           </div>
           {/* On mobile these controls live on the More page instead. */}
           <div className="ms-auto hidden shrink-0 gap-2 lg:flex">
-            <LocaleSwitcher />
-            <ThemeToggle />
+            {/* In-app header style from dashboard.html / profile.html (auth pages keep the defaults). */}
+            <LocaleSwitcher variant="pill" />
+            <ThemeToggle variant="app" />
           </div>
         </header>
 
