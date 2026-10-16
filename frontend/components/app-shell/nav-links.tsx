@@ -8,8 +8,8 @@ import { usePathname } from "next/navigation";
 const NAV_ITEMS = [
   { href: "/dashboard", labelKey: "overview", icon: LayoutGrid },
   { href: "/accounts", labelKey: "accounts", icon: Wallet },
-  { href: "/categories", labelKey: "categories", icon: Tag },
   { href: "/transactions", labelKey: "transactions", icon: ArrowLeftRight },
+  { href: "/categories", labelKey: "categories", icon: Tag },
 ] as const;
 
 // Mobile only: on desktop, the More page's controls already sit in the header and sidebar.
@@ -40,13 +40,14 @@ export function NavLinks({ variant }: { variant: keyof typeof variantClasses }) 
   const pathname = usePathname();
   const classes = variantClasses[variant];
   const items = variant === "tabs" ? [...NAV_ITEMS, MORE_ITEM] : NAV_ITEMS;
+  const sectionPath = /^\/accounts\/[^/]+\/transactions(\/|$)/.test(pathname) ? "/transactions" : pathname;
 
   return (
     <nav aria-label={t("mainNavigation")}>
       <ul className={classes.list}>
         {items.map(({ href, labelKey, icon: Icon }) => {
           // A nested route (/accounts/123) keeps its section highlighted.
-          const isActive = pathname === href || pathname.startsWith(`${href}/`);
+          const isActive = sectionPath === href || sectionPath.startsWith(`${href}/`);
           return (
             <li key={href}>
               <Link
