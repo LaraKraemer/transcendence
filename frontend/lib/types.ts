@@ -52,6 +52,42 @@ export type AccountBalance = {
   currencyCode: string;
 };
 
+/**
+ * A transaction, as returned by the backend's /transactions endpoints. The sign of
+ * `amountMinor` is the direction: negative = expense, positive = income (never 0).
+ * `bookedOn` is a `YYYY-MM-DD` date.
+ */
+export type Transaction = {
+  id: string;
+  accountId: string;
+  categoryId: string | null;
+  createdById: string;
+  amountMinor: number;
+  description: string;
+  notes: string | null;
+  bookedOn: string;
+  occurredAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+/** Response body of `GET /transactions?accountId=`: one page, newest first, plus the account's total count. */
+export type TransactionPage = {
+  items: Transaction[];
+  total: number;
+};
+
+/** A category, as returned by the backend's /categories endpoints. */
+export type Category = {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+  kind: "expense" | "income" | "transfer";
+  isArchived: boolean;
+  createdAt: string;
+};
+
 /** Currency reference data from `GET /currencies`. `minorUnit` is the number of decimals (JPY 0, KWD 3, most 2). */
 export type Currency = {
   code: string;
