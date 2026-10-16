@@ -4,7 +4,8 @@
     "appDescription": "Behalte deine Einnahmen und Ausgaben im Blick.",
     "signInTitle": "Anmelden",
     "signUpTitle": "Konto erstellen",
-    "accountsTitle": "Konten"
+    "accountsTitle": "Konten",
+    "accountTransactionsTitle": "{account} · Transaktionen"
   },
   "common": {
     "language": "Sprache",
@@ -121,5 +122,45 @@
       "generic": "Etwas ist schiefgelaufen. Bitte versuche es erneut."
     },
     "balanceUnavailable": "Saldo nicht verfügbar"
+  },
+  "transactions": {
+    "subtitle": "{count, plural, =0 {Keine Transaktionen} one {# Transaktion} other {# Transaktionen}} · {currency}",
+    "archived": "Archiviert",
+    "moneyIn": "Einnahmen",
+    "moneyOut": "Ausgaben",
+    "net": "Saldo",
+    "latestOnly": "{count, plural, one {Letzte # Transaktion} other {Letzte # Transaktionen}}",
+    "chooseAccount": "Konto auswählen",
+    "chooseAccountHint": "Wähle ein Konto, um seine Transaktionen zu sehen.",
+    "accountSwitcher": "Konto:",
+    "filterLabel": "Transaktionen nach Art filtern",
+    "filters": {
+      "all": "Alle",
+      "income": "Einnahmen",
+      "expense": "Ausgaben"
+    },
+    "listTitle": "Transaktionen",
+    "caption": "Transaktionen für {account}",
+    "columns": {
+      "description": "Beschreibung",
+      "category": "Kategorie",
+      "date": "Datum",
+      "amount": "Betrag",
+      "actions": "Aktionen"
+    },
+    "uncategorised": "Ohne Kategorie",
+    "empty": "Auf diesem Konto gibt es noch keine Transaktionen.",
+    "emptyFiltered": "{filter, select, income {Keine Einnahmen.} expense {Keine Ausgaben.} other {Keine Transaktionen.}}",
+    "showing": "{shown, number} von {total, plural, one {# Transaktion} other {# Transaktionen}}",
+    "delete": "{description} löschen",
+    "confirmTitle": "Transaktion löschen?",
+    "confirmBody": "„<name>{description}</name>“ wird endgültig gelöscht. Das kann nicht rückgängig gemacht werden.",
+    "cancel": "Abbrechen",
+    "confirm": "Löschen",
+    "deleting": "Wird gelöscht…",
+    "errors": {
+      "network": "Der Server ist nicht erreichbar. Bitte versuche es später erneut.",
+      "generic": "Etwas ist schiefgelaufen. Bitte versuche es erneut."
+    }
   }
 }

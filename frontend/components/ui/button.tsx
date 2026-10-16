@@ -1,18 +1,20 @@
-import type { ButtonHTMLAttributes } from "react";
+import type { ComponentProps } from "react";
 
-type ButtonVariant = "primary" | "success" | "outline";
+type ButtonVariant = "primary" | "success" | "outline" | "danger";
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary: "border-transparent bg-primary py-3.5 text-[15px] text-primary-foreground",
   success: "border-transparent bg-success py-3.5 text-[15px] text-white",
   outline: "border-border bg-card py-[13px] text-sm text-foreground",
+  danger: "border-transparent bg-destructive py-3.5 text-[15px] text-white dark:bg-danger-bg dark:text-destructive",
 };
 
-type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+// ComponentProps includes `ref` (a plain prop in React 19), so callers can focus the button.
+type ButtonProps = ComponentProps<"button"> & {
   variant?: ButtonVariant;
 };
 
-/** Full-width action button in the design's three styles. */
+/** Full-width action button in the design's four styles. */
 export function Button({ variant = "primary", className = "", type = "button", ...props }: ButtonProps) {
   return (
     <button
