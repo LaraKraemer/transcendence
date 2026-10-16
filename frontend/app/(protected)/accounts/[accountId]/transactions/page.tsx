@@ -95,8 +95,8 @@ export default async function AccountTransactionsPage({
           page (or the reverse) keeps its punctuation in place without changing the alignment. */}
       <div className="mb-[18px] sm:mb-6">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <h1 className="text-[15px] font-bold sm:text-[26px] tracking-[-0.02em] break-words">
-            <bdi>{account.name}</bdi>
+          <h1 className="text-[26px] font-bold tracking-[-0.02em] break-words">
+            <bdi>{account.name}</bdi> {t("listTitle")}
           </h1>
           {account.isArchived && (
             <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
