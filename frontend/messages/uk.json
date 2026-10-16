@@ -4,7 +4,8 @@
     "appDescription": "Відстежуйте свої доходи та витрати.",
     "signInTitle": "Вхід",
     "signUpTitle": "Створення акаунта",
-    "accountsTitle": "Рахунки"
+    "accountsTitle": "Рахунки",
+    "accountTransactionsTitle": "{account} · Транзакції"
   },
   "common": {
     "language": "Мова",
@@ -121,5 +122,45 @@
       "generic": "Щось пішло не так. Спробуйте ще раз."
     },
     "balanceUnavailable": "Баланс недоступний"
+  },
+  "transactions": {
+    "subtitle": "{count, plural, =0 {Немає транзакцій} one {# транзакція} few {# транзакції} many {# транзакцій} other {# транзакції}} · {currency}",
+    "archived": "В архіві",
+    "moneyIn": "Надходження",
+    "moneyOut": "Витрати",
+    "net": "Підсумок",
+    "latestOnly": "{count, plural, one {Остання # транзакція} few {Останні # транзакції} many {Останні # транзакцій} other {Останні # транзакції}}",
+    "chooseAccount": "Оберіть рахунок",
+    "chooseAccountHint": "Оберіть рахунок, щоб побачити його транзакції.",
+    "accountSwitcher": "Рахунок:",
+    "filterLabel": "Фільтр транзакцій за типом",
+    "filters": {
+      "all": "Усі",
+      "income": "Доходи",
+      "expense": "Витрати"
+    },
+    "listTitle": "Транзакції",
+    "caption": "Транзакції рахунку {account}",
+    "columns": {
+      "description": "Опис",
+      "category": "Категорія",
+      "date": "Дата",
+      "amount": "Сума",
+      "actions": "Дії"
+    },
+    "uncategorised": "Без категорії",
+    "empty": "На цьому рахунку ще немає транзакцій.",
+    "emptyFiltered": "{filter, select, income {Немає доходів.} expense {Немає витрат.} other {Немає транзакцій.}}",
+    "showing": "Показано {shown, number} з {total, plural, one {# транзакції} few {# транзакцій} many {# транзакцій} other {# транзакції}}",
+    "delete": "Видалити «{description}»",
+    "confirmTitle": "Видалити транзакцію?",
+    "confirmBody": "«<name>{description}</name>» буде видалено назавжди. Цю дію не можна скасувати.",
+    "cancel": "Скасувати",
+    "confirm": "Видалити",
+    "deleting": "Видалення…",
+    "errors": {
+      "network": "Не вдалося з’єднатися із сервером. Спробуйте пізніше.",
+      "generic": "Щось пішло не так. Спробуйте ще раз."
+    }
   }
 }
