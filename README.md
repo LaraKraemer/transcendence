@@ -282,12 +282,9 @@ transactions currently exist in the account. Submitting the current currency use
 balance; this does not convert the opening balance, so we need to review and adjust it as needed.
 
 `GET /transactions` requires an `accountId` query parameter. Archive or unarchive
-accounts and categories with `PATCH {"isArchived": true}` or `PATCH {"isArchived": false}`.
-`DELETE /accounts/:accountId` permanently removes the owned account and all of its
-transactions, including archived accounts. It returns 204 on success, 404 for a
-missing or foreign account, and 400 for an invalid UUID. `DELETE /transactions/:transactionId`
+accounts and categories with `PATCH {"isArchived": bool}`. `DELETE /accounts/:accountId`
+permanently removes the owned account and all its transactions. `DELETE /transactions/:transactionId`
 permanently removes one transaction.
-
 
 <br>
 
@@ -340,14 +337,6 @@ npm run lint               # ESLint recommended JavaScript/TypeScript rules
 npm run format:check       # verify Prettier formatting
 npm run format             # apply formatting
 ```
-
-Check the account deletion cascade against the running, migrated database:
-
-```bash
-docker compose exec -T db psql -U expense -d expense_tracker < backend/tests/db/account-delete.sql
-```
-
-This check creates its own rows and rolls them back. CI runs it against PostgreSQL too.
 
 Prettier uses the root `.prettierrc.json` (print width 100). Generated migrations,
 Bruno files, coverage output and the package lockfile are excluded from formatting.
