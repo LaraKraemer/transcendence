@@ -11,7 +11,9 @@
     "language": "Sprache",
     "comingSoon": "Demnächst verfügbar",
     "switchToDark": "Zum dunklen Design wechseln",
-    "switchToLight": "Zum hellen Design wechseln"
+    "switchToLight": "Zum hellen Design wechseln",
+    "close": "Schließen",
+    "cancel": "Abbrechen"
   },
   "auth": {
     "continueWithGoogle": "Weiter mit Google",
@@ -108,7 +110,14 @@
       "openingBalance": "Anfangssaldo",
       "cancel": "Abbrechen",
       "submit": "Konto anlegen",
-      "submitting": "Wird angelegt…"
+      "submitting": "Wird angelegt…",
+      "editTitle": "Konto bearbeiten",
+      "institution": "Bank oder Institut",
+      "institutionPlaceholder": "z. B. DKB",
+      "accountRef": "Kontonummer oder IBAN",
+      "accountRefPlaceholder": "z. B. DE89 3704 0044 0532 0130 00",
+      "save": "Änderungen speichern",
+      "saving": "Wird gespeichert…"
     },
     "errors": {
       "nameRequired": "Gib einen Namen für das Konto ein",
@@ -121,7 +130,17 @@
       "network": "Der Server ist nicht erreichbar. Bitte versuche es später erneut.",
       "generic": "Etwas ist schiefgelaufen. Bitte versuche es erneut."
     },
-    "balanceUnavailable": "Saldo nicht verfügbar"
+    "balanceUnavailable": "Saldo nicht verfügbar",
+    "actions": {
+      "edit": "{name} bearbeiten",
+      "archive": "{name} archivieren"
+    },
+    "archiveDialog": {
+      "title": "„{name}“ archivieren?",
+      "description": "Dieses Konto archivieren? Deine Transaktionen bleiben erhalten.",
+      "confirm": "Archivieren",
+      "confirming": "Wird archiviert…"
+    }
   },
   "transactions": {
     "subtitle": "{count, plural, =0 {Keine Transaktionen} one {# Transaktion} other {# Transaktionen}} · {currency}",

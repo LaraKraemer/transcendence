@@ -11,7 +11,9 @@
     "language": "Language",
     "comingSoon": "Coming soon",
     "switchToDark": "Switch to dark theme",
-    "switchToLight": "Switch to light theme"
+    "switchToLight": "Switch to light theme",
+    "close": "Close",
+    "cancel": "Cancel"
   },
   "auth": {
     "continueWithGoogle": "Continue with Google",
@@ -108,7 +110,14 @@
       "openingBalance": "Opening balance",
       "cancel": "Cancel",
       "submit": "Create account",
-      "submitting": "Creating…"
+      "submitting": "Creating…",
+      "editTitle": "Edit account",
+      "institution": "Bank or institution",
+      "institutionPlaceholder": "e.g. DKB",
+      "accountRef": "Account number or IBAN",
+      "accountRefPlaceholder": "e.g. DE89 3704 0044 0532 0130 00",
+      "save": "Save changes",
+      "saving": "Saving…"
     },
     "errors": {
       "nameRequired": "Enter a name for the account",
@@ -121,7 +130,17 @@
       "network": "Could not reach the server. Please try again later.",
       "generic": "Something went wrong. Please try again."
     },
-    "balanceUnavailable": "Balance unavailable"
+    "balanceUnavailable": "Balance unavailable",
+    "actions": {
+      "edit": "Edit {name}",
+      "archive": "Archive {name}"
+    },
+    "archiveDialog": {
+      "title": "Archive “{name}”?",
+      "description": "Archive this account? Your transactions will be kept.",
+      "confirm": "Archive",
+      "confirming": "Archiving…"
+    }
   },
   "transactions": {
     "subtitle": "{count, plural, =0 {No transactions} one {# transaction} other {# transactions}} · {currency}",

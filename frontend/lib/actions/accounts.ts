@@ -14,17 +14,38 @@ import type { Account, ActionResponse } from "@/lib/types";
 import {
   ACCOUNT_TYPES,
   MAX_ACCOUNT_NAME_LENGTH,
+  changedAccountFields,
   toMinorUnits,
   type AccountErrorCode,
+  type EditableAccountFields,
 } from "@/lib/validation";
 
+const nameSchema = z
+  .string()
+  .trim()
+  .min(1, { error: "nameRequired" satisfies AccountErrorCode })
+  .max(MAX_ACCOUNT_NAME_LENGTH, { error: "nameTooLong" satisfies AccountErrorCode });
+const typeSchema = z.enum(ACCOUNT_TYPES, { error: "typeInvalid" satisfies AccountErrorCode });
+// Optional free text: trimmed, and empty means "not set" (null clears it in the backend).
+const optionalTextSchema = z
+  .string()
+  .trim()
+  .transform((value) => value || null);
+const accountIdSchema = z.uuid();
+
+/**
+ * Turns a failed backend call into the action's error response. No status means
+ * the request never reached the backend (see formErrorFor in components/auth/form-parts.tsx).
+ */
+function backendFailure(error: unknown, action: string): ActionResponse {
+  if (error instanceof ApiError) return { success: false, message: error.message, status: error.status };
+  console.error(`${action}: request failed:`, error);
+  return { success: false, message: "Could not reach the server. Please try again later." };
+}
+
 const CreateAccountSchema = z.object({
-  name: z
-    .string()
-    .trim()
-    .min(1, { error: "nameRequired" satisfies AccountErrorCode })
-    .max(MAX_ACCOUNT_NAME_LENGTH, { error: "nameTooLong" satisfies AccountErrorCode }),
-  type: z.enum(ACCOUNT_TYPES, { error: "typeInvalid" satisfies AccountErrorCode }),
+  name: nameSchema,
+  type: typeSchema,
   // Normalised before parsing (see createAccount) and checked against the
   // currency catalogue there, because the allowed decimals depend on it.
   currencyCode: z.string(),
@@ -69,12 +90,83 @@ export async function createAccount(data: CreateAccountInput): Promise<ActionRes
       body: JSON.stringify({ name, type, currencyCode: input.currencyCode, openingBalanceMinor }),
     });
   } catch (error) {
-    if (error instanceof ApiError) return { success: false, message: error.message, status: error.status };
-    // No status: the request never reached the backend (see formErrorFor in components/auth/form-parts.tsx).
-    console.error("createAccount: request failed:", error);
-    return { success: false, message: "Could not reach the server. Please try again later." };
+    return backendFailure(error, "createAccount");
   }
 
   refresh();
   return { success: true, message: "Account created" };
+}
+
+const UpdateAccountSchema = z.object({
+  name: nameSchema,
+  type: typeSchema,
+  institution: optionalTextSchema,
+  accountRef: optionalTextSchema,
+});
+
+export type UpdateAccountInput = Record<keyof z.input<typeof UpdateAccountSchema>, string>;
+
+/**
+ * Validates the edit form and sends only the fields the user changed with
+ * `PATCH /accounts/:id`, by comparing against the values the form was opened
+ * with. A field the user didn't touch is never sent, so it can't overwrite a
+ * change made elsewhere in the meantime.
+ */
+export async function updateAccount(
+  accountId: string,
+  opened: EditableAccountFields,
+  data: UpdateAccountInput,
+): Promise<ActionResponse> {
+  if (!accountIdSchema.safeParse(accountId).success) {
+    return { success: false, message: "Account not found", status: 404 };
+  }
+  const parsed = UpdateAccountSchema.safeParse({
+    name: String(data.name),
+    type: String(data.type),
+    institution: String(data.institution),
+    accountRef: String(data.accountRef),
+  });
+  if (!parsed.success) {
+    return {
+      success: false,
+      message: "Validation failed",
+      errors: z.flattenError(parsed.error).fieldErrors as Record<string, string[]>,
+    };
+  }
+
+  // `opened` only decides which fields to send; every value sent comes from the validated input.
+  const updates = changedAccountFields(opened, parsed.data);
+  // Nothing changed: the backend would reject an empty PATCH, and there is nothing to save.
+  if (Object.keys(updates).length > 0) {
+    try {
+      await fetchApiServer<Account>(`/accounts/${accountId}`, { method: "PATCH", body: JSON.stringify(updates) });
+    } catch (error) {
+      return backendFailure(error, "updateAccount");
+    }
+  }
+
+  refresh();
+  return { success: true, message: "Account updated" };
+}
+
+/**
+ * Archives an account with `PATCH { isArchived: true }`. Not `DELETE`: that
+ * route is reserved for permanently deleting an account and its transactions
+ * (issue #48). Archived accounts drop out of the list; transactions are kept.
+ */
+export async function archiveAccount(accountId: string): Promise<ActionResponse> {
+  if (!accountIdSchema.safeParse(accountId).success) {
+    return { success: false, message: "Account not found", status: 404 };
+  }
+  try {
+    await fetchApiServer<Account>(`/accounts/${accountId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ isArchived: true }),
+    });
+  } catch (error) {
+    return backendFailure(error, "archiveAccount");
+  }
+
+  refresh();
+  return { success: true, message: "Account archived" };
 }
