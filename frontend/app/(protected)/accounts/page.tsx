@@ -4,13 +4,17 @@ import { getFormatter, getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { Fragment, type ReactNode } from "react";
 
-import { CreateAccountForm } from "@/components/accounts/create-account-form";
+import { CreateAccountForm } from "@/components/accounts/account-form";
+import { AccountRowActions } from "@/components/accounts/account-row-actions";
 import { fetchApiServer, getCurrencies } from "@/lib/dal";
 import type { Account, AccountBalance } from "@/lib/types";
 import type { AccountType } from "@/lib/validation";
 
 // `null` when the balance request failed: a wrong number that looks right is
 // worse than none in a money app, so the UI says "unavailable" instead.
+// Focus lands on the list heading after an archived row disappears.
+const ACCOUNTS_HEADING_ID = "accounts-heading";
+
 type AccountWithBalance = Account & { balanceMinor: number | null };
 
 const TYPE_STYLE: Record<AccountType, { icon: LucideIcon; className: string }> = {
@@ -103,9 +107,12 @@ export default async function AccountsPage() {
           />
         </div>
 
-        <section className="rounded-lg border border-border bg-card p-6">
+        <section className="rounded-lg border border-border bg-card p-4 sm:p-6">
           <div className="flex flex-wrap items-center gap-3">
-            <h2 className="text-base font-semibold">{t("listTitle")}</h2>
+            {/* tabIndex -1: focus lands here after an archived row disappears. */}
+            <h2 id={ACCOUNTS_HEADING_ID} tabIndex={-1} className="text-base font-semibold outline-none">
+              {t("listTitle")}
+            </h2>
             <CreateAccountForm currencies={currencies} />
           </div>
 
@@ -118,7 +125,8 @@ export default async function AccountsPage() {
                 return (
                   <li
                     key={account.id}
-                    className="flex items-center gap-3.5 border-b border-border py-3.5 last:border-b-0"
+                    // flex-wrap: the edit form (and, on phones, the action buttons) take their own line.
+                    className="flex flex-wrap items-center gap-x-3.5 gap-y-2 border-b border-border py-3.5 last:border-b-0"
                   >
                     <span className={`flex size-9.5 shrink-0 items-center justify-center rounded-[10px] ${className}`}>
                       <Icon size={17} aria-hidden />
@@ -138,7 +146,9 @@ export default async function AccountsPage() {
                           {t(`types.${account.type}`)}
                         </span>
                       </div>
-                      <div className="text-[13px] text-muted-foreground">{account.currencyCode}</div>
+                      <div className="truncate text-[13px] text-muted-foreground">
+                        {account.institution ? `${account.currencyCode} · ${account.institution}` : account.currencyCode}
+                      </div>
                     </div>
                     {account.balanceMinor === null ? (
                       <span className="ms-auto shrink-0 text-[13px] text-muted-foreground">
@@ -151,6 +161,7 @@ export default async function AccountsPage() {
                         {money(account.balanceMinor, account.currencyCode)}
                       </span>
                     )}
+                    <AccountRowActions account={account} headingId={ACCOUNTS_HEADING_ID} />
                   </li>
                 );
               })}

@@ -6,6 +6,7 @@ import {
   startTransition,
   useActionState,
   useEffect,
+  useId,
   useRef,
   useState,
   type FormEvent,
@@ -16,8 +17,8 @@ import {
 import { FormAlert, formErrorFor } from "@/components/auth/form-parts";
 import { Button } from "@/components/ui/button";
 import { TextField } from "@/components/ui/text-field";
-import { createAccount } from "@/lib/actions/accounts";
-import type { Currency } from "@/lib/types";
+import { createAccount, updateAccount } from "@/lib/actions/accounts";
+import type { Account, Currency } from "@/lib/types";
 import {
   ACCOUNT_TYPES,
   MAX_ACCOUNT_NAME_LENGTH,
@@ -25,23 +26,18 @@ import {
   type AccountErrorCode,
 } from "@/lib/validation";
 
-type AccountFields = "name" | "type" | "currencyCode" | "openingBalance";
+type AccountFields = "name" | "type" | "currencyCode" | "openingBalance" | "institution" | "accountRef";
 
 // The field order on screen, used to focus the first invalid one.
-const FIELD_IDS: Record<AccountFields, string> = {
-  name: "account-name",
-  type: "account-type",
-  currencyCode: "account-currency",
-  openingBalance: "account-opening-balance",
-};
+const FIELD_ORDER: AccountFields[] = ["name", "type", "currencyCode", "openingBalance", "institution", "accountRef"];
 
 // Errors are stored as codes, so they re-translate if the language changes.
-type CreateAccountState = {
+type FormState = {
   fieldErrors: Partial<Record<AccountFields, AccountErrorCode>>;
   error: "network" | "generic" | null;
 };
 
-const initialState: CreateAccountState = { fieldErrors: {}, error: null };
+const initialState: FormState = { fieldErrors: {}, error: null };
 
 // The backend's default account currency.
 const DEFAULT_CURRENCY = "EUR";
@@ -79,6 +75,7 @@ export function CreateAccountForm({ currencies }: { currencies: Currency[] }) {
   // Unmounted on close, so reopening starts with empty values and no stale errors.
   return (
     <AccountForm
+      mode="create"
       currencies={currencies}
       onClose={() => {
         returnFocus.current = true;
@@ -88,15 +85,46 @@ export function CreateAccountForm({ currencies }: { currencies: Currency[] }) {
   );
 }
 
-function AccountForm({ currencies, onClose }: { currencies: Currency[]; onClose: () => void }) {
+type AccountFormProps = { onClose: () => void } & (
+  | { mode: "create"; currencies: Currency[] }
+  | { mode: "edit"; account: Account }
+);
+
+/**
+ * The account form, shared by create (name, type, currency, opening balance)
+ * and edit (name, type, institution, account reference; currency and opening
+ * balance stay as they are). Validation, error display and focus handling are the same.
+ */
+export function AccountForm(props: AccountFormProps) {
+  const { mode, onClose } = props;
+  const currencies = mode === "create" ? props.currencies : [];
   const t = useTranslations("accounts");
   const locale = useLocale();
-  const [values, setValues] = useState<Record<AccountFields, string>>(() => ({
-    name: "",
-    type: "checking",
-    currencyCode: currencies.some((c) => c.code === DEFAULT_CURRENCY) ? DEFAULT_CURRENCY : (currencies[0]?.code ?? ""),
-    openingBalance: "",
-  }));
+  // Unique per form: the create form and an edit form can be open at the same time.
+  const idPrefix = useId();
+  const fieldId = (name: AccountFields) => `${idPrefix}-${name}`;
+
+  const [values, setValues] = useState<Record<AccountFields, string>>(() =>
+    mode === "create"
+      ? {
+          name: "",
+          type: "checking",
+          currencyCode: currencies.some((c) => c.code === DEFAULT_CURRENCY)
+            ? DEFAULT_CURRENCY
+            : (currencies[0]?.code ?? ""),
+          openingBalance: "",
+          institution: "",
+          accountRef: "",
+        }
+      : {
+          name: props.account.name,
+          type: props.account.type,
+          currencyCode: props.account.currencyCode,
+          openingBalance: "",
+          institution: props.account.institution ?? "",
+          accountRef: props.account.accountRef ?? "",
+        },
+  );
   const field = (name: AccountFields) => ({
     name,
     value: values[name],
@@ -104,9 +132,32 @@ function AccountForm({ currencies, onClose }: { currencies: Currency[]; onClose:
   });
 
   const [{ fieldErrors, error }, submitAction, isPending] = useActionState(
-    async (_prev: CreateAccountState, submitted: Record<AccountFields, string>): Promise<CreateAccountState> => {
+    async (_prev: FormState, submitted: Record<AccountFields, string>): Promise<FormState> => {
       try {
-        const result = await createAccount(submitted);
+        const result =
+          mode === "create"
+            ? await createAccount({
+                name: submitted.name,
+                type: submitted.type,
+                currencyCode: submitted.currencyCode,
+                openingBalance: submitted.openingBalance,
+              })
+            : await updateAccount(
+                props.account.id,
+                // What the form was opened with, so only fields the user changed are sent.
+                {
+                  name: props.account.name,
+                  type: props.account.type,
+                  institution: props.account.institution,
+                  accountRef: props.account.accountRef,
+                },
+                {
+                name: submitted.name,
+                type: submitted.type,
+                institution: submitted.institution,
+                accountRef: submitted.accountRef,
+                },
+              );
         if (result.success) {
           onClose();
           return initialState;
@@ -137,32 +188,33 @@ function AccountForm({ currencies, onClose }: { currencies: Currency[]; onClose:
 
   // After a failed submit, move keyboard focus to the first invalid field.
   useEffect(() => {
-    const firstInvalid = (Object.keys(FIELD_IDS) as AccountFields[]).find((name) => fieldErrors[name]);
-    if (firstInvalid) document.getElementById(FIELD_IDS[firstInvalid])?.focus();
-  }, [fieldErrors]);
+    const firstInvalid = FIELD_ORDER.find((name) => fieldErrors[name]);
+    if (firstInvalid) document.getElementById(`${idPrefix}-${firstInvalid}`)?.focus();
+  }, [fieldErrors, idPrefix]);
 
   // Currency names in the user's language; the catalogue's names are English.
   const currencyNames = new Intl.DisplayNames(locale, { type: "currency" });
   const minorUnit = currencies.find((c) => c.code === values.currencyCode)?.minorUnit ?? 2;
   const errorText = (code: AccountErrorCode) =>
     t(`errors.${code}`, { digits: minorUnit, example: (12.5).toFixed(minorUnit) });
+  const headingId = `${idPrefix}-heading`;
 
   return (
     <form
       onSubmit={handleSubmit}
       noValidate
-      aria-labelledby="create-account-heading"
+      aria-labelledby={headingId}
       // bg-card, not bg-muted: red error text only reaches 4.5:1 contrast on the card colour.
       className="mt-2 basis-full rounded-[11px] border border-border bg-card p-5"
     >
       <fieldset disabled={isPending}>
-        <h3 id="create-account-heading" className="mb-4 text-sm font-semibold">
-          {t("form.title")}
+        <h3 id={headingId} className="mb-4 text-sm font-semibold">
+          {mode === "create" ? t("form.title") : t("form.editTitle")}
         </h3>
         <FormAlert message={error && t(`errors.${error}`)} />
 
         <TextField
-          id={FIELD_IDS.name}
+          id={fieldId("name")}
           {...field("name")}
           label={t("form.name")}
           type="text"
@@ -175,7 +227,7 @@ function AccountForm({ currencies, onClose }: { currencies: Currency[]; onClose:
 
         <div className="grid gap-x-4 sm:grid-cols-2">
           <SelectField
-            id={FIELD_IDS.type}
+            id={fieldId("type")}
             {...field("type")}
             label={t("form.type")}
             error={fieldErrors.type && errorText(fieldErrors.type)}
@@ -187,41 +239,70 @@ function AccountForm({ currencies, onClose }: { currencies: Currency[]; onClose:
             ))}
           </SelectField>
 
-          <SelectField
-            id={FIELD_IDS.currencyCode}
-            {...field("currencyCode")}
-            label={t("form.currency")}
-            error={fieldErrors.currencyCode && errorText(fieldErrors.currencyCode)}
-          >
-            {currencies.map((currency) => (
-              <option key={currency.code} value={currency.code}>
-                {currency.code} — {currencyNames.of(currency.code) ?? currency.name}
-              </option>
-            ))}
-          </SelectField>
+          {mode === "create" ? (
+            <SelectField
+              id={fieldId("currencyCode")}
+              {...field("currencyCode")}
+              label={t("form.currency")}
+              error={fieldErrors.currencyCode && errorText(fieldErrors.currencyCode)}
+            >
+              {currencies.map((currency) => (
+                <option key={currency.code} value={currency.code}>
+                  {currency.code} — {currencyNames.of(currency.code) ?? currency.name}
+                </option>
+              ))}
+            </SelectField>
+          ) : (
+            <TextField
+              id={fieldId("institution")}
+              {...field("institution")}
+              label={t("form.institution")}
+              type="text"
+              placeholder={t("form.institutionPlaceholder")}
+            />
+          )}
         </div>
 
-        <TextField
-          id={FIELD_IDS.openingBalance}
-          {...field("openingBalance")}
-          label={t("form.openingBalance")}
-          // Text, not number: a number input submits "" for input it can't parse
-          // (e.g. "12."), which would silently save 0. The server parses the text
-          // and the currency decides how many decimals are allowed (JPY 0, KWD 3).
-          type="text"
-          dir="ltr"
-          inputMode={minorUnit === 0 ? "numeric" : "decimal"}
-          autoComplete="off"
-          placeholder={(0).toFixed(minorUnit)}
-          error={fieldErrors.openingBalance && errorText(fieldErrors.openingBalance)}
-        />
+        {mode === "create" ? (
+          <TextField
+            id={fieldId("openingBalance")}
+            {...field("openingBalance")}
+            label={t("form.openingBalance")}
+            // Text, not number: a number input submits "" for input it can't parse
+            // (e.g. "12."), which would silently save 0. The server parses the text
+            // and the currency decides how many decimals are allowed (JPY 0, KWD 3).
+            type="text"
+            dir="ltr"
+            inputMode={minorUnit === 0 ? "numeric" : "decimal"}
+            autoComplete="off"
+            placeholder={(0).toFixed(minorUnit)}
+            error={fieldErrors.openingBalance && errorText(fieldErrors.openingBalance)}
+          />
+        ) : (
+          <TextField
+            id={fieldId("accountRef")}
+            {...field("accountRef")}
+            label={t("form.accountRef")}
+            type="text"
+            // Account numbers and IBANs read left to right in every language.
+            dir="ltr"
+            autoComplete="off"
+            placeholder={t("form.accountRefPlaceholder")}
+          />
+        )}
 
         <div className="flex gap-3">
           <Button variant="outline" onClick={onClose}>
             {t("form.cancel")}
           </Button>
           <Button type="submit" variant="primary">
-            {isPending ? t("form.submitting") : t("form.submit")}
+            {mode === "create"
+              ? isPending
+                ? t("form.submitting")
+                : t("form.submit")
+              : isPending
+                ? t("form.saving")
+                : t("form.save")}
           </Button>
         </div>
       </fieldset>
