@@ -11,7 +11,12 @@ export async function findUserByEmail(email: string) {
 
 export async function findUserById(id: string) {
   const [user] = await db
-    .select({ id: appUsers.id, email: appUsers.email, displayName: appUsers.displayName })
+    .select({
+      id: appUsers.id,
+      email: appUsers.email,
+      displayName: appUsers.displayName,
+      avatarUrl: appUsers.avatarUrl,
+    })
     .from(appUsers)
     .where(eq(appUsers.id, id))
     .limit(1);
@@ -31,6 +36,11 @@ export async function createUser(email: string, passwordHash: string, displayNam
 /** Permanently deletes a profile and its related data atomically through foreign-key cascades. */
 export async function deleteUser(id: string) {
   await db.delete(appUsers).where(eq(appUsers.id, id));
+}
+
+/** Updates the user's avatar_url and sets updatedAt. */
+export async function updateUserAvatarUrl(id: string, avatarUrl: string | null) {
+  await db.update(appUsers).set({ avatarUrl, updatedAt: new Date() }).where(eq(appUsers.id, id));
 }
 
 /** Reads the authenticated user's password hash without exposing it in public user responses. */

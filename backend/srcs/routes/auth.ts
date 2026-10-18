@@ -1,4 +1,4 @@
-import { randomBytes } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 
 import { Router } from "express";
 
@@ -17,9 +17,11 @@ import {
   findUserByEmail,
   findUserById,
   findUserPasswordHash,
+  updateUserAvatarUrl,
   updateUserPassword,
   updateUserProfile,
 } from "../db/users.ts";
+import { deleteAvatar, parseAvatarUpload, readAvatar, writeAvatar } from "../storage.ts";
 import { isValidDisplayName, isValidPassword } from "../validation.ts";
 
 export const authRouter = Router();
@@ -126,6 +128,69 @@ authRouter.patch("/me", requireAuthenticatedUser, async (req, res, next) => {
   try {
     const user = await updateUserProfile(res.locals.userId as string, { displayName: displayName.trim() });
     res.json({ user });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/** Uploads or replaces the authenticated user's profile image. */
+authRouter.put("/me/avatar", requireAuthenticatedUser, async (req, res, next) => {
+  let newKey: string | undefined;
+  try {
+    const { buffer, mimeType } = await parseAvatarUpload(req);
+    const ext = mimeType === "image/jpeg" ? ".jpg" : ".png";
+    newKey = `${randomUUID()}${ext}`;
+
+    const userId = res.locals.userId as string;
+    const oldUser = await findUserById(userId);
+
+    await writeAvatar(newKey, buffer);
+    await updateUserAvatarUrl(userId, newKey);
+
+    if (oldUser?.avatarUrl) deleteAvatar(oldUser.avatarUrl).catch(() => {});
+
+    const user = await findUserById(userId);
+    res.json({ user });
+  } catch (error) {
+    if (newKey) deleteAvatar(newKey).catch(() => {});
+    const err = error as { status?: number; message?: string };
+    if (err.status === 400 || err.status === 413 || err.status === 415) {
+      res.status(err.status).json({ error: err.message });
+      return;
+    }
+    next(error);
+  }
+});
+
+/** Returns the authenticated user's profile image. */
+authRouter.get("/me/avatar", requireAuthenticatedUser, async (req, res, next) => {
+  try {
+    const userId = res.locals.userId as string;
+    const user = await findUserById(userId);
+    if (!user?.avatarUrl) {
+      res.status(404).json({ error: "No avatar set" });
+      return;
+    }
+    const buffer = await readAvatar(user.avatarUrl);
+    if (!buffer) {
+      res.status(404).json({ error: "Avatar file not found" });
+      return;
+    }
+    const contentType = user.avatarUrl.endsWith(".jpg") ? "image/jpeg" : "image/png";
+    res.type(contentType).send(buffer);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/** Removes the authenticated user's profile image. */
+authRouter.delete("/me/avatar", requireAuthenticatedUser, async (req, res, next) => {
+  try {
+    const userId = res.locals.userId as string;
+    const user = await findUserById(userId);
+    if (user?.avatarUrl) await deleteAvatar(user.avatarUrl);
+    await updateUserAvatarUrl(userId, null);
+    res.status(204).send();
   } catch (error) {
     next(error);
   }

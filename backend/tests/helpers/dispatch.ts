@@ -13,7 +13,7 @@ export function dispatch(
   router: Router,
   { method = "GET", url, query = {}, body, cookies = {}, headers = {} }: DispatchOptions,
 ) {
-  return new Promise<{ status: number; body: unknown }>((resolve, reject) => {
+  return new Promise<{ status: number; body: unknown; contentType?: string }>((resolve, reject) => {
     let status = 200;
     const req = {
       method,
@@ -25,17 +25,22 @@ export function dispatch(
       ip: "127.0.0.1",
       get: (name: string) => headers[name.toLowerCase()],
     };
+    let contentType: string | undefined;
     const res = {
       locals: {},
       status(code: number) {
         status = code;
         return this;
       },
+      type(ct: string) {
+        contentType = ct;
+        return this;
+      },
       json(payload: unknown) {
         resolve({ status, body: payload });
       },
       send(payload?: unknown) {
-        resolve({ status, body: payload });
+        resolve({ status, body: payload, ...(contentType === undefined ? {} : { contentType }) });
       },
       sendStatus(code: number) {
         status = code;

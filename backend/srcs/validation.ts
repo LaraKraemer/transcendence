@@ -37,3 +37,13 @@ export function isValidPassword(value: unknown): value is string {
 export function isValidDisplayName(value: unknown): value is string {
   return typeof value === "string" && value.trim().length >= 1 && value.trim().length <= 100;
 }
+
+const JPEG_MAGIC = [0xff, 0xd8, 0xff];
+const PNG_MAGIC = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+
+/** Returns the MIME type if the buffer starts with JPEG or PNG magic bytes, otherwise null. */
+export function isJpegOrPng(header: Buffer): "image/jpeg" | "image/png" | null {
+  if (JPEG_MAGIC.every((b, i) => header[i] === b)) return "image/jpeg";
+  if (PNG_MAGIC.every((b, i) => header[i] === b)) return "image/png";
+  return null;
+}

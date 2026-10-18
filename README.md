@@ -192,8 +192,9 @@ Run `docker compose exec backend npm run db:generate` only after changing
 `backend/srcs/db/schema.ts`; commit the generated files in `backend/drizzle/`.
 
 Database data is stored in the `db-data` Docker volume and survives normal
-container restarts. `make clean` removes that volume and permanently deletes
-your local database data. PostgreSQL reads its initial user, password, and
+container restarts. Profile images are stored in the `avatar-data` volume
+mounted at `/app/avatars` inside the backend container; override the path with
+the `AVATAR_DIR` environment variable. `make clean` removes both volumes. PostgreSQL reads its initial user, password, and
 database name only when this volume is first created, so changing those values
 later requires recreating the volume.
 
@@ -215,6 +216,9 @@ deleted at startup and every six hours.
 | `POST` | `/auth/logout` | Revoke the current session |
 | `GET` | `/auth/me` | Return the current authenticated user |
 | `PATCH` | `/auth/me` | Update the current user's display name |
+| `PUT` | `/auth/me/avatar` | Upload or replace the profile image (JPEG/PNG, max 5 MiB) |
+| `GET` | `/auth/me/avatar` | Retrieve the profile image |
+| `DELETE` | `/auth/me/avatar` | Remove the profile image |
 
 Example registration request:
 
