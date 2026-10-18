@@ -488,3 +488,54 @@ describe("PATCH /password", () => {
     }
   }, 15_000);
 });
+
+// ─── PATCH /me ────────────────────────────────────────────────────────────────
+
+describe("PATCH /me", () => {
+  const patch = (body: unknown, cookies: Record<string, string> = { session: "token" }) =>
+    dispatch(authRouter, { method: "PATCH", url: "/me", body, cookies });
+
+  it("requires authentication", async () => {
+    const result = await dispatch(authRouter, { method: "PATCH", url: "/me", body: { displayName: "Bob" } });
+    expect(result.status).toBe(401);
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  it("returns 400 when displayName key is absent", async () => {
+    query.mockResolvedValueOnce({ rows: [[userId]] });
+    const result = await patch({});
+    expect(result).toEqual({ status: 400, body: { error: "No editable field provided" } });
+    expect(query).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    [null, "displayName must be between 1 and 100 characters"],
+    ["", "displayName must be between 1 and 100 characters"],
+    ["   ", "displayName must be between 1 and 100 characters"],
+    ["a".repeat(101), "displayName must be between 1 and 100 characters"],
+  ])("returns 400 for invalid displayName %j", async (displayName, errorMsg) => {
+    query.mockResolvedValueOnce({ rows: [[userId]] });
+    const result = await patch({ displayName });
+    expect(result).toEqual({ status: 400, body: { error: errorMsg } });
+    expect(query).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns 200 with updated user on valid displayName", async () => {
+    query.mockResolvedValueOnce({ rows: [[userId]] }); // requireAuthenticatedUser session lookup
+    query.mockResolvedValueOnce({ rows: [[userId, "alice@example.com", "Bob"]] }); // updateUserProfile returning
+    const result = await patch({ displayName: "Bob" });
+    expect(result).toEqual({
+      status: 200,
+      body: { user: { id: userId, email: "alice@example.com", displayName: "Bob" } },
+    });
+  });
+
+  it("trims the displayName before storing", async () => {
+    query.mockResolvedValueOnce({ rows: [[userId]] });
+    query.mockResolvedValueOnce({ rows: [[userId, "alice@example.com", "Bob"]] });
+    await patch({ displayName: "  Bob  " });
+    const updateParams: unknown[] = query.mock.calls[1]![1];
+    expect(updateParams).toContain("Bob");
+    expect(updateParams).not.toContain("  Bob  ");
+  });
+});

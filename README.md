@@ -214,6 +214,7 @@ deleted at startup and every six hours.
 | `PATCH` | `/auth/password` | Change password and revoke every session |
 | `POST` | `/auth/logout` | Revoke the current session |
 | `GET` | `/auth/me` | Return the current authenticated user |
+| `PATCH` | `/auth/me` | Update the current user's display name |
 
 Example registration request:
 

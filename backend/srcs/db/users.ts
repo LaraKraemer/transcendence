@@ -43,6 +43,16 @@ export async function findUserPasswordHash(id: string) {
   return user?.passwordHash;
 }
 
+/** Updates mutable profile fields and sets updatedAt. */
+export async function updateUserProfile(id: string, fields: { displayName: string }) {
+  const [user] = await db
+    .update(appUsers)
+    .set({ ...fields, updatedAt: new Date() })
+    .where(eq(appUsers.id, id))
+    .returning({ id: appUsers.id, email: appUsers.email, displayName: appUsers.displayName });
+  return user;
+}
+
 /** Atomically replaces the verified password and revokes all of the user's sessions. */
 export async function updateUserPassword(id: string, previousHash: string, passwordHash: string) {
   return db.transaction(async (tx) => {

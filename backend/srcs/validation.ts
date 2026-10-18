@@ -32,3 +32,8 @@ export function isHexColor(value: unknown): value is string {
 export function isValidPassword(value: unknown): value is string {
   return typeof value === "string" && value.length >= 12 && Buffer.byteLength(value, "utf8") <= 72;
 }
+
+/** Returns whether a value is a valid display name (1–100 chars after trim). */
+export function isValidDisplayName(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length >= 1 && value.trim().length <= 100;
+}
