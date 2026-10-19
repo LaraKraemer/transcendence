@@ -73,6 +73,16 @@ export async function summarizeTransactionsByCategory(accountId: string, from?: 
     .groupBy(transactions.categoryId);
 }
 
+/** Returns the number of transactions linked to a category, scoped to the owning user via account join. */
+export async function countTransactionsByCategory(categoryId: string, userId: string): Promise<number> {
+  const [row] = await db
+    .select({ n: count() })
+    .from(transactions)
+    .innerJoin(accounts, eq(transactions.accountId, accounts.id))
+    .where(and(eq(transactions.categoryId, categoryId), eq(accounts.userId, userId)));
+  return row!.n;
+}
+
 export async function insertTransaction(values: NewTransaction) {
   const [transaction] = await db.insert(transactions).values(values).returning();
   return transaction;

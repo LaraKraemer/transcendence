@@ -1,7 +1,7 @@
-import { and, count, eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 import { db } from "./client.ts";
-import { accounts, categories, transactions } from "./schema.ts";
+import { categories } from "./schema.ts";
 import type { NewCategory } from "./schema.ts";
 
 export async function findOwnedCategory(categoryId: string, userId: string) {
@@ -40,16 +40,6 @@ export async function updateCategory(
   const [category] = await db.update(categories).set(updates).where(eq(categories.id, categoryId)).returning();
 
   return category;
-}
-
-/** Returns the number of transactions linked to this category, scoped to the owning user via account join. */
-export async function countTransactionsByCategory(categoryId: string, userId: string): Promise<number> {
-  const [row] = await db
-    .select({ n: count() })
-    .from(transactions)
-    .innerJoin(accounts, eq(transactions.accountId, accounts.id))
-    .where(and(eq(transactions.categoryId, categoryId), eq(accounts.userId, userId)));
-  return row!.n;
 }
 
 export async function deleteOwnedCategory(categoryId: string, userId: string) {

@@ -2,7 +2,9 @@ import { Router } from "express";
 
 import { requireAuthenticatedUser } from "../auth.ts";
 import { findOwnedAccount } from "../db/accounts.ts";
+import { findOwnedCategory } from "../db/categories.ts";
 import {
+  countTransactionsByCategory,
   findCategoryKind,
   findOwnedTransaction,
   insertTransaction,
@@ -129,6 +131,25 @@ transactionsRouter.get("/summary", async (req, res) => {
 
   const rows = await summarizeTransactionsByCategory(account.id, from as string | undefined, to as string | undefined);
   res.json(rows);
+});
+
+/** Returns the number of transactions linked to a category (they will have categoryId set to null when the category is deleted). */
+transactionsRouter.get("/count/:categoryId", async (req, res, next) => {
+  if (!isUuid(req.params.categoryId)) {
+    res.status(400).json({ error: "categoryId must be a valid UUID" });
+    return;
+  }
+  try {
+    const category = await findOwnedCategory(req.params.categoryId, res.locals.userId);
+    if (!category) {
+      res.status(404).json({ error: "Category not found" });
+      return;
+    }
+    const transactionCount = await countTransactionsByCategory(req.params.categoryId, res.locals.userId);
+    res.json({ transactionCount });
+  } catch (error) {
+    next(error);
+  }
 });
 
 /** Returns one transaction from an account owned by the authenticated user. */
