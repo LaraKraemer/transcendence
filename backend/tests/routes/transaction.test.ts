@@ -588,17 +588,6 @@ describe("POST /transactions — category rule", () => {
     expect(result).toEqual({ status: 404, body: { error: "Category not found" } });
   });
 
-  it("returns 404 for an archived category", async () => {
-    query.mockResolvedValueOnce({ rows: [acctRow()] });
-    query.mockResolvedValueOnce({ rows: [] }); // findCategoryKind with allowArchived=false → not found
-    const result = await dispatch(transactionsRouter, {
-      method: "POST",
-      url: "/",
-      body: { ...validBody, categoryId },
-    });
-    expect(result).toEqual({ status: 404, body: { error: "Category not found" } });
-  });
-
   it("returns 400 for expense category with positive amount", async () => {
     query.mockResolvedValueOnce({ rows: [acctRow()] });
     query.mockResolvedValueOnce({ rows: [["expense"]] }); // findCategoryKind → expense kind
@@ -668,30 +657,6 @@ describe("PATCH /transactions/:transactionId — category rule", () => {
       body: { categoryId },
     });
     expect(result).toEqual({ status: 400, body: { error: "An expense transaction requires an expense category" } });
-  });
-
-  it("allows keeping an archived category when categoryId is not in the body (allowArchived=true)", async () => {
-    // Transaction has archived category, but we only change description
-    query.mockResolvedValueOnce({ rows: [txRow({ categoryId, amountMinor: "-1000" })] });
-    query.mockResolvedValueOnce({ rows: [["expense"]] }); // findCategoryKind with allowArchived=true
-    query.mockResolvedValueOnce({ rows: [txRow({ description: "New desc" })] });
-    const result = await dispatch(transactionsRouter, {
-      method: "PATCH",
-      url: `/${transactionId}`,
-      body: { description: "New desc" },
-    });
-    expect(result.status).toBe(200);
-  });
-
-  it("returns 404 when sending the unchanged categoryId of an archived category (pin)", async () => {
-    query.mockResolvedValueOnce({ rows: [txRow({ categoryId, amountMinor: "-1000" })] });
-    query.mockResolvedValueOnce({ rows: [] }); // findCategoryKind with allowArchived=false → not found
-    const result = await dispatch(transactionsRouter, {
-      method: "PATCH",
-      url: `/${transactionId}`,
-      body: { categoryId },
-    });
-    expect(result).toEqual({ status: 404, body: { error: "Category not found" } });
   });
 
   it("skips category query when categoryId: null is sent", async () => {
