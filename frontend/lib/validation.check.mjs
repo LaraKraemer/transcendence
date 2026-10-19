@@ -26,7 +26,10 @@ console.log("toMinorUnits: ok");
 const original = { name: "Main", type: "checking", institution: "DKB", accountRef: null };
 assert.deepEqual(changedAccountFields(original, { ...original }), {});
 assert.deepEqual(changedAccountFields(original, { ...original, name: "Main EUR" }), { name: "Main EUR" });
-assert.deepEqual(changedAccountFields(original, { ...original, type: "savings", accountRef: "1234" }), { type: "savings", accountRef: "1234" });
+assert.deepEqual(changedAccountFields(original, { ...original, type: "savings", accountRef: "1234" }), {
+  type: "savings",
+  accountRef: "1234",
+});
 assert.deepEqual(changedAccountFields(original, { ...original, institution: null }), { institution: null }); // clearing is a change
 assert.deepEqual(changedAccountFields({ ...original, institution: "" }, { ...original, institution: null }), {}); // "" and null both mean unset
 console.log("changedAccountFields: ok");

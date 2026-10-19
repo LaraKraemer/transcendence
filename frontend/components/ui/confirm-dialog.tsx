@@ -23,11 +23,21 @@ type ConfirmDialogProps = {
  * `showModal()` traps focus, makes the page inert, closes on Esc and returns
  * focus to the opener. Styled after the modal in docs/design/desktop/categories.html.
  */
-export function ConfirmDialog({ open, title, children, confirmLabel, onConfirm, onCancel, pending, error }: ConfirmDialogProps) {
+export function ConfirmDialog({
+  open,
+  title,
+  children,
+  confirmLabel,
+  onConfirm,
+  onCancel,
+  pending,
+  error,
+}: ConfirmDialogProps) {
   const t = useTranslations("common");
   const dialogRef = useRef<HTMLDialogElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const titleId = useId();
+  const descriptionId = useId();
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -44,6 +54,8 @@ export function ConfirmDialog({ open, title, children, confirmLabel, onConfirm, 
     <dialog
       ref={dialogRef}
       aria-labelledby={titleId}
+      // Focus starts on Cancel, so without this a screen reader could skip what the action does.
+      aria-describedby={descriptionId}
       // Esc fires "cancel"; route it through onCancel so React state stays the source of truth.
       onCancel={(event) => {
         event.preventDefault();
@@ -58,7 +70,7 @@ export function ConfirmDialog({ open, title, children, confirmLabel, onConfirm, 
     >
       <div className="p-7">
         <div className="mb-3 flex items-center gap-3">
-          <h2 id={titleId} className="text-xl font-bold">
+          <h2 id={titleId} className="min-w-0 text-xl font-bold break-words">
             {title}
           </h2>
           <button
@@ -71,7 +83,9 @@ export function ConfirmDialog({ open, title, children, confirmLabel, onConfirm, 
             <X size={16} aria-hidden />
           </button>
         </div>
-        <div className="mb-6 text-sm text-muted-foreground">{children}</div>
+        <div id={descriptionId} className="mb-6 text-sm text-muted-foreground">
+          {children}
+        </div>
         <FormAlert message={error ?? null} />
         <div className="flex gap-3">
           <Button ref={cancelRef} variant="outline" onClick={onCancel} disabled={pending}>

@@ -140,6 +140,11 @@
       "description": "Dieses Konto archivieren? Deine Transaktionen bleiben erhalten.",
       "confirm": "Archivieren",
       "confirming": "Wird archiviert…"
+    },
+    "announcements": {
+      "created": "„{name}“ angelegt",
+      "saved": "„{name}“ gespeichert",
+      "archived": "„{name}“ archiviert"
     }
   },
   "transactions": {

@@ -136,13 +136,13 @@ export async function updateAccount(
 
   // `opened` only decides which fields to send; every value sent comes from the validated input.
   const updates = changedAccountFields(opened, parsed.data);
-  // Nothing changed: the backend would reject an empty PATCH, and there is nothing to save.
-  if (Object.keys(updates).length > 0) {
-    try {
-      await fetchApiServer<Account>(`/accounts/${accountId}`, { method: "PATCH", body: JSON.stringify(updates) });
-    } catch (error) {
-      return backendFailure(error, "updateAccount");
-    }
+  // Nothing changed: the backend would reject an empty PATCH, and there is nothing to save or reload.
+  if (Object.keys(updates).length === 0) return { success: true, message: "No changes" };
+
+  try {
+    await fetchApiServer<Account>(`/accounts/${accountId}`, { method: "PATCH", body: JSON.stringify(updates) });
+  } catch (error) {
+    return backendFailure(error, "updateAccount");
   }
 
   refresh();

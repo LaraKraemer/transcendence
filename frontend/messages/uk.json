@@ -140,6 +140,11 @@
       "description": "Архівувати цей рахунок? Ваші транзакції збережуться.",
       "confirm": "Архівувати",
       "confirming": "Архівування…"
+    },
+    "announcements": {
+      "created": "Рахунок «{name}» створено",
+      "saved": "Зміни в «{name}» збережено",
+      "archived": "Рахунок «{name}» архівовано"
     }
   },
   "transactions": {

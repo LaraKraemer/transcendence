@@ -140,6 +140,11 @@
       "description": "Archive this account? Your transactions will be kept.",
       "confirm": "Archive",
       "confirming": "Archiving…"
+    },
+    "announcements": {
+      "created": "“{name}” created",
+      "saved": "“{name}” saved",
+      "archived": "“{name}” archived"
     }
   },
   "transactions": {

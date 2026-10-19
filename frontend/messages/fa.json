@@ -140,6 +140,11 @@
       "description": "این حساب بایگانی شود؟ تراکنش‌های شما حفظ می‌شوند.",
       "confirm": "بایگانی",
       "confirming": "در حال بایگانی…"
+    },
+    "announcements": {
+      "created": "«{name}» ساخته شد",
+      "saved": "«{name}» ذخیره شد",
+      "archived": "«{name}» بایگانی شد"
     }
   },
   "transactions": {

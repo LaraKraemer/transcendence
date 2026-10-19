@@ -16,15 +16,11 @@ import {
 
 import { FormAlert, formErrorFor } from "@/components/auth/form-parts";
 import { Button } from "@/components/ui/button";
+import { useAnnounce } from "@/components/ui/live-status";
 import { TextField } from "@/components/ui/text-field";
 import { createAccount, updateAccount } from "@/lib/actions/accounts";
 import type { Account, Currency } from "@/lib/types";
-import {
-  ACCOUNT_TYPES,
-  MAX_ACCOUNT_NAME_LENGTH,
-  isAccountErrorCode,
-  type AccountErrorCode,
-} from "@/lib/validation";
+import { ACCOUNT_TYPES, MAX_ACCOUNT_NAME_LENGTH, isAccountErrorCode, type AccountErrorCode } from "@/lib/validation";
 
 type AccountFields = "name" | "type" | "currencyCode" | "openingBalance" | "institution" | "accountRef";
 
@@ -86,8 +82,7 @@ export function CreateAccountForm({ currencies }: { currencies: Currency[] }) {
 }
 
 type AccountFormProps = { onClose: () => void } & (
-  | { mode: "create"; currencies: Currency[] }
-  | { mode: "edit"; account: Account }
+  { mode: "create"; currencies: Currency[] } | { mode: "edit"; account: Account }
 );
 
 /**
@@ -100,6 +95,7 @@ export function AccountForm(props: AccountFormProps) {
   const currencies = mode === "create" ? props.currencies : [];
   const t = useTranslations("accounts");
   const locale = useLocale();
+  const announce = useAnnounce();
   // Unique per form: the create form and an edit form can be open at the same time.
   const idPrefix = useId();
   const fieldId = (name: AccountFields) => `${idPrefix}-${name}`;
@@ -152,13 +148,16 @@ export function AccountForm(props: AccountFormProps) {
                   accountRef: props.account.accountRef,
                 },
                 {
-                name: submitted.name,
-                type: submitted.type,
-                institution: submitted.institution,
-                accountRef: submitted.accountRef,
+                  name: submitted.name,
+                  type: submitted.type,
+                  institution: submitted.institution,
+                  accountRef: submitted.accountRef,
                 },
               );
         if (result.success) {
+          announce(
+            t(mode === "create" ? "announcements.created" : "announcements.saved", { name: submitted.name.trim() }),
+          );
           onClose();
           return initialState;
         }

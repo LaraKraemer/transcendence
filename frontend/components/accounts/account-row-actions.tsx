@@ -7,6 +7,7 @@ import { startTransition, useActionState, useEffect, useRef, useState } from "re
 import { AccountForm } from "@/components/accounts/account-form";
 import { formErrorFor } from "@/components/auth/form-parts";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useAnnounce } from "@/components/ui/live-status";
 import { archiveAccount } from "@/lib/actions/accounts";
 import type { Account } from "@/lib/types";
 
@@ -77,13 +78,7 @@ export function AccountRowActions({ account, headingId }: { account: Account; he
         </div>
       )}
 
-      {panel === "edit" && (
-        <AccountForm
-          mode="edit"
-          account={account}
-          onClose={() => close("edit")}
-        />
-      )}
+      {panel === "edit" && <AccountForm mode="edit" account={account} onClose={() => close("edit")} />}
 
       {/* Mounted only while open, so a previous failure's error doesn't reappear. */}
       {panel === "archive" && (
@@ -107,22 +102,22 @@ function ArchiveDialog({
   onCancel: () => void;
 }) {
   const t = useTranslations("accounts");
-  const [archiveError, runArchive, isArchiving] = useActionState(
-    async (): Promise<"network" | "generic" | null> => {
-      try {
-        const result = await archiveAccount(account.id);
-        if (result.success) {
-          onArchived();
-          return null;
-        }
-        return formErrorFor(result) === "network" ? "network" : "generic";
-      } catch {
-        // The action call itself failed (offline, Next server down): show it in the dialog.
-        return "network";
+  const announce = useAnnounce();
+  const [archiveError, runArchive, isArchiving] = useActionState(async (): Promise<"network" | "generic" | null> => {
+    try {
+      const result = await archiveAccount(account.id);
+      if (result.success) {
+        // Focus moves to the heading, which says nothing about the result, so say it here.
+        announce(t("announcements.archived", { name: account.name }));
+        onArchived();
+        return null;
       }
-    },
-    null,
-  );
+      return formErrorFor(result) === "network" ? "network" : "generic";
+    } catch {
+      // The action call itself failed (offline, Next server down): show it in the dialog.
+      return "network";
+    }
+  }, null);
 
   return (
     <ConfirmDialog
