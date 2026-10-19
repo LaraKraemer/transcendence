@@ -84,7 +84,6 @@ export type Category = {
   icon: string;
   color: string;
   kind: CategoryKind;
-  isArchived: boolean;
   createdAt: string;
 };
 

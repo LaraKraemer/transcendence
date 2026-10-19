@@ -8,7 +8,7 @@ import { AccountSwitcher } from "@/components/transactions/account-switcher";
 import { DeleteTransactionButton } from "@/components/transactions/delete-transaction-button";
 import { ApiError } from "@/lib/api";
 import { fetchApiServer, getAccount, getCurrencies } from "@/lib/dal";
-import type { Account, Category, Transaction, TransactionPage } from "@/lib/types";
+import type { Account, Category, TransactionPage } from "@/lib/types";
 
 const TRANSACTIONS_LIMIT = 200;
 
@@ -37,18 +37,6 @@ function notFoundOnMissingAccount(error: unknown): never {
   throw error;
 }
 
-async function withArchivedCategories(active: Category[], transactions: Transaction[]): Promise<Map<string, Category>> {
-  const categories = new Map(active.map((category) => [category.id, category]));
-  const missingIds = new Set(
-    transactions.map((tx) => tx.categoryId).filter((id): id is string => id !== null && !categories.has(id)),
-  );
-  const archived = await Promise.all(
-    [...missingIds].map((id) => fetchApiServer<Category>(`/categories/${id}`).catch(() => null)),
-  );
-  for (const category of archived) if (category) categories.set(category.id, category);
-  return categories;
-}
-
 export default async function AccountTransactionsPage({
   params,
   searchParams,
@@ -67,7 +55,7 @@ export default async function AccountTransactionsPage({
     getCurrencies(),
     fetchApiServer<Account[]>("/accounts"),
   ]).catch(notFoundOnMissingAccount);
-  const categories = await withArchivedCategories(activeCategories, items);
+  const categories = new Map(activeCategories.map((c) => [c.id, c]));
   const switcherAccounts = activeAccounts.some((other) => other.id === account.id)
     ? activeAccounts
     : [account, ...activeAccounts];
