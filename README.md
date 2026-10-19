@@ -348,9 +348,7 @@ Bruno files, coverage output and the package lockfile are excluded from formatti
 To ignore the dedicated formatting commit in local blame output, run
 `git config blame.ignoreRevsFile .git-blame-ignore-revs` from the repository root.
 
-Backend CI runs these checks and unit tests, plus the complete Bruno collection
-against a fresh PostgreSQL 17 database. A PostgreSQL integration test also verifies
-profile deletion, session invalidation, and atomic rollback. Run it after migrations
+Backend CI runs these checks and unit tests, plus the complete Bruno collection against a fresh PostgreSQL 17 database.
 with `TEST_DATABASE_URL` set using
 `npx vitest run tests/db/user-deletion.integration.test.ts` from `backend/`.
 API startup applies migrations; CI waits for `/health`, then runs requests and
