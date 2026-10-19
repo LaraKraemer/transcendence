@@ -174,6 +174,42 @@ describe("GET /categories/:categoryId", () => {
   });
 });
 
+// ─── GET /:categoryId/count ───────────────────────────────────────────────────
+
+describe("GET /categories/:categoryId/count", () => {
+  function getCount(id: string) {
+    return dispatch(categoriesRouter, { url: `/${id}/count` });
+  }
+
+  it("rejects an invalid UUID", async () => {
+    expect(await getCount("not-a-uuid")).toEqual({ status: 400, body: { error: "categoryId must be a valid UUID" } });
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  it("returns 404 for a missing or foreign category", async () => {
+    query.mockResolvedValueOnce({ rows: [] }); // findOwnedCategory → not found
+    expect(await getCount(categoryId)).toEqual({ status: 404, body: { error: "Category not found" } });
+    expect(query).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns { transactionCount: 0 } when no linked transactions", async () => {
+    query.mockResolvedValueOnce({ rows: [categoryRow()] }); // findOwnedCategory
+    query.mockResolvedValueOnce({ rows: [[0]] }); // countTransactionsByCategory
+    expect(await getCount(categoryId)).toEqual({ status: 200, body: { transactionCount: 0 } });
+  });
+
+  it("returns { transactionCount: 3 } when transactions exist", async () => {
+    query.mockResolvedValueOnce({ rows: [categoryRow()] }); // findOwnedCategory
+    query.mockResolvedValueOnce({ rows: [[3]] }); // countTransactionsByCategory
+    expect(await getCount(categoryId)).toEqual({ status: 200, body: { transactionCount: 3 } });
+  });
+
+  it("forwards errors", async () => {
+    query.mockRejectedValueOnce(new Error("DB down"));
+    await expect(getCount(categoryId)).rejects.toThrow();
+  });
+});
+
 // ─── DELETE /:categoryId ──────────────────────────────────────────────────────
 
 describe("DELETE /categories/:categoryId", () => {

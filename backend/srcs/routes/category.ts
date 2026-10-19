@@ -2,6 +2,7 @@ import { Router } from "express";
 
 import { requireAuthenticatedUser } from "../auth.ts";
 import {
+  countTransactionsByCategory,
   deleteOwnedCategory,
   findCategoryByNameAndKind,
   findOwnedCategory,
@@ -67,6 +68,25 @@ categoriesRouter.post("/", async (req, res) => {
   });
 
   res.status(201).json(category);
+});
+
+/** Returns the number of transactions linked to this category (they will have categoryId set to null on delete). */
+categoriesRouter.get("/:categoryId/count", async (req, res, next) => {
+  if (!isUuid(req.params.categoryId)) {
+    res.status(400).json({ error: "categoryId must be a valid UUID" });
+    return;
+  }
+  try {
+    const category = await findOwnedCategory(req.params.categoryId, res.locals.userId);
+    if (!category) {
+      res.status(404).json({ error: "Category not found" });
+      return;
+    }
+    const transactionCount = await countTransactionsByCategory(req.params.categoryId, res.locals.userId);
+    res.json({ transactionCount });
+  } catch (error) {
+    next(error);
+  }
 });
 
 /** Returns one category owned by the authenticated user. */
