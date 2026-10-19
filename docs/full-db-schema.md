@@ -86,7 +86,6 @@ erDiagram
         text        icon                    "NOT NULL — icon key, not an image"
         text        color                   "NOT NULL — #RRGGBB"
         text        kind                    "NOT NULL — expense|income|transfer"
-        boolean     is_archived             "NOT NULL DEFAULT false"
         timestamptz created_at              "NOT NULL DEFAULT now()"
     }
 

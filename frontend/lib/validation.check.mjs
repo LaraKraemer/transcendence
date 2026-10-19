@@ -2,7 +2,7 @@
 //   node --experimental-strip-types lib/validation.check.mjs
 import assert from "node:assert/strict";
 
-import { toMinorUnits } from "./validation.ts";
+import { changedAccountFields, toMinorUnits } from "./validation.ts";
 
 assert.equal(toMinorUnits("100.50", 2), 10050);
 assert.equal(toMinorUnits("100.5", 2), 10050);
@@ -21,3 +21,15 @@ assert.equal(toMinorUnits("12,50", 2), "openingBalanceInvalid");
 assert.equal(toMinorUnits("abc", 2), "openingBalanceInvalid");
 assert.equal(toMinorUnits("99999999999999999", 2), "openingBalanceTooLarge"); // not a safe integer
 console.log("toMinorUnits: ok");
+
+// changedAccountFields: only what differs goes into the PATCH body
+const original = { name: "Main", type: "checking", institution: "DKB", accountRef: null };
+assert.deepEqual(changedAccountFields(original, { ...original }), {});
+assert.deepEqual(changedAccountFields(original, { ...original, name: "Main EUR" }), { name: "Main EUR" });
+assert.deepEqual(changedAccountFields(original, { ...original, type: "savings", accountRef: "1234" }), {
+  type: "savings",
+  accountRef: "1234",
+});
+assert.deepEqual(changedAccountFields(original, { ...original, institution: null }), { institution: null }); // clearing is a change
+assert.deepEqual(changedAccountFields({ ...original, institution: "" }, { ...original, institution: null }), {}); // "" and null both mean unset
+console.log("changedAccountFields: ok");
