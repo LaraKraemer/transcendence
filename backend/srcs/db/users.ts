@@ -28,6 +28,11 @@ export async function createUser(email: string, passwordHash: string, displayNam
   return user;
 }
 
+/** Permanently deletes a profile and its related data atomically through foreign-key cascades. */
+export async function deleteUser(id: string) {
+  await db.delete(appUsers).where(eq(appUsers.id, id));
+}
+
 /** Reads the authenticated user's password hash without exposing it in public user responses. */
 export async function findUserPasswordHash(id: string) {
   const [user] = await db

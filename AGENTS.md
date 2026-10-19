@@ -88,7 +88,7 @@ Browser → Next.js `:3000` → Express `:3001` → Postgres `:5432` (bound to 1
 
 | Mount | Routes |
 |---|---|
-| `/auth` | `POST /register`, `POST /login`, `PATCH /password`, `POST /logout`, `GET /me` |
+| `/auth` | `POST /register`, `POST /login`, `PATCH /password`, `POST /logout`, `GET /me`, `DELETE /me` |
 | `/accounts` | `GET /`, `POST /`, `GET /:accountId`, `PATCH /:accountId`, `GET /:accountId/balance` |
 | `/categories` | `GET /`, `POST /`, `GET /:categoryId`, `PATCH /:categoryId` |
 | `/currencies` | `GET /` (authenticated, global reference data ordered by code) |
@@ -117,7 +117,7 @@ Browser → Next.js `:3000` → Express `:3001` → Postgres `:5432` (bound to 1
 
 ## Backend tests
 
-- Vitest, no DB. `tests/` mirrors `srcs/` (`tests/routes/account.test.ts` tests `srcs/routes/account.ts`).
+- Vitest unit tests use no DB. The opt-in `tests/db/user-deletion.integration.test.ts` uses PostgreSQL when `TEST_DATABASE_URL` is set and rolls back its data; run it after migrations. `tests/` mirrors `srcs/` (`tests/routes/account.test.ts` tests `srcs/routes/account.ts`).
 - Fake-pool pattern: `const { query } = vi.hoisted(() => ({ query: vi.fn() }))` and `vi.mock("../../srcs/db/client.ts", …)` returning `drizzle({ query } as unknown as Pool)`. Drizzle uses `rowMode: "array"`, so mocked rows are positional arrays in schema-column order. The helpers `tests/helpers/{dispatch,rows,fake-db}.ts` provide `dispatch` (call a router without a port), `row` (build a positional row from a table and a record) and the shared fakes.
 - Route auth tests mock `srcs/auth.ts` to keep bcrypt out. Real bcrypt tests need a `15_000` ms timeout. Pin time with `vi.useFakeTimers({ toFake: ["Date"] })`. For production-mode tests, use `vi.stubEnv` + `vi.resetModules()` + dynamic `import()`.
 

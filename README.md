@@ -267,6 +267,9 @@ modify another user's financial data.
 | Transactions | `GET`, `POST` `/transactions`; `GET`, `PATCH`, `DELETE` `/transactions/:transactionId` |
 | Currencies | `GET` `/currencies` |
 
+`DELETE /auth/me` requires an active session and permanently deletes the authenticated user, all their accounts (including archived accounts), categories, transactions, and sessions. Transactions cascade when their account or creator is deleted,
+following the account hard-delete policy from #48. Deletion is atomic, returns `204`, and clears the session cookie; all previous sessions then return `401`. The request cannot select another user. Deleted email addresses can be registered again.
+
 `GET /currencies` requires an active session and returns global reference data
 ordered by code. Each object contains `code`, `name`, `symbol`, and numeric
 `minorUnit` (JPY: `0`, KWD: `3`, others: `2`). Convert integer minor units with
@@ -345,9 +348,11 @@ Bruno files, coverage output and the package lockfile are excluded from formatti
 To ignore the dedicated formatting commit in local blame output, run
 `git config blame.ignoreRevsFile .git-blame-ignore-revs` from the repository root.
 
-Backend CI runs these checks and unit tests, plus the complete Bruno collection
-against a fresh PostgreSQL 17 database. API startup applies migrations; CI waits
-for `/health`, then runs requests and prints the API log if a step fails.
+Backend CI runs these checks and unit tests, plus the complete Bruno collection against a fresh PostgreSQL 17 database.
+with `TEST_DATABASE_URL` set using
+`npx vitest run tests/db/user-deletion.integration.test.ts` from `backend/`.
+API startup applies migrations; CI waits for `/health`, then runs requests and
+prints the API log if a step fails.
 
 From `frontend/`, run `npm ci`, `npm run lint` and `npm run build`. Frontend CI
 runs lint and build. Both workflows run on relevant pull requests and pushes to
