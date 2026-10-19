@@ -15,13 +15,12 @@ type ButtonProps = ComponentProps<"button"> & {
   variant?: ButtonVariant;
 };
 
+/** The button's classes, so a link that navigates can look like a button. */
+export function buttonClassName(variant: ButtonVariant = "primary", className = ""): string {
+  return `flex w-full cursor-pointer items-center justify-center gap-2.5 rounded-[11px] border font-semibold transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60 ${variantClasses[variant]} ${className}`;
+}
+
 /** Full-width action button in the design's four styles. */
 export function Button({ variant = "primary", className = "", type = "button", ...props }: ButtonProps) {
-  return (
-    <button
-      type={type}
-      className={`flex w-full cursor-pointer items-center justify-center gap-2.5 rounded-[11px] border font-semibold transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60 ${variantClasses[variant]} ${className}`}
-      {...props}
-    />
-  );
+  return <button type={type} className={buttonClassName(variant, className)} {...props} />;
 }

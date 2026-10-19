@@ -255,5 +255,18 @@
     "announcements": {
       "created": "“{name}” created"
     }
+  },
+  "status": {
+    "toAccounts": "Go to accounts",
+    "notFound": {
+      "title": "Page not found",
+      "description": "This page doesn't exist or isn't available."
+    },
+    "error": {
+      "title": "Something went wrong",
+      "description": "This page couldn't be loaded. Please try again.",
+      "retry": "Try again",
+      "reference": "Reference code: {code}"
+    }
   }
 }
