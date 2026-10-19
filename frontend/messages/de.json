@@ -221,11 +221,10 @@
       "kind": "Typ",
       "icon": "Symbol",
       "color": "Farbe",
-      "colorHex": "Hex-Code",
       "cancel": "Abbrechen",
       "submit": "Kategorie speichern",
       "submitting": "Wird gespeichert…",
-      "pickColor": "Eigene Farbe wählen"
+      "customColor": "Eigene Farbe"
     },
     "icons": {
       "shopping-cart": "Einkaufswagen",
@@ -242,13 +241,13 @@
       "tag": "Etikett"
     },
     "colors": {
-      "navy": "Marineblau",
+      "red": "Rot",
+      "yellow": "Gelb",
       "green": "Grün",
-      "violet": "Violett",
-      "amber": "Bernstein",
       "blue": "Blau",
-      "teal": "Petrol",
-      "rose": "Rosé"
+      "violet": "Violett",
+      "pink": "Rosa",
+      "slate": "Schiefergrau"
     },
     "errors": {
       "nameRequired": "Gib einen Namen für die Kategorie ein",

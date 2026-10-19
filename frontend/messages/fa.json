@@ -221,11 +221,10 @@
       "kind": "نوع",
       "icon": "نماد",
       "color": "رنگ",
-      "colorHex": "کد Hex",
       "cancel": "انصراف",
       "submit": "ذخیره دسته‌بندی",
       "submitting": "در حال ذخیره…",
-      "pickColor": "انتخاب رنگ دلخواه"
+      "customColor": "رنگ دلخواه"
     },
     "icons": {
       "shopping-cart": "خرید",
@@ -242,13 +241,13 @@
       "tag": "برچسب"
     },
     "colors": {
-      "navy": "سرمه‌ای",
+      "red": "قرمز",
+      "yellow": "زرد",
       "green": "سبز",
-      "violet": "بنفش",
-      "amber": "کهربایی",
       "blue": "آبی",
-      "teal": "فیروزه‌ای",
-      "rose": "گلبهی"
+      "violet": "بنفش",
+      "pink": "صورتی",
+      "slate": "خاکستری تیره"
     },
     "errors": {
       "nameRequired": "نامی برای دسته‌بندی وارد کنید",

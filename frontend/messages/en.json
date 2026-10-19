@@ -221,11 +221,10 @@
       "kind": "Type",
       "icon": "Icon",
       "color": "Colour",
-      "colorHex": "Hex code",
       "cancel": "Cancel",
       "submit": "Save category",
       "submitting": "Saving…",
-      "pickColor": "Pick a custom colour"
+      "customColor": "Custom colour"
     },
     "icons": {
       "shopping-cart": "Shopping cart",
@@ -242,13 +241,13 @@
       "tag": "Tag"
     },
     "colors": {
-      "navy": "Navy",
+      "red": "Red",
+      "yellow": "Yellow",
       "green": "Green",
-      "violet": "Violet",
-      "amber": "Amber",
       "blue": "Blue",
-      "teal": "Teal",
-      "rose": "Rose"
+      "violet": "Violet",
+      "pink": "Pink",
+      "slate": "Slate"
     },
     "errors": {
       "nameRequired": "Enter a name for the category",

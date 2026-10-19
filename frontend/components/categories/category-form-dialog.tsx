@@ -21,16 +21,25 @@ import {
   type CategoryKind,
 } from "@/lib/validation";
 
-// The swatches from docs/design/desktop/categories.html; any other #RRGGBB can be typed in.
+// Seven colours picked to be easy to tell apart: the closest pair is ΔE 53 in CIELAB
+// (above ~25 reads as clearly different at a glance). The last circle in the row
+// opens the system palette for any other colour.
 const SWATCHES = [
-  { name: "navy", hex: "#1E3352" },
-  { name: "green", hex: "#15803D" },
-  { name: "violet", hex: "#7C3AED" },
-  { name: "amber", hex: "#B45309" },
-  { name: "blue", hex: "#2563EB" },
-  { name: "teal", hex: "#0F766E" },
-  { name: "rose", hex: "#BE123C" },
+  { name: "red", hex: "#DC2626" },
+  { name: "yellow", hex: "#FACC15" },
+  { name: "green", hex: "#4ADE80" },
+  { name: "blue", hex: "#60A5FA" },
+  { name: "violet", hex: "#8B5CF6" },
+  { name: "pink", hex: "#F472B6" },
+  { name: "slate", hex: "#334155" },
 ] as const;
+const DEFAULT_COLOR = "#8B5CF6";
+
+// Shared by the preset circles and the custom one; the selection ring uses the
+// text colour, because a ring in the circle's own colour vanishes on a dark card.
+const circleClasses =
+  "flex aspect-square w-full max-w-8 items-center justify-center rounded-full ring-1 ring-foreground/15 ring-inset";
+const selectedRing = "0 0 0 2px var(--card), 0 0 0 4px var(--foreground)";
 
 type CategoryFields = "name" | "icon" | "color" | "kind";
 const FIELD_ORDER: CategoryFields[] = ["name", "kind", "icon", "color"];
@@ -107,7 +116,7 @@ function CategoryForm({
     name: "",
     kind: defaultKind,
     icon: CATEGORY_ICON_KEYS[0],
-    color: SWATCHES[2].hex,
+    color: DEFAULT_COLOR,
   });
   const set = (field: CategoryFields) => (value: string) => setValues((prev) => ({ ...prev, [field]: value }));
 
@@ -152,8 +161,8 @@ function CategoryForm({
   }, [fieldErrors, idPrefix]);
 
   const errorText = (code?: CategoryErrorCode) => code && t(`errors.${code}`, { max: MAX_CATEGORY_NAME_LENGTH });
-  const colorIsValid = HEX_COLOR_PATTERN.test(values.color.trim());
-  const previewColor = colorIsValid ? values.color.trim() : undefined;
+  const previewColor = HEX_COLOR_PATTERN.test(values.color) ? values.color : undefined;
+  const isCustomColor = !SWATCHES.some((swatch) => swatch.hex === values.color.toUpperCase());
 
   return (
     <form onSubmit={handleSubmit} noValidate>
@@ -231,12 +240,14 @@ function CategoryForm({
           </div>
         </ChoiceGroup>
 
-        <ChoiceGroup legend={t("form.color")} idPrefix={`${idPrefix}-color`}>
-          <div className="mb-3 flex flex-wrap gap-3">
+        <ChoiceGroup legend={t("form.color")} error={errorText(fieldErrors.color)} idPrefix={`${idPrefix}-color`}>
+          {/* One row: seven presets, then the custom colour. On narrow screens the circles shrink
+              (never below 24px) instead of wrapping. */}
+          <div className="grid grid-cols-8 gap-1 sm:gap-2">
             {SWATCHES.map((swatch) => {
-              const selected = values.color.trim().toUpperCase() === swatch.hex;
+              const selected = values.color.toUpperCase() === swatch.hex;
               return (
-                <label key={swatch.hex} title={t(`colors.${swatch.name}`)}>
+                <label key={swatch.hex} title={t(`colors.${swatch.name}`)} className="flex justify-center">
                   <input
                     type="radio"
                     name="color-swatch"
@@ -247,12 +258,11 @@ function CategoryForm({
                     className="peer sr-only"
                   />
                   <span
-                    className="flex size-8 cursor-pointer items-center justify-center rounded-full peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-card"
+                    className={`${circleClasses} cursor-pointer peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-card`}
                     style={{
                       backgroundColor: swatch.hex,
                       color: readableOn(swatch.hex),
-                      // The selection ring uses the text colour: a ring in the swatch's own colour vanishes on a dark card.
-                      boxShadow: selected ? "0 0 0 2px var(--card), 0 0 0 4px var(--foreground)" : undefined,
+                      boxShadow: selected ? selectedRing : undefined,
                     }}
                   >
                     {selected && <Check size={14} aria-hidden />}
@@ -260,34 +270,37 @@ function CategoryForm({
                 </label>
               );
             })}
-          </div>
-          <TextField
-            id={`${idPrefix}-color-hex`}
-            data-field={`${idPrefix}-color`}
-            label={t("form.colorHex")}
-            type="text"
-            dir="ltr"
-            autoComplete="off"
-            spellCheck={false}
-            maxLength={7}
-            placeholder="#2563EB"
-            value={values.color}
-            onChange={(e) => set("color")(e.target.value)}
-            // On the field itself, so it turns red and is announced with it.
-            error={errorText(fieldErrors.color)}
-            trailing={
-              // The browser's own colour picker (no library): the circle opens the system palette.
-              // Its value must be a lowercase #rrggbb, so while the typed hex is incomplete it shows the default.
+            {/* Custom colour: the browser's own picker (no library), stretched invisibly over a circle
+                that shows a rainbow until a custom colour is chosen, then that colour with a check. */}
+            <label
+              title={t("form.customColor")}
+              className="relative flex justify-center rounded-full has-[input:focus-visible]:ring-2 has-[input:focus-visible]:ring-ring has-[input:focus-visible]:ring-offset-2 has-[input:focus-visible]:ring-offset-card"
+            >
+              <span
+                aria-hidden
+                className={circleClasses}
+                style={
+                  isCustomColor
+                    ? { backgroundColor: values.color, color: readableOn(values.color), boxShadow: selectedRing }
+                    : {
+                        backgroundImage:
+                          "conic-gradient(#ef4444, #f59e0b, #eab308, #22c55e, #06b6d4, #3b82f6, #8b5cf6, #ec4899, #ef4444)",
+                      }
+                }
+              >
+                {isCustomColor && <Check size={14} aria-hidden />}
+              </span>
               <input
                 type="color"
-                value={(previewColor ?? SWATCHES[2].hex).toLowerCase()}
+                // The picker needs a lowercase #rrggbb value.
+                value={values.color.toLowerCase()}
                 onChange={(e) => set("color")(e.target.value.toUpperCase())}
-                aria-label={t("form.pickColor")}
-                title={t("form.pickColor")}
-                className="size-6 cursor-pointer appearance-none rounded-full border border-border bg-transparent p-0 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none [&::-moz-color-swatch]:rounded-full [&::-moz-color-swatch]:border-none [&::-webkit-color-swatch]:rounded-full [&::-webkit-color-swatch]:border-none [&::-webkit-color-swatch-wrapper]:p-0"
+                aria-label={t("form.customColor")}
+                data-field={`${idPrefix}-color`}
+                className="absolute inset-0 size-full cursor-pointer opacity-0"
               />
-            }
-          />
+            </label>
+          </div>
         </ChoiceGroup>
 
         <div className="mt-2 flex gap-3">
