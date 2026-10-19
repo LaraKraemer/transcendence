@@ -139,3 +139,31 @@ export type CategoryErrorCode = (typeof categoryErrorCodes)[number];
 export function isCategoryErrorCode(value: unknown): value is CategoryErrorCode {
   return typeof value === "string" && (categoryErrorCodes as readonly string[]).includes(value);
 }
+
+const LIGHT_ON_COLOR = "#FFFFFF";
+// Pure black, not --foreground: only white/black guarantees 4.5:1 for every colour (worst case 4.58:1).
+const DARK_ON_COLOR = "#000000";
+
+/** WCAG relative luminance of a #RRGGBB colour. */
+function relativeLuminance(hex: string): number {
+  const channel = (offset: number) => {
+    const value = parseInt(hex.slice(offset, offset + 2), 16) / 255;
+    return value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * channel(1) + 0.7152 * channel(3) + 0.0722 * channel(5);
+}
+
+/** WCAG contrast ratio between two #RRGGBB colours (1 to 21). */
+export function contrastRatio(a: string, b: string): number {
+  const [lighter, darker] = [relativeLuminance(a), relativeLuminance(b)].sort((x, y) => y - x);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+/**
+ * White or black text/icons for a surface filled with `hex`, whichever contrasts
+ * more. For any colour one of the two reaches at least 4.58:1, so a category
+ * tile stays readable whatever colour the user picks, in both themes.
+ */
+export function readableOn(hex: string): typeof LIGHT_ON_COLOR | typeof DARK_ON_COLOR {
+  return contrastRatio(hex, LIGHT_ON_COLOR) >= contrastRatio(hex, DARK_ON_COLOR) ? LIGHT_ON_COLOR : DARK_ON_COLOR;
+}

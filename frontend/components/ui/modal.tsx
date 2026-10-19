@@ -24,6 +24,9 @@ export function Modal({ open, title, onClose, busy, describedBy, children }: Mod
   const t = useTranslations("common");
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
+  // Set on mousedown: a click counts as a backdrop click only if the press also
+  // started there, not when a text selection inside the box ends outside it.
+  const pressStartedOnBackdrop = useRef(false);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -47,8 +50,13 @@ export function Modal({ open, title, onClose, busy, describedBy, children }: Mod
       }}
       // Only a backdrop click targets the <dialog> itself: all the padding and gaps
       // belong to the inner wrapper, so clicks inside the box never land here.
+      onMouseDown={(event) => {
+        pressStartedOnBackdrop.current = event.target === event.currentTarget;
+      }}
       onClick={(event) => {
-        if (event.target === event.currentTarget && !busy) onClose();
+        const isBackdropClick = pressStartedOnBackdrop.current && event.target === event.currentTarget;
+        pressStartedOnBackdrop.current = false;
+        if (isBackdropClick && !busy) onClose();
       }}
       className="m-auto max-h-[calc(100%-2rem)] w-[460px] max-w-[calc(100%-2rem)] overflow-y-auto rounded-[18px] border border-border bg-card p-0 text-foreground shadow-[0_24px_60px_rgba(8,14,25,.3)] backdrop:bg-[rgba(8,14,25,.55)] backdrop:backdrop-blur-[2px]"
     >

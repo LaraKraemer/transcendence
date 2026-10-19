@@ -253,12 +253,16 @@
     "errors": {
       "nameRequired": "Gib einen Namen für die Kategorie ein",
       "nameTooLong": "Der Name darf höchstens {max, number} Zeichen lang sein",
-      "nameTaken": "Eine Kategorie mit diesem Namen gibt es bereits",
+      "nameTaken": "Eine Kategorie mit diesem Namen und Typ gibt es bereits (sie ist eventuell archiviert)",
       "iconInvalid": "Wähle ein Symbol",
       "colorInvalid": "Verwende eine Farbe wie #2563EB",
       "kindInvalid": "Wähle einen Typ",
       "network": "Der Server ist nicht erreichbar. Bitte versuche es später erneut.",
       "generic": "Etwas ist schiefgelaufen. Bitte versuche es erneut."
+    },
+    "announcements": {
+      "created": "„{name}“ angelegt",
+      "archived": "„{name}“ archiviert"
     }
   }
 }

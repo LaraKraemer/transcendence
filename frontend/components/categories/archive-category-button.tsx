@@ -6,13 +6,20 @@ import { startTransition, useActionState, useEffect, useRef, useState } from "re
 
 import { formErrorFor } from "@/components/auth/form-parts";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useAnnounce } from "@/components/ui/live-status";
 import { archiveCategory } from "@/lib/actions/categories";
 
 /**
  * Archive action for one category tile, with a confirmation dialog.
  * `headingId` is where focus goes after archiving, since the tile disappears.
  */
-export function ArchiveCategoryButton({ category, headingId }: { category: { id: string; name: string }; headingId: string }) {
+export function ArchiveCategoryButton({
+  category,
+  headingId,
+}: {
+  category: { id: string; name: string };
+  headingId: string;
+}) {
   const t = useTranslations("categories");
   const [open, setOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -73,10 +80,13 @@ function ArchiveDialog({
   onCancel: () => void;
 }) {
   const t = useTranslations("categories");
+  const announce = useAnnounce();
   const [archiveError, runArchive, isArchiving] = useActionState(async (): Promise<"network" | "generic" | null> => {
     try {
       const result = await archiveCategory(category.id);
       if (result.success) {
+        // Focus moves to the heading, which says nothing about the result, so say it here.
+        announce(t("announcements.archived", { name: category.name }));
         onArchived();
         return null;
       }

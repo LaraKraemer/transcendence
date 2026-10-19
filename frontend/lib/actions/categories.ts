@@ -12,12 +12,7 @@ import { backendFailure } from "@/lib/action-errors";
 import { ApiError } from "@/lib/api";
 import { fetchApiServer } from "@/lib/dal";
 import type { ActionResponse, Category } from "@/lib/types";
-import {
-  CATEGORY_KINDS,
-  HEX_COLOR_PATTERN,
-  MAX_CATEGORY_NAME_LENGTH,
-  type CategoryErrorCode,
-} from "@/lib/validation";
+import { CATEGORY_KINDS, HEX_COLOR_PATTERN, MAX_CATEGORY_NAME_LENGTH, type CategoryErrorCode } from "@/lib/validation";
 
 const CreateCategorySchema = z.object({
   name: z
@@ -27,7 +22,10 @@ const CreateCategorySchema = z.object({
     .max(MAX_CATEGORY_NAME_LENGTH, { error: "nameTooLong" satisfies CategoryErrorCode }),
   // Only the icons the form offers, so every saved category can be drawn.
   icon: z.string().refine(isCategoryIconKey, { error: "iconInvalid" satisfies CategoryErrorCode }),
-  color: z.string().trim().regex(HEX_COLOR_PATTERN, { error: "colorInvalid" satisfies CategoryErrorCode }),
+  color: z
+    .string()
+    .trim()
+    .regex(HEX_COLOR_PATTERN, { error: "colorInvalid" satisfies CategoryErrorCode }),
   kind: z.enum(CATEGORY_KINDS, { error: "kindInvalid" satisfies CategoryErrorCode }),
 });
 

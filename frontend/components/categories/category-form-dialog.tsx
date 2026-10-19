@@ -2,19 +2,12 @@
 
 import { Check, Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
-import {
-  startTransition,
-  useActionState,
-  useEffect,
-  useId,
-  useState,
-  type FormEvent,
-  type ReactNode,
-} from "react";
+import { startTransition, useActionState, useEffect, useId, useState, type FormEvent, type ReactNode } from "react";
 
 import { FormAlert, formErrorFor } from "@/components/auth/form-parts";
 import { CATEGORY_ICON_KEYS, CategoryIcon } from "@/components/categories/category-icon";
 import { Button } from "@/components/ui/button";
+import { useAnnounce } from "@/components/ui/live-status";
 import { Modal } from "@/components/ui/modal";
 import { TextField } from "@/components/ui/text-field";
 import { createCategory } from "@/lib/actions/categories";
@@ -23,6 +16,7 @@ import {
   HEX_COLOR_PATTERN,
   MAX_CATEGORY_NAME_LENGTH,
   isCategoryErrorCode,
+  readableOn,
   type CategoryErrorCode,
   type CategoryKind,
 } from "@/lib/validation";
@@ -60,6 +54,8 @@ export function NewCategoryButton({
 }) {
   const t = useTranslations("categories");
   const [open, setOpen] = useState(false);
+  // While saving, the modal can't be closed: a failure would have nowhere to show, and save could run twice.
+  const [saving, setSaving] = useState(false);
   // A new key per opening gives the form fresh values, while the dialog itself
   // stays mounted, so closing it returns focus to this button.
   const [formKey, setFormKey] = useState(0);
@@ -81,15 +77,29 @@ export function NewCategoryButton({
         <Plus size={variant === "header" ? 16 : 15} aria-hidden />
         {variant === "header" ? t("newCategory") : t("addCategory")}
       </button>
-      <Modal open={open} title={t("form.title")} onClose={() => setOpen(false)}>
-        <CategoryForm key={formKey} defaultKind={defaultKind} onDone={() => setOpen(false)} />
+      <Modal open={open} title={t("form.title")} onClose={() => setOpen(false)} busy={saving}>
+        <CategoryForm
+          key={formKey}
+          defaultKind={defaultKind}
+          onDone={() => setOpen(false)}
+          onPendingChange={setSaving}
+        />
       </Modal>
     </>
   );
 }
 
-function CategoryForm({ defaultKind, onDone }: { defaultKind: CategoryKind; onDone: () => void }) {
+function CategoryForm({
+  defaultKind,
+  onDone,
+  onPendingChange,
+}: {
+  defaultKind: CategoryKind;
+  onDone: () => void;
+  onPendingChange: (pending: boolean) => void;
+}) {
   const t = useTranslations("categories");
+  const announce = useAnnounce();
   const idPrefix = useId();
   const [values, setValues] = useState<Record<CategoryFields, string>>({
     name: "",
@@ -104,6 +114,7 @@ function CategoryForm({ defaultKind, onDone }: { defaultKind: CategoryKind; onDo
       try {
         const result = await createCategory(submitted);
         if (result.success) {
+          announce(t("announcements.created", { name: submitted.name.trim() }));
           onDone();
           return initialState;
         }
@@ -130,6 +141,8 @@ function CategoryForm({ defaultKind, onDone }: { defaultKind: CategoryKind; onDo
     startTransition(() => submitAction(values));
   }
 
+  useEffect(() => onPendingChange(isPending), [isPending, onPendingChange]);
+
   // After a failed submit, move keyboard focus to the first invalid field.
   useEffect(() => {
     const firstInvalid = FIELD_ORDER.find((field) => fieldErrors[field]);
@@ -146,8 +159,8 @@ function CategoryForm({ defaultKind, onDone }: { defaultKind: CategoryKind; onDo
         {/* Live preview, as in the design */}
         <div className="mb-[22px] flex items-center gap-3.5" aria-hidden>
           <span
-            className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-muted"
-            style={previewColor ? { backgroundColor: `${previewColor}1f`, color: previewColor } : undefined}
+            className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-muted ring-1 ring-foreground/15 ring-inset"
+            style={previewColor ? { backgroundColor: previewColor, color: readableOn(previewColor) } : undefined}
           >
             <CategoryIcon icon={values.icon} size={22} />
           </span>
@@ -232,10 +245,12 @@ function CategoryForm({ defaultKind, onDone }: { defaultKind: CategoryKind; onDo
                     className="peer sr-only"
                   />
                   <span
-                    className="flex size-8 cursor-pointer items-center justify-center rounded-full text-white peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-card"
+                    className="flex size-8 cursor-pointer items-center justify-center rounded-full peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-card"
                     style={{
                       backgroundColor: swatch.hex,
-                      boxShadow: selected ? `0 0 0 2px var(--card), 0 0 0 4px ${swatch.hex}` : undefined,
+                      color: readableOn(swatch.hex),
+                      // The selection ring uses the text colour: a ring in the swatch's own colour vanishes on a dark card.
+                      boxShadow: selected ? "0 0 0 2px var(--card), 0 0 0 4px var(--foreground)" : undefined,
                     }}
                   >
                     {selected && <Check size={14} aria-hidden />}

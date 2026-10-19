@@ -5,9 +5,10 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { ArchiveCategoryButton } from "@/components/categories/archive-category-button";
 import { CategoryIcon } from "@/components/categories/category-icon";
 import { NewCategoryButton } from "@/components/categories/category-form-dialog";
+import { LiveStatusProvider } from "@/components/ui/live-status";
 import { fetchApiServer } from "@/lib/dal";
 import type { Category } from "@/lib/types";
-import { CATEGORY_KINDS, HEX_COLOR_PATTERN, type CategoryKind } from "@/lib/validation";
+import { CATEGORY_KINDS, HEX_COLOR_PATTERN, readableOn, type CategoryKind } from "@/lib/validation";
 
 // Focus lands on the page heading after an archived tile disappears.
 const PAGE_HEADING_ID = "categories-heading";
@@ -24,7 +25,11 @@ const KIND_STYLE: Record<CategoryKind, { icon: LucideIcon; className: string; ba
     className: "bg-success-bg text-success rtl:-scale-x-100",
     badge: "bg-success-bg text-success",
   },
-  transfer: { icon: ArrowLeftRight, className: "bg-muted text-muted-foreground", badge: "bg-muted text-muted-foreground" },
+  transfer: {
+    icon: ArrowLeftRight,
+    className: "bg-muted text-muted-foreground",
+    badge: "bg-muted text-muted-foreground",
+  },
 };
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -52,87 +57,95 @@ export default async function CategoriesPage() {
   })).filter((group) => group.categories.length > 0);
 
   return (
-    <div className="mx-auto w-full max-w-6xl pt-2">
-      <div className="mb-6 flex flex-wrap items-start gap-4">
-        <div className="min-w-0">
-          {/* tabIndex -1: focus lands here after an archived tile disappears. */}
-          <h1 id={PAGE_HEADING_ID} tabIndex={-1} className="text-[26px] font-bold tracking-[-0.02em] outline-none">
-            {t("title")}
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">{t("subtitle", { count: categories.length })}</p>
+    // The live region announces "created" / "archived" to screen readers.
+    <LiveStatusProvider>
+      <div className="mx-auto w-full max-w-6xl pt-2">
+        <div className="mb-6 flex flex-wrap items-start gap-4">
+          <div className="min-w-0">
+            {/* tabIndex -1: focus lands here after an archived tile disappears. */}
+            <h1 id={PAGE_HEADING_ID} tabIndex={-1} className="text-[26px] font-bold tracking-[-0.02em] outline-none">
+              {t("title")}
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">{t("subtitle", { count: categories.length })}</p>
+          </div>
+          <div className="ms-auto">
+            <NewCategoryButton variant="header" />
+          </div>
         </div>
-        <div className="ms-auto">
-          <NewCategoryButton variant="header" />
-        </div>
-      </div>
 
-      {groups.length === 0 ? (
-        <section className="rounded-lg border border-dashed border-border bg-card px-6 py-14 text-center">
-          <p className="text-sm text-muted-foreground">{t("empty")}</p>
-        </section>
-      ) : (
-        <div className="flex flex-col gap-5">
-          {groups.map(({ kind, categories: groupCategories }) => {
-            const { icon: KindIcon, className, badge } = KIND_STYLE[kind];
-            const groupHeadingId = `categories-${kind}`;
-            return (
-              <section
-                key={kind}
-                aria-labelledby={groupHeadingId}
-                className="rounded-lg border border-border bg-card p-4 sm:p-[22px]"
-              >
-                <div className="mb-[18px] flex items-center gap-3">
-                  <span className={`flex size-10 shrink-0 items-center justify-center rounded-[11px] ${className}`}>
-                    <KindIcon size={19} aria-hidden />
-                  </span>
-                  <div>
-                    <h2 id={groupHeadingId} className="text-base font-semibold">
-                      {t(`groups.${kind}`)}
-                    </h2>
-                    <p className="text-xs text-muted-foreground">{t("groupCount", { count: groupCategories.length })}</p>
+        {groups.length === 0 ? (
+          <section className="rounded-lg border border-dashed border-border bg-card px-6 py-14 text-center">
+            <p className="text-sm text-muted-foreground">{t("empty")}</p>
+          </section>
+        ) : (
+          <div className="flex flex-col gap-5">
+            {groups.map(({ kind, categories: groupCategories }) => {
+              const { icon: KindIcon, className, badge } = KIND_STYLE[kind];
+              const groupHeadingId = `categories-${kind}`;
+              return (
+                <section
+                  key={kind}
+                  aria-labelledby={groupHeadingId}
+                  className="rounded-lg border border-border bg-card p-4 sm:p-[22px]"
+                >
+                  <div className="mb-[18px] flex items-center gap-3">
+                    <span className={`flex size-10 shrink-0 items-center justify-center rounded-[11px] ${className}`}>
+                      <KindIcon size={19} aria-hidden />
+                    </span>
+                    <div>
+                      <h2 id={groupHeadingId} className="text-base font-semibold">
+                        {t(`groups.${kind}`)}
+                      </h2>
+                      <p className="text-xs text-muted-foreground">
+                        {t("groupCount", { count: groupCategories.length })}
+                      </p>
+                    </div>
                   </div>
-                </div>
 
-                <ul className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                  {groupCategories.map((category) => {
-                    // The backend validates colours, but fall back gracefully rather than inject bad CSS.
-                    const color = HEX_COLOR_PATTERN.test(category.color) ? category.color : undefined;
-                    return (
-                      <li key={category.id} className="flex min-w-0 items-center gap-3 rounded-xl bg-muted p-3.5">
-                        {/* The category's colour: tinted tile, icon in the colour itself. */}
-                        <span
-                          aria-hidden
-                          className="flex size-[38px] shrink-0 items-center justify-center overflow-hidden rounded-[10px] bg-card"
-                          style={color ? { backgroundColor: `${color}1f`, color } : undefined}
-                        >
-                          <CategoryIcon icon={category.icon} />
-                        </span>
-                        <div className="min-w-0">
-                          <div className="truncate text-sm font-semibold">
-                            <bdi>{category.name}</bdi>
-                          </div>
+                  {/* As many 15rem columns as fit, so long names have room whether or not the sidebar is shown. */}
+                  <ul className="grid grid-cols-[repeat(auto-fill,minmax(15rem,1fr))] gap-3.5">
+                    {groupCategories.map((category) => {
+                      // The backend validates colours, but fall back gracefully rather than inject bad CSS.
+                      const color = HEX_COLOR_PATTERN.test(category.color) ? category.color : undefined;
+                      return (
+                        <li key={category.id} className="flex min-w-0 items-center gap-3 rounded-xl bg-muted p-3.5">
+                          {/* Filled with the category's colour; the icon is white or black, whichever
+                            contrasts more, so any colour works in both themes. */}
                           <span
-                            className={`mt-0.5 inline-block rounded-full px-2 py-px text-[11px] font-semibold tracking-wide uppercase ${badge}`}
+                            aria-hidden
+                            // The faint inset ring keeps the tile's edge visible when its colour is close to the card (navy in dark mode).
+                            className="flex size-[38px] shrink-0 items-center justify-center overflow-hidden rounded-[10px] bg-card ring-1 ring-foreground/15 ring-inset"
+                            style={color ? { backgroundColor: color, color: readableOn(color) } : undefined}
                           >
-                            {t(`kinds.${category.kind}`)}
+                            <CategoryIcon icon={category.icon} />
                           </span>
-                        </div>
-                        <ArchiveCategoryButton
-                          category={{ id: category.id, name: category.name }}
-                          headingId={PAGE_HEADING_ID}
-                        />
-                      </li>
-                    );
-                  })}
-                  <li className="grid">
-                    <NewCategoryButton variant="tile" defaultKind={kind} />
-                  </li>
-                </ul>
-              </section>
-            );
-          })}
-        </div>
-      )}
-    </div>
+                          <div className="min-w-0">
+                            <div className="truncate text-sm font-semibold">
+                              <bdi>{category.name}</bdi>
+                            </div>
+                            <span
+                              className={`mt-0.5 inline-block rounded-full px-2 py-px text-[11px] font-semibold tracking-wide uppercase ${badge}`}
+                            >
+                              {t(`kinds.${category.kind}`)}
+                            </span>
+                          </div>
+                          <ArchiveCategoryButton
+                            category={{ id: category.id, name: category.name }}
+                            headingId={PAGE_HEADING_ID}
+                          />
+                        </li>
+                      );
+                    })}
+                    <li className="grid">
+                      <NewCategoryButton variant="tile" defaultKind={kind} />
+                    </li>
+                  </ul>
+                </section>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </LiveStatusProvider>
   );
 }

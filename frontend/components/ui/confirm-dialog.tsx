@@ -19,7 +19,16 @@ type ConfirmDialogProps = {
 };
 
 /** Confirmation for a destructive action. Focus starts on Cancel, so Enter right after opening doesn't confirm. */
-export function ConfirmDialog({ open, title, children, confirmLabel, onConfirm, onCancel, pending, error }: ConfirmDialogProps) {
+export function ConfirmDialog({
+  open,
+  title,
+  children,
+  confirmLabel,
+  onConfirm,
+  onCancel,
+  pending,
+  error,
+}: ConfirmDialogProps) {
   const t = useTranslations("common");
   const descriptionId = useId();
   return (
