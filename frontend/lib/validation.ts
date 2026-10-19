@@ -118,3 +118,24 @@ export function changedAccountFields(
       .map((field) => [field, next[field]]),
   );
 }
+
+// Categories. These mirror the backend's category rules (routes/category.ts).
+export const CATEGORY_KINDS = ["expense", "income", "transfer"] as const;
+export type CategoryKind = (typeof CATEGORY_KINDS)[number];
+export const MAX_CATEGORY_NAME_LENGTH = 80;
+export const HEX_COLOR_PATTERN = /^#[0-9A-Fa-f]{6}$/;
+
+export const categoryErrorCodes = [
+  "nameRequired",
+  "nameTooLong",
+  "nameTaken",
+  "iconInvalid",
+  "colorInvalid",
+  "kindInvalid",
+] as const;
+
+export type CategoryErrorCode = (typeof categoryErrorCodes)[number];
+
+export function isCategoryErrorCode(value: unknown): value is CategoryErrorCode {
+  return typeof value === "string" && (categoryErrorCodes as readonly string[]).includes(value);
+}

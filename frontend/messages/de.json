@@ -188,5 +188,77 @@
       "network": "Der Server ist nicht erreichbar. Bitte versuche es später erneut.",
       "generic": "Etwas ist schiefgelaufen. Bitte versuche es erneut."
     }
+  },
+  "categories": {
+    "title": "Kategorien",
+    "subtitle": "{count, plural, =0 {Keine Kategorien} one {# Kategorie} other {# Kategorien}}",
+    "empty": "Noch keine Kategorien. Lege deine erste an.",
+    "newCategory": "Neue Kategorie",
+    "addCategory": "Kategorie hinzufügen",
+    "groups": {
+      "expense": "Ausgaben",
+      "income": "Einnahmen",
+      "transfer": "Umbuchungen"
+    },
+    "groupCount": "{count, plural, one {# Kategorie} other {# Kategorien}}",
+    "kinds": {
+      "expense": "Ausgabe",
+      "income": "Einnahme",
+      "transfer": "Umbuchung"
+    },
+    "archive": "{name} archivieren",
+    "archiveDialog": {
+      "title": "„{name}“ archivieren?",
+      "description": "Diese Kategorie archivieren? Transaktionen behalten sie, aber für neue kann sie nicht mehr gewählt werden.",
+      "confirm": "Archivieren",
+      "confirming": "Wird archiviert…"
+    },
+    "form": {
+      "title": "Neue Kategorie",
+      "previewName": "Neue Kategorie",
+      "name": "Name",
+      "namePlaceholder": "z. B. Rewe",
+      "kind": "Typ",
+      "icon": "Symbol",
+      "color": "Farbe",
+      "colorHex": "Hex-Code",
+      "cancel": "Abbrechen",
+      "submit": "Kategorie speichern",
+      "submitting": "Wird gespeichert…",
+      "pickColor": "Eigene Farbe wählen"
+    },
+    "icons": {
+      "shopping-cart": "Einkaufswagen",
+      "utensils": "Essen",
+      "home": "Wohnen",
+      "car": "Auto",
+      "zap": "Nebenkosten",
+      "heart": "Gesundheit",
+      "gift": "Geschenke",
+      "plane": "Reisen",
+      "briefcase": "Arbeit",
+      "piggy-bank": "Sparen",
+      "music": "Unterhaltung",
+      "tag": "Etikett"
+    },
+    "colors": {
+      "navy": "Marineblau",
+      "green": "Grün",
+      "violet": "Violett",
+      "amber": "Bernstein",
+      "blue": "Blau",
+      "teal": "Petrol",
+      "rose": "Rosé"
+    },
+    "errors": {
+      "nameRequired": "Gib einen Namen für die Kategorie ein",
+      "nameTooLong": "Der Name darf höchstens {max, number} Zeichen lang sein",
+      "nameTaken": "Eine Kategorie mit diesem Namen gibt es bereits",
+      "iconInvalid": "Wähle ein Symbol",
+      "colorInvalid": "Verwende eine Farbe wie #2563EB",
+      "kindInvalid": "Wähle einen Typ",
+      "network": "Der Server ist nicht erreichbar. Bitte versuche es später erneut.",
+      "generic": "Etwas ist schiefgelaufen. Bitte versuche es erneut."
+    }
   }
 }
