@@ -140,6 +140,7 @@
       "expense": "Витрати"
     },
     "listTitle": "Транзакції",
+    "heading": "Транзакції рахунку <name>{account}</name>",
     "caption": "Транзакції рахунку {account}",
     "columns": {
       "description": "Опис",

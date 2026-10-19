@@ -140,6 +140,7 @@
       "expense": "Ausgaben"
     },
     "listTitle": "Transaktionen",
+    "heading": "Transaktionen für <name>{account}</name>",
     "caption": "Transaktionen für {account}",
     "columns": {
       "description": "Beschreibung",

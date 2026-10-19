@@ -140,6 +140,7 @@
       "expense": "هزینه"
     },
     "listTitle": "تراکنش‌ها",
+    "heading": "تراکنش‌های <name>{account}</name>",
     "caption": "تراکنش‌های {account}",
     "columns": {
       "description": "شرح",

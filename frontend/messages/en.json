@@ -140,6 +140,7 @@
       "expense": "Expense"
     },
     "listTitle": "Transactions",
+    "heading": "<name>{account}</name> transactions",
     "caption": "Transactions for {account}",
     "columns": {
       "description": "Description",
