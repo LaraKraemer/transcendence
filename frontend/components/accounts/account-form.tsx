@@ -172,7 +172,8 @@ export function AccountForm(props: AccountFormProps) {
           ? { fieldErrors, error: null }
           : { fieldErrors: {}, error: formErrorFor(result) === "network" ? "network" : "generic" };
       } catch {
-        return { fieldErrors: {}, error: "generic" };
+        // The action call itself failed (offline, Next server down).
+        return { fieldErrors: {}, error: "network" };
       }
     },
     initialState,

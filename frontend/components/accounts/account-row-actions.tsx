@@ -109,12 +109,17 @@ function ArchiveDialog({
   const t = useTranslations("accounts");
   const [archiveError, runArchive, isArchiving] = useActionState(
     async (): Promise<"network" | "generic" | null> => {
-      const result = await archiveAccount(account.id);
-      if (result.success) {
-        onArchived();
-        return null;
+      try {
+        const result = await archiveAccount(account.id);
+        if (result.success) {
+          onArchived();
+          return null;
+        }
+        return formErrorFor(result) === "network" ? "network" : "generic";
+      } catch {
+        // The action call itself failed (offline, Next server down): show it in the dialog.
+        return "network";
       }
-      return formErrorFor(result) === "network" ? "network" : "generic";
     },
     null,
   );
