@@ -120,7 +120,8 @@ export default async function CategoriesPage() {
                             <CategoryIcon icon={category.icon} />
                           </span>
                           <div className="min-w-0">
-                            <div className="truncate text-sm font-semibold">
+                            {/* Up to two lines, with the full name on hover. */}
+                            <div className="line-clamp-2 text-sm font-semibold wrap-break-word" title={category.name}>
                               <bdi>{category.name}</bdi>
                             </div>
                             <span
