@@ -136,7 +136,6 @@ export const categories = pgTable(
     icon: text("icon").notNull(),
     color: text("color").notNull(),
     kind: text("kind").notNull(),
-    isArchived: boolean("is_archived").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [

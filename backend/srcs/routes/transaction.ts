@@ -25,11 +25,10 @@ async function validateCategory(
   categoryId: string | null,
   amountMinor: number,
   userId: string,
-  allowArchived = false,
 ): Promise<{ status: 400 | 404; error: string } | undefined> {
   if (categoryId === null) return undefined;
 
-  const category = await findCategoryKind(categoryId, userId, allowArchived);
+  const category = await findCategoryKind(categoryId, userId);
 
   if (!category) return { status: 404, error: "Category not found" };
   if (category.kind === "transfer") return undefined;
@@ -243,12 +242,7 @@ transactionsRouter.patch("/:transactionId", async (req, res) => {
   const candidateCategoryId = Object.hasOwn(updates, "categoryId")
     ? (updates.categoryId ?? null)
     : transaction.categoryId;
-  const categoryError = await validateCategory(
-    candidateCategoryId,
-    candidateAmount,
-    res.locals.userId,
-    !Object.hasOwn(body, "categoryId"),
-  );
+  const categoryError = await validateCategory(candidateCategoryId, candidateAmount, res.locals.userId);
   if (categoryError) {
     res.status(categoryError.status).json({ error: categoryError.error });
     return;

@@ -20,7 +20,7 @@ const categoryId = "550e8400-e29b-41d4-a716-446655440002";
 const userId = "550e8400-e29b-41d4-a716-446655440001";
 
 // Category row in schema column order:
-// id, userId, name, icon, color, kind, isArchived, createdAt
+// id, userId, name, icon, color, kind, createdAt
 function categoryRow(overrides: Record<string, unknown> = {}) {
   return [
     overrides.id ?? categoryId,
@@ -29,7 +29,6 @@ function categoryRow(overrides: Record<string, unknown> = {}) {
     overrides.icon ?? "🍔",
     overrides.color ?? "#2563EB",
     overrides.kind ?? "expense",
-    overrides.isArchived ?? false,
     overrides.createdAt ?? new Date().toISOString(),
   ];
 }
@@ -52,12 +51,11 @@ describe("GET /categories", () => {
     expect(result).toEqual({ status: 200, body: [] });
   });
 
-  it("filters on user_id and is_archived=false, orders by kind, name", async () => {
+  it("filters on user_id, orders by kind, name", async () => {
     query.mockResolvedValueOnce({ rows: [] });
     await dispatch(categoriesRouter, { url: "/" });
     const sql: string = query.mock.calls[0]![0].text;
     expect(sql).toContain('"user_id"');
-    expect(sql).toContain('"is_archived"');
     expect(sql).toContain('"kind"');
     expect(sql).toContain('"name"');
   });
@@ -170,11 +168,6 @@ describe("GET /categories/:categoryId", () => {
     });
   });
 
-  it("returns 200 even for an archived category", async () => {
-    query.mockResolvedValueOnce({ rows: [categoryRow({ isArchived: true })] });
-    expect((await dispatch(categoriesRouter, { url: `/${categoryId}` })).status).toBe(200);
-  });
-
   it("forwards errors", async () => {
     query.mockRejectedValueOnce(new Error("DB down"));
     await expect(dispatch(categoriesRouter, { url: `/${categoryId}` })).rejects.toThrow();
@@ -212,12 +205,6 @@ describe("PATCH /categories/:categoryId", () => {
   it("returns 400 for empty body or only non-editable fields", async () => {
     expect((await patch(categoryId, {})).status).toBe(400);
     expect(query).not.toHaveBeenCalled();
-  });
-
-  it.each([true, false])("returns 200 when patching isArchived=%s", async (isArchived) => {
-    query.mockResolvedValueOnce({ rows: [categoryRow()] }); // findOwnedCategory
-    query.mockResolvedValueOnce({ rows: [categoryRow({ isArchived })] }); // updateCategory
-    expect((await patch(categoryId, { isArchived })).status).toBe(200);
   });
 
   it("returns 404 when category not found, no UPDATE", async () => {
