@@ -46,6 +46,12 @@ export async function updateCategory(
   return category;
 }
 
-export async function archiveCategory(categoryId: string) {
-  await db.update(categories).set({ isArchived: true }).where(eq(categories.id, categoryId));
+/** Permanently deletes a category owned by userId. Returns true if deleted, false if not found. */
+export async function deleteOwnedCategory(categoryId: string, userId: string) {
+  const [category] = await db
+    .delete(categories)
+    .where(and(eq(categories.id, categoryId), eq(categories.userId, userId)))
+    .returning({ id: categories.id });
+
+  return category !== undefined;
 }
