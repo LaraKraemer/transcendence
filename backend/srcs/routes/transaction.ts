@@ -133,7 +133,7 @@ transactionsRouter.get("/summary", async (req, res) => {
   res.json(rows);
 });
 
-/** Returns the number of transactions linked to a category (they will have categoryId set to null when the category is deleted). */
+/** Returns the number of transactions linked to a category. */
 transactionsRouter.get("/count/:categoryId", async (req, res, next) => {
   if (!isUuid(req.params.categoryId)) {
     res.status(400).json({ error: "categoryId must be a valid UUID" });
