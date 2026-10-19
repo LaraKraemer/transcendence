@@ -133,6 +133,7 @@
     "chooseAccount": "Оберіть рахунок",
     "chooseAccountHint": "Оберіть рахунок, щоб побачити його транзакції.",
     "accountSwitcher": "Рахунок:",
+    "showAccount": "Показати",
     "filterLabel": "Фільтр транзакцій за типом",
     "filters": {
       "all": "Усі",

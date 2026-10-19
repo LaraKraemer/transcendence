@@ -133,6 +133,7 @@
     "chooseAccount": "Choose account",
     "chooseAccountHint": "Choose an account to see its transactions.",
     "accountSwitcher": "Account:",
+    "showAccount": "Show",
     "filterLabel": "Filter transactions by type",
     "filters": {
       "all": "All",

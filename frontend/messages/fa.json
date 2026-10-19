@@ -133,6 +133,7 @@
     "chooseAccount": "انتخاب حساب",
     "chooseAccountHint": "برای دیدن تراکنش‌ها، یک حساب انتخاب کنید.",
     "accountSwitcher": "حساب:",
+    "showAccount": "نمایش",
     "filterLabel": "فیلتر تراکنش‌ها بر اساس نوع",
     "filters": {
       "all": "همه",

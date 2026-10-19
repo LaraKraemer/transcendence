@@ -3,7 +3,7 @@
 import { ChevronDown } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { useEffect, useId } from "react";
+import { useEffect, useId, type SubmitEvent } from "react";
 
 import { LAST_ACCOUNT_COOKIE } from "@/lib/last-account";
 
@@ -28,16 +28,25 @@ export function AccountSwitcher({
     }
   }, [currentAccountId]);
 
+  function showAccount(event: SubmitEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const accountId = new FormData(event.currentTarget).get("accountId");
+    if (typeof accountId === "string" && accountId !== "" && accountId !== currentAccountId) {
+      router.push(`/accounts/${accountId}/transactions${query}`, { scroll: false });
+    }
+  }
+
   return (
-    <div className="flex w-full items-center gap-2 sm:w-auto">
+    <form onSubmit={showAccount} className="flex w-full items-center gap-2 sm:w-auto">
       <label htmlFor={selectId} className="shrink-0 text-xs font-medium text-muted-foreground sm:text-[13px]">
         {t("accountSwitcher")}
       </label>
       <div className="relative min-w-0 flex-1 sm:w-64 sm:flex-none">
         <select
+          key={currentAccountId}
           id={selectId}
-          value={currentAccountId ?? ""}
-          onChange={(event) => router.push(`/accounts/${event.target.value}/transactions${query}`, { scroll: false })}
+          name="accountId"
+          defaultValue={currentAccountId ?? ""}
           className="w-full cursor-pointer appearance-none truncate rounded-[10px] border border-border bg-card py-[9px] ps-3.5 pe-9 text-xs sm:rounded-[11px] sm:py-2 sm:text-[13px] font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <option value="" disabled>
@@ -55,6 +64,12 @@ export function AccountSwitcher({
           className="pointer-events-none absolute end-3 top-1/2 -translate-y-1/2 text-muted-foreground"
         />
       </div>
-    </div>
+      <button
+        type="submit"
+        className="shrink-0 cursor-pointer rounded-[10px] border border-border bg-card px-3.5 py-[9px] text-xs font-semibold sm:rounded-[11px] sm:py-2 sm:text-[13px] hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+      >
+        {t("showAccount")}
+      </button>
+    </form>
   );
 }
