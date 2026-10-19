@@ -76,6 +76,8 @@ export function NewCategoryButton({
       >
         <Plus size={variant === "header" ? 16 : 15} aria-hidden />
         {variant === "header" ? t("newCategory") : t("addCategory")}
+        {/* Each group has its own tile, so screen readers also hear which group it adds to ("Add category (Expenses)"). */}
+        {variant === "tile" && <span className="sr-only"> ({t(`groups.${defaultKind}`)})</span>}
       </button>
       <Modal open={open} title={t("form.title")} onClose={() => setOpen(false)} busy={saving}>
         <CategoryForm
