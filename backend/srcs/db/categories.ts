@@ -24,12 +24,8 @@ export async function findCategoryByNameAndKind(userId: string, name: string, ki
   return category;
 }
 
-export async function listActiveCategories(userId: string) {
-  return db
-    .select()
-    .from(categories)
-    .where(and(eq(categories.userId, userId), eq(categories.isArchived, false)))
-    .orderBy(categories.kind, categories.name);
+export async function listCategories(userId: string) {
+  return db.select().from(categories).where(eq(categories.userId, userId)).orderBy(categories.kind, categories.name);
 }
 
 export async function insertCategory(values: NewCategory) {
@@ -46,7 +42,6 @@ export async function updateCategory(
   return category;
 }
 
-/** Permanently deletes a category owned by userId. Returns true if deleted, false if not found. */
 export async function deleteOwnedCategory(categoryId: string, userId: string) {
   const [category] = await db
     .delete(categories)

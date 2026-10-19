@@ -100,7 +100,7 @@ Browser → Next.js `:3000` → Express `:3001` → Postgres `:5432` (bound to 1
 - Currency reference data provides `code`, `name`, `symbol`, and `minorUnit` (JPY: 0, KWD: 3, others: 2). It has no foreign keys to ledger tables; account currency validation checks only the three-uppercase-letter format.
 - A transaction's sign is its direction: negative = expense, positive = income. Zero is rejected (by the app and a DB CHECK). The category `kind` must match the sign; `transfer` accepts either. `kind` is immutable; `(user, name, kind)` is unique (409).
 - Accounts and categories are archived and unarchived via `PATCH {"isArchived": bool}`. `DELETE /transactions/:id` permanently removes the transaction. Users have no soft-delete field or deletion endpoint.
-- Archived accounts are hidden from lists but readable by ID, and can't receive new transactions. Existing transactions remain editable and deletable without restoring the account; account detail edits still require restoration. Archived categories can't be newly assigned, but existing assignments survive.
+- Archived accounts are hidden from lists but readable by ID, and can't receive new transactions. Existing transactions remain editable and deletable without restoring the account; account detail edits still require restoration.
 - `bookedOn` is a `YYYY-MM-DD` date (filters and reports). `occurredAt` is an optional ISO 8601 timestamp.
 - Enum-like columns are plain `text`. Allowed values are `as const` arrays plus type guards at the top of each router (`ACCOUNT_TYPES`, `CATEGORY_KINDS`), so adding a value needs no migration.
 

@@ -93,3 +93,28 @@ export function toMinorUnits(
   const minor = Number(`${sign}${whole || "0"}${fraction.padEnd(minorUnit, "0")}`);
   return Number.isSafeInteger(minor) ? minor : "openingBalanceTooLarge";
 }
+
+/** The account fields the edit form can change. */
+export type EditableAccountFields = {
+  name: string;
+  type: AccountType;
+  institution: string | null;
+  accountRef: string | null;
+};
+
+/**
+ * Returns only the fields that differ from `original`: the body for
+ * `PATCH /accounts/:id`. An empty optional text and `null` both mean "not set",
+ * so switching between them is not a change.
+ */
+export function changedAccountFields(
+  original: EditableAccountFields,
+  next: EditableAccountFields,
+): Partial<EditableAccountFields> {
+  const notSetIsNull = (value: string | null) => (value === "" ? null : value);
+  return Object.fromEntries(
+    (Object.keys(next) as (keyof EditableAccountFields)[])
+      .filter((field) => notSetIsNull(next[field]) !== notSetIsNull(original[field]))
+      .map((field) => [field, next[field]]),
+  );
+}

@@ -11,7 +11,9 @@
     "language": "زبان",
     "comingSoon": "به‌زودی",
     "switchToDark": "تغییر به پوسته تیره",
-    "switchToLight": "تغییر به پوسته روشن"
+    "switchToLight": "تغییر به پوسته روشن",
+    "close": "بستن",
+    "cancel": "انصراف"
   },
   "auth": {
     "continueWithGoogle": "ادامه با گوگل",
@@ -108,7 +110,14 @@
       "openingBalance": "موجودی اولیه",
       "cancel": "انصراف",
       "submit": "ساخت حساب",
-      "submitting": "در حال ساخت…"
+      "submitting": "در حال ساخت…",
+      "editTitle": "ویرایش حساب",
+      "institution": "بانک یا مؤسسه",
+      "institutionPlaceholder": "مثلاً بانک ملت",
+      "accountRef": "شماره حساب یا IBAN",
+      "accountRefPlaceholder": "مثلاً IR06 0960 0000 0010 0324 2000 01",
+      "save": "ذخیره تغییرات",
+      "saving": "در حال ذخیره…"
     },
     "errors": {
       "nameRequired": "نامی برای حساب وارد کنید",
@@ -121,7 +130,22 @@
       "network": "ارتباط با سرور برقرار نشد. لطفاً بعداً دوباره تلاش کنید.",
       "generic": "مشکلی پیش آمد. لطفاً دوباره تلاش کنید."
     },
-    "balanceUnavailable": "موجودی در دسترس نیست"
+    "balanceUnavailable": "موجودی در دسترس نیست",
+    "actions": {
+      "edit": "ویرایش «{name}»",
+      "archive": "بایگانی «{name}»"
+    },
+    "archiveDialog": {
+      "title": "«{name}» بایگانی شود؟",
+      "description": "این حساب بایگانی شود؟ تراکنش‌های شما حفظ می‌شوند.",
+      "confirm": "بایگانی",
+      "confirming": "در حال بایگانی…"
+    },
+    "announcements": {
+      "created": "«{name}» ساخته شد",
+      "saved": "«{name}» ذخیره شد",
+      "archived": "«{name}» بایگانی شد"
+    }
   },
   "transactions": {
     "subtitle": "{count, plural, =0 {بدون تراکنش} other {# تراکنش}} · {currency}",

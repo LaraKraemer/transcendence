@@ -4,13 +4,18 @@ import { getFormatter, getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { Fragment, type ReactNode } from "react";
 
-import { CreateAccountForm } from "@/components/accounts/create-account-form";
+import { CreateAccountForm } from "@/components/accounts/account-form";
+import { AccountRowActions } from "@/components/accounts/account-row-actions";
+import { LiveStatusProvider } from "@/components/ui/live-status";
 import { fetchApiServer, getCurrencies } from "@/lib/dal";
 import type { Account, AccountBalance } from "@/lib/types";
 import type { AccountType } from "@/lib/validation";
 
 // `null` when the balance request failed: a wrong number that looks right is
 // worse than none in a money app, so the UI says "unavailable" instead.
+// Focus lands on the list heading after an archived row disappears.
+const ACCOUNTS_HEADING_ID = "accounts-heading";
+
 type AccountWithBalance = Account & { balanceMinor: number | null };
 
 const TYPE_STYLE: Record<AccountType, { icon: LucideIcon; className: string }> = {
@@ -68,97 +73,110 @@ export default async function AccountsPage() {
 
   return (
     // A <div>, not <main>: the app shell already wraps every page in <main id="main">.
-    <div className="mx-auto w-full max-w-5xl pt-2">
-      <div className="mb-6">
-        <h1 className="text-[26px] font-bold tracking-[-0.02em]">{t("title")}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">{t("subtitle")}</p>
-      </div>
-
-      <div className="flex flex-col gap-5">
-        {/* grid-cols-1 = minmax(0, 1fr): without it the column grows to the longest
-            unbreakable text and the page gets wider than a phone screen. */}
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-          <StatCard
-            icon={Wallet}
-            iconClassName="bg-accent text-primary dark:text-accent-foreground"
-            value={t("count", { count: accounts.length })}
-            label={accounts.map((account) => account.name).join(", ")}
-          />
-          <StatCard
-            icon={Landmark}
-            iconClassName="bg-success-bg text-success"
-            value={
-              totals.size === 0 || !allBalancesKnown
-                ? "—"
-                : // Each amount stays on one line ("-KWD 1.005" must not break after the minus);
-                  // the list only wraps between currencies.
-                  [...totals].map(([currency, minor], index) => (
-                    <Fragment key={currency}>
-                      {index > 0 && " · "}
-                      <span className="whitespace-nowrap">{money(minor, currency)}</span>
-                    </Fragment>
-                  ))
-            }
-            label={t("totalBalance")}
-          />
+    <LiveStatusProvider>
+      <div className="mx-auto w-full max-w-5xl pt-2">
+        <div className="mb-6">
+          <h1 className="text-[26px] font-bold tracking-[-0.02em]">{t("title")}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{t("subtitle")}</p>
         </div>
 
-        <section className="rounded-lg border border-border bg-card p-6">
-          <div className="flex flex-wrap items-center gap-3">
-            <h2 className="text-base font-semibold">{t("listTitle")}</h2>
-            <CreateAccountForm currencies={currencies} />
+        <div className="flex flex-col gap-5">
+          {/* grid-cols-1 = minmax(0, 1fr): without it the column grows to the longest
+            unbreakable text and the page gets wider than a phone screen. */}
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+            <StatCard
+              icon={Wallet}
+              iconClassName="bg-accent text-primary dark:text-accent-foreground"
+              value={t("count", { count: accounts.length })}
+              label={accounts.map((account) => account.name).join(", ")}
+            />
+            <StatCard
+              icon={Landmark}
+              iconClassName="bg-success-bg text-success"
+              value={
+                totals.size === 0 || !allBalancesKnown
+                  ? "—"
+                  : // Each amount stays on one line ("-KWD 1.005" must not break after the minus);
+                    // the list only wraps between currencies.
+                    [...totals].map(([currency, minor], index) => (
+                      <Fragment key={currency}>
+                        {index > 0 && " · "}
+                        <span className="whitespace-nowrap">{money(minor, currency)}</span>
+                      </Fragment>
+                    ))
+              }
+              label={t("totalBalance")}
+            />
           </div>
 
-          {accounts.length === 0 ? (
-            <p className="py-10 text-center text-sm text-muted-foreground">{t("empty")}</p>
-          ) : (
-            <ul className="mt-1.5">
-              {accounts.map((account) => {
-                const { icon: Icon, className } = TYPE_STYLE[account.type];
-                return (
-                  <li
-                    key={account.id}
-                    className="flex items-center gap-3.5 border-b border-border py-3.5 last:border-b-0"
-                  >
-                    <span className={`flex size-9.5 shrink-0 items-center justify-center rounded-[10px] ${className}`}>
-                      <Icon size={17} aria-hidden />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      {/* Wraps the badge under the name on narrow screens instead of squeezing the name. */}
-                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                        <Link
-                          href={`/accounts/${account.id}/transactions`}
-                          className="max-w-full truncate text-sm font-semibold hover:underline"
-                        >
-                          {account.name}
-                        </Link>
-                        <span
-                          className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold tracking-wide uppercase ${className}`}
-                        >
-                          {t(`types.${account.type}`)}
-                        </span>
-                      </div>
-                      <div className="text-[13px] text-muted-foreground">{account.currencyCode}</div>
-                    </div>
-                    {account.balanceMinor === null ? (
-                      <span className="ms-auto shrink-0 text-[13px] text-muted-foreground">
-                        {t("balanceUnavailable")}
-                      </span>
-                    ) : (
+          <section className="rounded-lg border border-border bg-card p-4 sm:p-6">
+            <div className="flex flex-wrap items-center gap-3">
+              {/* tabIndex -1: focus lands here after an archived row disappears. */}
+              <h2 id={ACCOUNTS_HEADING_ID} tabIndex={-1} className="text-base font-semibold outline-none">
+                {t("listTitle")}
+              </h2>
+              <CreateAccountForm currencies={currencies} />
+            </div>
+
+            {accounts.length === 0 ? (
+              <p className="py-10 text-center text-sm text-muted-foreground">{t("empty")}</p>
+            ) : (
+              <ul className="mt-1.5">
+                {accounts.map((account) => {
+                  const { icon: Icon, className } = TYPE_STYLE[account.type];
+                  return (
+                    <li
+                      key={account.id}
+                      // flex-wrap: the edit form (and, on phones, the action buttons) take their own line.
+                      className="flex flex-wrap items-center gap-x-3.5 gap-y-2 border-b border-border py-3.5 last:border-b-0"
+                    >
                       <span
-                        className={`ms-auto shrink-0 text-sm font-semibold ${account.balanceMinor < 0 ? "text-destructive" : ""}`}
+                        className={`flex size-9.5 shrink-0 items-center justify-center rounded-[10px] ${className}`}
                       >
-                        {money(account.balanceMinor, account.currencyCode)}
+                        <Icon size={17} aria-hidden />
                       </span>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </section>
+                      <div className="min-w-0 flex-1">
+                        {/* Wraps the badge under the name on narrow screens instead of squeezing the name. */}
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                          <Link
+                            href={`/accounts/${account.id}/transactions`}
+                            className="max-w-full truncate text-sm font-semibold hover:underline"
+                          >
+                            {account.name}
+                          </Link>
+                          <span
+                            className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold tracking-wide uppercase ${className}`}
+                          >
+                            {t(`types.${account.type}`)}
+                          </span>
+                        </div>
+                        <div className="truncate text-[13px] text-muted-foreground">
+                          {account.institution
+                            ? `${account.currencyCode} · ${account.institution}`
+                            : account.currencyCode}
+                        </div>
+                      </div>
+                      {account.balanceMinor === null ? (
+                        <span className="ms-auto shrink-0 text-[13px] text-muted-foreground">
+                          {t("balanceUnavailable")}
+                        </span>
+                      ) : (
+                        <span
+                          className={`ms-auto shrink-0 text-sm font-semibold ${account.balanceMinor < 0 ? "text-destructive" : ""}`}
+                        >
+                          {money(account.balanceMinor, account.currencyCode)}
+                        </span>
+                      )}
+                      <AccountRowActions account={account} headingId={ACCOUNTS_HEADING_ID} />
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </section>
+        </div>
       </div>
-    </div>
+    </LiveStatusProvider>
   );
 }
 

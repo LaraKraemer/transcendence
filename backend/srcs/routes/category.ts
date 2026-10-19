@@ -6,7 +6,7 @@ import {
   findCategoryByNameAndKind,
   findOwnedCategory,
   insertCategory,
-  listActiveCategories,
+  listCategories,
   updateCategory,
 } from "../db/categories.ts";
 import { isHexColor, isUuid } from "../validation.ts";
@@ -22,9 +22,9 @@ export const categoriesRouter = Router();
 
 categoriesRouter.use(requireAuthenticatedUser);
 
-/** Returns all active categories belonging to the authenticated user. */
+/** Returns all categories belonging to the authenticated user. */
 categoriesRouter.get("/", async (_req, res) => {
-  const rows = await listActiveCategories(res.locals.userId);
+  const rows = await listCategories(res.locals.userId);
   res.json(rows);
 });
 
@@ -112,7 +112,7 @@ categoriesRouter.patch("/:categoryId", async (req, res) => {
   }
 
   const body = req.body ?? {};
-  const updates: { name?: string; icon?: string; color?: string; isArchived?: boolean } = {};
+  const updates: { name?: string; icon?: string; color?: string } = {};
 
   if (Object.hasOwn(body, "kind")) {
     res.status(400).json({ error: "A category kind cannot be changed" });
@@ -141,14 +141,6 @@ categoriesRouter.patch("/:categoryId", async (req, res) => {
       return;
     }
     updates.color = body.color.toUpperCase();
-  }
-
-  if (Object.hasOwn(body, "isArchived")) {
-    if (typeof body.isArchived !== "boolean") {
-      res.status(400).json({ error: "isArchived must be a boolean" });
-      return;
-    }
-    updates.isArchived = body.isArchived;
   }
 
   if (Object.keys(updates).length === 0) {
