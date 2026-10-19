@@ -220,6 +220,11 @@ deleted at startup and every six hours.
 | `GET` | `/auth/me/avatar` | Retrieve the profile image |
 | `DELETE` | `/auth/me/avatar` | Remove the profile image |
 
+Avatar uploads are validated by reading the file's format signature (the first
+bytes every JPEG/PNG file must start with per their specs), not by the
+`Content-Type` header or file extension. This prevents a client from uploading
+a non-image file with a renamed extension.
+
 Example registration request:
 
 ```bash
