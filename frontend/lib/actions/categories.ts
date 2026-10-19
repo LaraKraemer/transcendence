@@ -61,25 +61,3 @@ export async function createCategory(data: CreateCategoryInput): Promise<ActionR
   refresh();
   return { success: true, message: "Category created" };
 }
-
-/**
- * Archives a category with `PATCH { isArchived: true }` (the backend has no
- * DELETE for categories). Transactions keep their category; it just can't be
- * picked for new ones.
- */
-export async function archiveCategory(categoryId: string): Promise<ActionResponse> {
-  if (!z.uuid().safeParse(categoryId).success) {
-    return { success: false, message: "Category not found", status: 404 };
-  }
-  try {
-    await fetchApiServer<Category>(`/categories/${categoryId}`, {
-      method: "PATCH",
-      body: JSON.stringify({ isArchived: true }),
-    });
-  } catch (error) {
-    return backendFailure(error, "archiveCategory");
-  }
-
-  refresh();
-  return { success: true, message: "Category archived" };
-}

@@ -2,16 +2,12 @@ import { ArrowDownLeft, ArrowLeftRight, ArrowUpRight, type LucideIcon } from "lu
 import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
 
-import { ArchiveCategoryButton } from "@/components/categories/archive-category-button";
 import { CategoryIcon } from "@/components/categories/category-icon";
 import { NewCategoryButton } from "@/components/categories/category-form-dialog";
 import { LiveStatusProvider } from "@/components/ui/live-status";
 import { fetchApiServer } from "@/lib/dal";
 import type { Category } from "@/lib/types";
 import { CATEGORY_KINDS, HEX_COLOR_PATTERN, readableOn, type CategoryKind } from "@/lib/validation";
-
-// Focus lands on the page heading after an archived tile disappears.
-const PAGE_HEADING_ID = "categories-heading";
 
 const KIND_STYLE: Record<CategoryKind, { icon: LucideIcon; className: string; badge: string }> = {
   expense: {
@@ -46,7 +42,6 @@ export default async function CategoriesPage() {
   const [t, locale, categories] = await Promise.all([
     getTranslations("categories"),
     getLocale(),
-    // Active categories only; archived ones stay on the transactions that use them.
     fetchApiServer<Category[]>("/categories"),
   ]);
 
@@ -57,15 +52,12 @@ export default async function CategoriesPage() {
   })).filter((group) => group.categories.length > 0);
 
   return (
-    // The live region announces "created" / "archived" to screen readers.
+    // The live region announces "created" to screen readers.
     <LiveStatusProvider>
       <div className="mx-auto w-full max-w-6xl pt-2">
         <div className="mb-6 flex flex-wrap items-start gap-4">
           <div className="min-w-0">
-            {/* tabIndex -1: focus lands here after an archived tile disappears. */}
-            <h1 id={PAGE_HEADING_ID} tabIndex={-1} className="text-[26px] font-bold tracking-[-0.02em] outline-none">
-              {t("title")}
-            </h1>
+            <h1 className="text-[26px] font-bold tracking-[-0.02em]">{t("title")}</h1>
             <p className="mt-1 text-sm text-muted-foreground">{t("subtitle", { count: categories.length })}</p>
           </div>
           <div className="ms-auto">
@@ -120,8 +112,8 @@ export default async function CategoriesPage() {
                             <CategoryIcon icon={category.icon} />
                           </span>
                           <div className="min-w-0">
-                            {/* Up to two lines, with the full name on hover. */}
-                            <div className="line-clamp-2 text-sm font-semibold wrap-break-word" title={category.name}>
+                            {/* The full name, wrapped: names are at most 80 characters. */}
+                            <div className="text-sm font-semibold wrap-break-word">
                               <bdi>{category.name}</bdi>
                             </div>
                             <span
@@ -130,10 +122,6 @@ export default async function CategoriesPage() {
                               {t(`kinds.${category.kind}`)}
                             </span>
                           </div>
-                          <ArchiveCategoryButton
-                            category={{ id: category.id, name: category.name }}
-                            headingId={PAGE_HEADING_ID}
-                          />
                         </li>
                       );
                     })}

@@ -206,13 +206,6 @@
       "income": "Income",
       "transfer": "Transfer"
     },
-    "archive": "Archive {name}",
-    "archiveDialog": {
-      "title": "Archive “{name}”?",
-      "description": "Archive this category? Transactions that use it keep it, but it can't be picked for new ones.",
-      "confirm": "Archive",
-      "confirming": "Archiving…"
-    },
     "form": {
       "title": "New category",
       "previewName": "New category",
@@ -252,7 +245,7 @@
     "errors": {
       "nameRequired": "Enter a name for the category",
       "nameTooLong": "The name can be at most {max, number} characters",
-      "nameTaken": "A category with this name and type already exists (it may be archived)",
+      "nameTaken": "A category with this name already exists for this type",
       "iconInvalid": "Choose an icon",
       "colorInvalid": "Use a colour like #2563EB",
       "kindInvalid": "Choose a type",
@@ -260,8 +253,7 @@
       "generic": "Something went wrong. Please try again."
     },
     "announcements": {
-      "created": "“{name}” created",
-      "archived": "“{name}” archived"
+      "created": "“{name}” created"
     }
   }
 }

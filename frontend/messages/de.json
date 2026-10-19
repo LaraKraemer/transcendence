@@ -206,13 +206,6 @@
       "income": "Einnahme",
       "transfer": "Umbuchung"
     },
-    "archive": "{name} archivieren",
-    "archiveDialog": {
-      "title": "„{name}“ archivieren?",
-      "description": "Diese Kategorie archivieren? Transaktionen behalten sie, aber für neue kann sie nicht mehr gewählt werden.",
-      "confirm": "Archivieren",
-      "confirming": "Wird archiviert…"
-    },
     "form": {
       "title": "Neue Kategorie",
       "previewName": "Neue Kategorie",
@@ -252,7 +245,7 @@
     "errors": {
       "nameRequired": "Gib einen Namen für die Kategorie ein",
       "nameTooLong": "Der Name darf höchstens {max, number} Zeichen lang sein",
-      "nameTaken": "Eine Kategorie mit diesem Namen und Typ gibt es bereits (sie ist eventuell archiviert)",
+      "nameTaken": "Für diesen Typ gibt es bereits eine Kategorie mit diesem Namen",
       "iconInvalid": "Wähle ein Symbol",
       "colorInvalid": "Verwende eine Farbe wie #2563EB",
       "kindInvalid": "Wähle einen Typ",
@@ -260,8 +253,7 @@
       "generic": "Etwas ist schiefgelaufen. Bitte versuche es erneut."
     },
     "announcements": {
-      "created": "„{name}“ angelegt",
-      "archived": "„{name}“ archiviert"
+      "created": "„{name}“ angelegt"
     }
   }
 }
