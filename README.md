@@ -278,7 +278,7 @@ validator; accounts still accept any three-uppercase-letter currency code.
 transactions currently exist in the account. Submitting the current currency used is allowed. Accounts without transactions may change currency, even with an opening
 balance; this does not convert the opening balance, so we need to review and adjust it as needed.
 
-Archived accounts remain readable, but account edits and transaction writes return `409`:
+Archived accounts remain readable. Existing transactions can be edited and deleted without restoring the account.
 `{"error":"Account is archived. Restore it before making changes."}`.
 Restore with `PATCH /accounts/:accountId` using only `{"isArchived": false}`, then edit
 separately. Repeated archiving returns `200`; missing or foreign resources return `404`.

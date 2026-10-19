@@ -163,11 +163,6 @@ transactionsRouter.patch("/:transactionId", async (req, res) => {
     return;
   }
 
-  if (ownedTransaction.accountIsArchived) {
-    res.status(409).json({ error: "Account is archived. Restore it before making changes." });
-    return;
-  }
-
   const { transaction } = ownedTransaction;
 
   const updates: {
@@ -273,11 +268,6 @@ transactionsRouter.delete("/:transactionId", async (req, res) => {
   const ownedTransaction = await findOwnedTransaction(req.params.transactionId, res.locals.userId);
   if (!ownedTransaction) {
     res.status(404).json({ error: "Transaction not found" });
-    return;
-  }
-
-  if (ownedTransaction.accountIsArchived) {
-    res.status(409).json({ error: "Account is archived. Restore it before making changes." });
     return;
   }
 

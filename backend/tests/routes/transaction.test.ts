@@ -708,16 +708,17 @@ describe("PATCH /transactions/:transactionId — category rule", () => {
 });
 
 describe("archived account transaction writes", () => {
-  it.each(["PATCH", "DELETE"])("blocks %s after ownership lookup", async (method) => {
+  it.each(["PATCH", "DELETE"])("allows %s without restoring the account", async (method) => {
     query.mockResolvedValueOnce({ rows: [txRow({ accountIsArchived: true })] });
+    query.mockResolvedValueOnce({ rows: method === "PATCH" ? [txRow({ description: "New" })] : [] });
     expect(
       await dispatch(transactionsRouter, {
         method,
         url: `/${transactionId}`,
         body: { description: "New" },
       }),
-    ).toEqual({ status: 409, body: { error: "Account is archived. Restore it before making changes." } });
-    expect(query).toHaveBeenCalledTimes(1);
+    ).toMatchObject(method === "PATCH" ? { status: 200, body: { description: "New" } } : { status: 204 });
+    expect(query).toHaveBeenCalledTimes(2);
     expect(query.mock.calls[0]![1]).toEqual([transactionId, userId, 1]);
   });
 });
