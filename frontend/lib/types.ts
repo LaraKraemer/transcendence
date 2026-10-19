@@ -84,7 +84,6 @@ export type Category = {
   icon: string;
   color: string;
   kind: "expense" | "income" | "transfer";
-  isArchived: boolean;
   createdAt: string;
 };
 

@@ -16,17 +16,11 @@ export async function findOwnedTransaction(transactionId: string, userId: string
   return transaction;
 }
 
-export async function findCategoryKind(categoryId: string, userId: string, allowArchived: boolean) {
+export async function findCategoryKind(categoryId: string, userId: string) {
   const [category] = await db
     .select({ kind: categories.kind })
     .from(categories)
-    .where(
-      and(
-        eq(categories.id, categoryId),
-        eq(categories.userId, userId),
-        allowArchived ? undefined : eq(categories.isArchived, false),
-      ),
-    )
+    .where(and(eq(categories.id, categoryId), eq(categories.userId, userId)))
     .limit(1);
 
   return category;

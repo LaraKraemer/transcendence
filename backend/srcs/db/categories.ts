@@ -24,12 +24,8 @@ export async function findCategoryByNameAndKind(userId: string, name: string, ki
   return category;
 }
 
-export async function listActiveCategories(userId: string) {
-  return db
-    .select()
-    .from(categories)
-    .where(and(eq(categories.userId, userId), eq(categories.isArchived, false)))
-    .orderBy(categories.kind, categories.name);
+export async function listCategories(userId: string) {
+  return db.select().from(categories).where(eq(categories.userId, userId)).orderBy(categories.kind, categories.name);
 }
 
 export async function insertCategory(values: NewCategory) {
@@ -44,8 +40,4 @@ export async function updateCategory(
   const [category] = await db.update(categories).set(updates).where(eq(categories.id, categoryId)).returning();
 
   return category;
-}
-
-export async function archiveCategory(categoryId: string) {
-  await db.update(categories).set({ isArchived: true }).where(eq(categories.id, categoryId));
 }
