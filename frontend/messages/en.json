@@ -4,7 +4,8 @@
     "appDescription": "Track your income and expenses.",
     "signInTitle": "Sign in",
     "signUpTitle": "Create account",
-    "accountsTitle": "Accounts"
+    "accountsTitle": "Accounts",
+    "accountTransactionsTitle": "{account} · Transactions"
   },
   "common": {
     "language": "Language",
@@ -121,5 +122,47 @@
       "generic": "Something went wrong. Please try again."
     },
     "balanceUnavailable": "Balance unavailable"
+  },
+  "transactions": {
+    "subtitle": "{count, plural, =0 {No transactions} one {# transaction} other {# transactions}} · {currency}",
+    "archived": "Archived",
+    "moneyIn": "Money in",
+    "moneyOut": "Money out",
+    "net": "Net",
+    "latestOnly": "Latest {count, plural, one {# transaction} other {# transactions}}",
+    "chooseAccount": "Choose account",
+    "chooseAccountHint": "Choose an account to see its transactions.",
+    "accountSwitcher": "Account:",
+    "showAccount": "Show",
+    "filterLabel": "Filter transactions by type",
+    "filters": {
+      "all": "All",
+      "income": "Income",
+      "expense": "Expense"
+    },
+    "listTitle": "Transactions",
+    "heading": "<name>{account}</name> transactions",
+    "caption": "Transactions for {account}",
+    "columns": {
+      "description": "Description",
+      "category": "Category",
+      "date": "Date",
+      "amount": "Amount",
+      "actions": "Actions"
+    },
+    "uncategorised": "Uncategorised",
+    "empty": "No transactions in this account yet.",
+    "emptyFiltered": "{filter, select, income {No income transactions.} expense {No expense transactions.} other {No transactions.}}",
+    "showing": "Showing {shown, number} of {total, plural, one {# transaction} other {# transactions}}",
+    "delete": "Delete {description}",
+    "confirmTitle": "Delete transaction?",
+    "confirmBody": "“<name>{description}</name>” will be permanently deleted. This can’t be undone.",
+    "cancel": "Cancel",
+    "confirm": "Delete",
+    "deleting": "Deleting…",
+    "errors": {
+      "network": "Could not reach the server. Please try again later.",
+      "generic": "Something went wrong. Please try again."
+    }
   }
 }

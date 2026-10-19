@@ -4,7 +4,8 @@
     "appDescription": "درآمدها و هزینه‌هایتان را پیگیری کنید.",
     "signInTitle": "ورود",
     "signUpTitle": "ساخت حساب کاربری",
-    "accountsTitle": "حساب‌ها"
+    "accountsTitle": "حساب‌ها",
+    "accountTransactionsTitle": "{account} · تراکنش‌ها"
   },
   "common": {
     "language": "زبان",
@@ -121,5 +122,47 @@
       "generic": "مشکلی پیش آمد. لطفاً دوباره تلاش کنید."
     },
     "balanceUnavailable": "موجودی در دسترس نیست"
+  },
+  "transactions": {
+    "subtitle": "{count, plural, =0 {بدون تراکنش} other {# تراکنش}} · {currency}",
+    "archived": "بایگانی‌شده",
+    "moneyIn": "ورودی",
+    "moneyOut": "خروجی",
+    "net": "خالص",
+    "latestOnly": "{count, plural, other {# تراکنش اخیر}}",
+    "chooseAccount": "انتخاب حساب",
+    "chooseAccountHint": "برای دیدن تراکنش‌ها، یک حساب انتخاب کنید.",
+    "accountSwitcher": "حساب:",
+    "showAccount": "نمایش",
+    "filterLabel": "فیلتر تراکنش‌ها بر اساس نوع",
+    "filters": {
+      "all": "همه",
+      "income": "درآمد",
+      "expense": "هزینه"
+    },
+    "listTitle": "تراکنش‌ها",
+    "heading": "تراکنش‌های <name>{account}</name>",
+    "caption": "تراکنش‌های {account}",
+    "columns": {
+      "description": "شرح",
+      "category": "دسته‌بندی",
+      "date": "تاریخ",
+      "amount": "مبلغ",
+      "actions": "عملیات"
+    },
+    "uncategorised": "بدون دسته‌بندی",
+    "empty": "هنوز تراکنشی در این حساب ثبت نشده است.",
+    "emptyFiltered": "{filter, select, income {درآمدی ثبت نشده است.} expense {هزینه‌ای ثبت نشده است.} other {تراکنشی ثبت نشده است.}}",
+    "showing": "نمایش {shown, number} از {total, plural, other {# تراکنش}}",
+    "delete": "حذف «{description}»",
+    "confirmTitle": "تراکنش حذف شود؟",
+    "confirmBody": "«<name>{description}</name>» برای همیشه حذف می‌شود. این کار برگشت‌پذیر نیست.",
+    "cancel": "انصراف",
+    "confirm": "حذف",
+    "deleting": "در حال حذف…",
+    "errors": {
+      "network": "ارتباط با سرور برقرار نشد. لطفاً بعداً دوباره تلاش کنید.",
+      "generic": "مشکلی پیش آمد. لطفاً دوباره تلاش کنید."
+    }
   }
 }

@@ -7,7 +7,6 @@ import { NavLinks } from "@/components/app-shell/nav-links";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
 
-/** Up to two initials; `Array.from` keeps a multi-byte first character intact. */
 export function initialsOf(displayName: string): string {
   return displayName
     .trim()
@@ -18,30 +17,14 @@ export function initialsOf(displayName: string): string {
     .toUpperCase();
 }
 
-const avatarClasses =
-  "flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-[13px] font-semibold text-primary-foreground";
-
-/**
- * Initials circle. With `link` it opens the profile page (desktop sidebar); without it, it is
- * decorative (mobile top bar), because on mobile Profile is opened from the More page only, where
- * its back button returns.
- */
-function Avatar({ displayName, link }: { displayName: string; link?: { label: string } }) {
-  if (!link) {
-    return (
-      <span aria-hidden className={avatarClasses}>
-        {initialsOf(displayName)}
-      </span>
-    );
-  }
-
+function Avatar({ displayName, label }: { displayName: string; label: string }) {
   return (
     <Link
       href="/profile"
-      className={`${avatarClasses} transition-opacity hover:opacity-85 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card focus-visible:outline-none`}
+      className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-[13px] font-semibold text-primary-foreground transition-opacity hover:opacity-85 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card focus-visible:outline-none"
     >
       <span>{initialsOf(displayName)}</span>
-      <span className="sr-only">, {link.label}</span>
+      <span className="sr-only">, {label}</span>
     </Link>
   );
 }
@@ -82,7 +65,7 @@ export async function AppShell({
         </div>
 
         <div className="mt-auto flex items-center gap-2.5 rounded-xl bg-muted px-3 py-2.5">
-          <Avatar displayName={displayName} link={{ label: t("profile") }} />
+          <Avatar displayName={displayName} label={t("profile")} />
           <div className="min-w-0 flex-1 leading-[1.3]">
             <div className="truncate text-[13px] font-semibold">{displayName}</div>
             <div className="truncate text-xs text-muted-foreground">{email}</div>
@@ -92,20 +75,12 @@ export async function AppShell({
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center gap-2 px-4 py-3 lg:px-8 lg:pt-5">
-          <div className="flex min-w-0 items-center gap-2.5 lg:hidden">
-            <Avatar displayName={displayName} />
-            <span className="truncate text-sm font-semibold">{displayName}</span>
-          </div>
-          {/* On mobile these controls live on the More page instead. */}
-          <div className="ms-auto hidden shrink-0 gap-2 lg:flex">
-            {/* In-app header style from dashboard.html / profile.html (auth pages keep the defaults). */}
-            <LocaleSwitcher variant="pill" />
-            <ThemeToggle variant="app" />
-          </div>
+        <header className="hidden items-center justify-end gap-2 px-8 pt-5 pb-3 lg:flex">
+          <LocaleSwitcher variant="pill" />
+          <ThemeToggle variant="app" />
         </header>
 
-        <main id="main" className="flex flex-1 flex-col px-4 pb-24 lg:px-8 lg:pb-12">
+        <main id="main" className="flex flex-1 flex-col px-4 pt-4 pb-24 lg:px-8 lg:pt-0 lg:pb-12">
           {children}
         </main>
       </div>

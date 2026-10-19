@@ -13,7 +13,7 @@ import { cache } from "react";
 
 import { ApiError, fetchApi } from "@/lib/api";
 import { getSessionCookieHeader } from "@/lib/session";
-import type { Currency, User } from "@/lib/types";
+import type { Account, Currency, User } from "@/lib/types";
 
 /**
  * Server-side `fetchApi` that forwards the inbound session cookie to the
@@ -59,3 +59,12 @@ export const getCurrentUser = cache(async (): Promise<User | null> => {
  * Cached per request, so the accounts page and the create-account action share it.
  */
 export const getCurrencies = cache((): Promise<Currency[]> => fetchApiServer<Currency[]>("/currencies"));
+
+/**
+ * Returns one of the user's accounts from `GET /accounts/:id` (archived ones too).
+ * Throws `ApiError` 404 for a missing or foreign account and 400 for a malformed id.
+ * Cached per request, so a page and its `generateMetadata` share one request.
+ */
+export const getAccount = cache(
+  (accountId: string): Promise<Account> => fetchApiServer<Account>(`/accounts/${encodeURIComponent(accountId)}`),
+);
