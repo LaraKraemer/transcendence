@@ -8,7 +8,7 @@
 import { refresh } from "next/cache";
 import { z } from "zod";
 
-import { ApiError } from "@/lib/api";
+import { backendFailure } from "@/lib/action-errors";
 import { fetchApiServer, getCurrencies } from "@/lib/dal";
 import type { Account, ActionResponse } from "@/lib/types";
 import {
@@ -32,16 +32,6 @@ const optionalTextSchema = z
   .trim()
   .transform((value) => value || null);
 const accountIdSchema = z.uuid();
-
-/**
- * Turns a failed backend call into the action's error response. No status means
- * the request never reached the backend (see formErrorFor in components/auth/form-parts.tsx).
- */
-function backendFailure(error: unknown, action: string): ActionResponse {
-  if (error instanceof ApiError) return { success: false, message: error.message, status: error.status };
-  console.error(`${action}: request failed:`, error);
-  return { success: false, message: "Could not reach the server. Please try again later." };
-}
 
 const CreateAccountSchema = z.object({
   name: nameSchema,
