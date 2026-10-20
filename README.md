@@ -291,6 +291,8 @@ Permanent account deletion is handled separately in #48.
 transaction deletion is permanent; deleting a category sets `categoryId = null` on its linked
 transactions. `GET /transactions/count/:categoryId` returns how many transactions use a category.
 
+`DELETE /accounts/:accountId` permanently removes the owned account and all its transactions.
+`DELETE /transactions/:transactionId` permanently removes one transaction.
 
 <br>
 
@@ -298,7 +300,7 @@ transactions. `GET /transactions/count/:categoryId` returns how many transaction
 
 The repository includes a Bruno collection for repeatable local API testing in
 `backend/bruno/`. It registers a disposable user, creates an account, category,
-and transaction, then updates and deletes that transaction.
+and transaction, then updates and deletes that transaction and permanently deletes the account.
 It also checks the currency catalog populated by migrations.
 
 1. Start the services:

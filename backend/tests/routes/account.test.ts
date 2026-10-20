@@ -40,6 +40,53 @@ function accountRow(overrides: Record<string, unknown> = {}) {
 
 beforeEach(() => query.mockReset());
 
+describe("DELETE /accounts/:accountId", () => {
+  function deleteAccount(id = accountId) {
+    return dispatch(accountsRouter, { method: "DELETE", url: `/${id}` });
+  }
+
+  it("rejects an invalid UUID without querying the database", async () => {
+    expect(await deleteAccount("not-a-uuid")).toEqual({
+      status: 400,
+      body: { error: "accountId must be a valid UUID" },
+    });
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  it("returns 204 with no body after deleting an owned account", async () => {
+    query.mockResolvedValueOnce({ rows: [[accountId]] });
+
+    expect(await deleteAccount()).toEqual({ status: 204, body: undefined });
+    expect(query).toHaveBeenCalledTimes(1);
+    const sql: string = query.mock.calls[0]![0].text;
+    expect(sql).toMatch(/delete from "account" where \("account"\."id" = \$1 and "account"\."user_id" = \$2\)/);
+    expect(sql).toContain('returning "id"');
+    expect(sql).not.toContain("is_archived");
+    expect(query.mock.calls[0]![1]).toEqual([accountId, userId]);
+  });
+
+  it("returns the same 404 for missing and foreign accounts", async () => {
+    query.mockResolvedValueOnce({ rows: [] });
+
+    expect(await deleteAccount()).toEqual({ status: 404, body: { error: "Account not found" } });
+    expect(query).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns 404 when deletion is repeated", async () => {
+    query.mockResolvedValueOnce({ rows: [[accountId]] });
+    query.mockResolvedValueOnce({ rows: [] });
+
+    expect((await deleteAccount()).status).toBe(204);
+    expect((await deleteAccount()).status).toBe(404);
+  });
+
+  it("forwards database failures to the error handler", async () => {
+    query.mockRejectedValueOnce(new Error("Database unavailable"));
+
+    await expect(deleteAccount()).rejects.toThrow();
+  });
+});
+
 describe("GET /accounts/:accountId/balance", () => {
   function balance(id = accountId) {
     return dispatch(accountsRouter, { url: `/${id}/balance` });
