@@ -136,6 +136,7 @@ export default async function AccountTransactionsPage({
           icon={Wallet}
           iconClassName="bg-muted text-muted-foreground"
           label={t("balance")}
+          // Not money(): its signDisplay adds a "+" that suits in/out amounts but not a balance.
           value={
             balanceMinor === null
               ? "—"
