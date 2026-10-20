@@ -71,7 +71,7 @@ export async function createTransaction(accountId: string, data: CreateTransacti
       }),
     });
   } catch (error) {
-    if (error instanceof ApiError && categoryId !== "" && (error.status === 404 || error.status === 400)) {
+    if (error instanceof ApiError && categoryId !== "" && /category/i.test(error.message)) {
       return {
         success: false,
         message: error.message,
