@@ -65,9 +65,9 @@ export const accountErrorCodes = [
   "nameTooLong",
   "typeInvalid",
   "currencyInvalid",
-  "openingBalanceInvalid",
-  "openingBalanceDecimals",
-  "openingBalanceTooLarge",
+  "amountInvalid",
+  "amountDecimals",
+  "amountTooLarge",
 ] as const;
 
 export type AccountErrorCode = (typeof accountErrorCodes)[number];
@@ -85,13 +85,54 @@ export function isAccountErrorCode(value: unknown): value is AccountErrorCode {
 export function toMinorUnits(
   amount: string,
   minorUnit: number,
-): number | "openingBalanceInvalid" | "openingBalanceDecimals" | "openingBalanceTooLarge" {
+): number | "amountInvalid" | "amountDecimals" | "amountTooLarge" {
   const match = /^(-?)(\d*)(?:\.(\d*))?$/.exec(amount.trim());
   const [, sign = "", whole = "", fraction = ""] = match ?? [];
-  if (!match || whole.length + fraction.length === 0) return "openingBalanceInvalid";
-  if (fraction.length > minorUnit) return "openingBalanceDecimals";
+  if (!match || whole.length + fraction.length === 0) return "amountInvalid";
+  if (fraction.length > minorUnit) return "amountDecimals";
   const minor = Number(`${sign}${whole || "0"}${fraction.padEnd(minorUnit, "0")}`);
-  return Number.isSafeInteger(minor) ? minor : "openingBalanceTooLarge";
+  return Number.isSafeInteger(minor) ? minor : "amountTooLarge";
+}
+
+// Transactions. These mirror the backend's transaction rules (routes/transaction.ts).
+// The form asks for a positive amount plus a type; the type decides the sign.
+export const TRANSACTION_TYPES = ["expense", "income"] as const;
+export type TransactionType = (typeof TRANSACTION_TYPES)[number];
+export const MAX_TRANSACTION_DESCRIPTION_LENGTH = 500;
+
+export const transactionErrorCodes = [
+  "typeInvalid",
+  "amountRequired",
+  "amountNotPositive",
+  "amountInvalid",
+  "amountDecimals",
+  "amountTooLarge",
+  "descriptionRequired",
+  "descriptionTooLong",
+  "dateInvalid",
+  "categoryInvalid",
+] as const;
+
+export type TransactionErrorCode = (typeof transactionErrorCodes)[number];
+
+export function isTransactionErrorCode(value: unknown): value is TransactionErrorCode {
+  return typeof value === "string" && (transactionErrorCodes as readonly string[]).includes(value);
+}
+
+/**
+ * Converts a typed amount to positive minor units. The backend rejects 0, and
+ * the sign comes from the expense/income type, so zero and a typed minus are errors.
+ */
+export function toPositiveMinorUnits(
+  amount: string,
+  minorUnit: number,
+): number | "amountRequired" | "amountNotPositive" | "amountInvalid" | "amountDecimals" | "amountTooLarge" {
+  const trimmed = amount.trim();
+  if (trimmed === "") return "amountRequired";
+  if (trimmed.startsWith("-")) return "amountNotPositive";
+  const minor = toMinorUnits(trimmed, minorUnit);
+  if (typeof minor === "string") return minor;
+  return minor === 0 ? "amountNotPositive" : minor;
 }
 
 /** The account fields the edit form can change. */

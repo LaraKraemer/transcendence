@@ -5,8 +5,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { CategoryIcon } from "@/components/categories/category-icon";
 import { NewCategoryButton } from "@/components/categories/category-form-dialog";
 import { LiveStatusProvider } from "@/components/ui/live-status";
-import { fetchApiServer } from "@/lib/dal";
-import type { Category } from "@/lib/types";
+import { getCategories } from "@/lib/dal";
 import { CATEGORY_KINDS, HEX_COLOR_PATTERN, readableOn, type CategoryKind } from "@/lib/validation";
 
 const KIND_STYLE: Record<CategoryKind, { icon: LucideIcon; className: string; badge: string }> = {
@@ -39,11 +38,7 @@ export async function generateMetadata(): Promise<Metadata> {
  * groups by kind instead of the design's budgets (the backend has none).
  */
 export default async function CategoriesPage() {
-  const [t, locale, categories] = await Promise.all([
-    getTranslations("categories"),
-    getLocale(),
-    fetchApiServer<Category[]>("/categories"),
-  ]);
+  const [t, locale, categories] = await Promise.all([getTranslations("categories"), getLocale(), getCategories()]);
 
   const byName = new Intl.Collator(locale).compare;
   const groups = CATEGORY_KINDS.map((kind) => ({

@@ -32,3 +32,24 @@ export function isHexColor(value: unknown): value is string {
 export function isValidPassword(value: unknown): value is string {
   return typeof value === "string" && value.length >= 12 && Buffer.byteLength(value, "utf8") <= 72;
 }
+
+/** Returns whether a value is a valid display name (1–100 chars after trim). */
+export function isValidDisplayName(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length >= 1 && value.trim().length <= 100;
+}
+
+// File format signatures (magic bytes): the first bytes of a file that identify
+// its format per spec, regardless of filename or Content-Type header. Using
+// these prevents a malicious upload from disguising a non-image as JPEG/PNG.
+// JPEG: FF D8 FF — SOI marker (FF D8) + start of first segment marker (FF).
+const JPEG_SIGNATURE = [0xff, 0xd8, 0xff];
+// PNG: 89 50 4E 47 0D 0A 1A 0A — 0x89 catches transport corruption, "PNG"
+// in ASCII, then line-ending bytes that detect bad line-ending translation.
+const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+
+/** Returns the MIME type if the buffer starts with JPEG or PNG signature bytes, otherwise null. */
+export function isJpegOrPng(header: Buffer): "image/jpeg" | "image/png" | null {
+  if (JPEG_SIGNATURE.every((b, i) => header[i] === b)) return "image/jpeg";
+  if (PNG_SIGNATURE.every((b, i) => header[i] === b)) return "image/png";
+  return null;
+}

@@ -2,11 +2,12 @@
 
 import { Check, Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { startTransition, useActionState, useEffect, useId, useState, type FormEvent, type ReactNode } from "react";
+import { startTransition, useActionState, useEffect, useId, useState, type FormEvent } from "react";
 
 import { FormAlert, formErrorFor } from "@/components/auth/form-parts";
 import { CATEGORY_ICON_KEYS, CategoryIcon } from "@/components/categories/category-icon";
 import { Button } from "@/components/ui/button";
+import { ChoiceGroup } from "@/components/ui/choice-group";
 import { useAnnounce } from "@/components/ui/live-status";
 import { Modal } from "@/components/ui/modal";
 import { TextField } from "@/components/ui/text-field";
@@ -314,31 +315,5 @@ function CategoryForm({
         </div>
       </fieldset>
     </form>
-  );
-}
-
-/** A labelled group of choices (radios) with an inline error, like TextField's. */
-function ChoiceGroup({
-  legend,
-  error,
-  idPrefix,
-  children,
-}: {
-  legend: string;
-  error?: string;
-  idPrefix: string;
-  children: ReactNode;
-}) {
-  const errorId = `${idPrefix}-error`;
-  return (
-    <fieldset className="mb-[18px]" aria-describedby={error ? errorId : undefined}>
-      <legend className="mb-[7px] text-[13px] font-semibold">{legend}</legend>
-      {children}
-      {error && (
-        <p id={errorId} className="mt-1.5 text-xs font-medium text-destructive">
-          {error}
-        </p>
-      )}
-    </fieldset>
   );
 }

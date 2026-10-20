@@ -1,6 +1,6 @@
-import { randomBytes } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 
-import { Router } from "express";
+import express, { Router } from "express";
 
 import {
   clearSessionCookie,
@@ -17,11 +17,22 @@ import {
   findUserByEmail,
   findUserById,
   findUserPasswordHash,
+  updateUserAvatarUrl,
   updateUserPassword,
+  updateUserProfile,
 } from "../db/users.ts";
-import { isValidPassword } from "../validation.ts";
+import { deleteAvatar, readAvatar, writeAvatar } from "../storage.ts";
+import { isJpegOrPng, isValidDisplayName, isValidPassword } from "../validation.ts";
 
 export const authRouter = Router();
+const avatarMaxBytes = 5 * 1024 * 1024;
+const avatarRoute = "/auth/me/avatar";
+
+/** Replaces the stored avatar key with the retrieval route so storage details never reach clients. */
+function toPublicUser<User extends { avatarUrl: string | null }>(user: User) {
+  return { ...user, avatarUrl: user.avatarUrl ? avatarRoute : null };
+}
+
 // Unknown emails must do the same bcrypt work as a wrong password for an existing user.
 const dummyPasswordHash = hashPassword(randomBytes(32).toString("hex"));
 
@@ -38,7 +49,7 @@ authRouter.post("/register", async (req, res) => {
     res.status(400).json({ error: "Password must be 12 to 72 bytes" });
     return;
   }
-  if (typeof displayName !== "string" || displayName.trim().length === 0 || displayName.trim().length > 100) {
+  if (!isValidDisplayName(displayName)) {
     res.status(400).json({ error: "displayName must be between 1 and 100 characters" });
     return;
   }
@@ -96,14 +107,112 @@ authRouter.get("/me", async (req, res) => {
   }
 
   const user = await findUserById(userId);
-  res.json({ user });
+  res.json({ user: user && toPublicUser(user) });
 });
 
 /** Permanently deletes the authenticated profile and signs out every device. */
 authRouter.delete("/me", requireAuthenticatedUser, async (_req, res, next) => {
   try {
-    await deleteUser(res.locals.userId as string);
+    const userId = res.locals.userId as string;
+    const user = await findUserById(userId);
+    await deleteUser(userId);
+    if (user?.avatarUrl) deleteAvatar(user.avatarUrl).catch(() => {});
     clearSessionCookie(res);
+    res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+});
+
+/** Updates the authenticated user's display name. */
+authRouter.patch("/me", requireAuthenticatedUser, async (req, res, next) => {
+  const body = req.body ?? {};
+  if (!Object.hasOwn(body, "displayName")) {
+    res.status(400).json({ error: "No editable field provided" });
+    return;
+  }
+  const { displayName } = body;
+  if (!isValidDisplayName(displayName)) {
+    res.status(400).json({ error: "displayName must be between 1 and 100 characters" });
+    return;
+  }
+  try {
+    const user = await updateUserProfile(res.locals.userId as string, { displayName: displayName.trim() });
+    res.json({ user: user && toPublicUser(user) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/** Uploads or replaces the authenticated user's profile image (raw JPEG or PNG request body). */
+authRouter.put(
+  "/me/avatar",
+  requireAuthenticatedUser,
+  express.raw({ type: ["image/jpeg", "image/png"], limit: avatarMaxBytes }),
+  async (req, res, next) => {
+    const image: unknown = req.body;
+    const mimeType = Buffer.isBuffer(image) ? isJpegOrPng(image) : null;
+    if (!Buffer.isBuffer(image) || mimeType === null) {
+      res.status(415).json({ error: "Body must be a JPEG or PNG image" });
+      return;
+    }
+
+    let newKey: string | undefined;
+    let isSaved = false;
+    try {
+      const userId = res.locals.userId as string;
+      const oldUser = await findUserById(userId);
+      if (!oldUser) {
+        res.status(404).json({ error: "User not found" });
+        return;
+      }
+
+      // tradeoff: two simultaneous uploads by one user can orphan a file; fix with a row lock or a sweep.
+      const fileExtension = mimeType === "image/jpeg" ? ".jpg" : ".png";
+      newKey = `${randomUUID()}${fileExtension}`;
+      await writeAvatar(newKey, image);
+      await updateUserAvatarUrl(userId, newKey);
+      isSaved = true;
+
+      if (oldUser.avatarUrl) deleteAvatar(oldUser.avatarUrl).catch(() => {});
+      res.json({ user: toPublicUser({ ...oldUser, avatarUrl: newKey }) });
+    } catch (error) {
+      // Once the database points at newKey, the file must survive any later failure.
+      if (newKey && !isSaved) deleteAvatar(newKey).catch(() => {});
+      next(error);
+    }
+  },
+);
+
+/** Returns the authenticated user's profile image. */
+authRouter.get("/me/avatar", requireAuthenticatedUser, async (req, res, next) => {
+  try {
+    const userId = res.locals.userId as string;
+    const user = await findUserById(userId);
+    if (!user?.avatarUrl) {
+      res.status(404).json({ error: "No avatar set" });
+      return;
+    }
+    const buffer = await readAvatar(user.avatarUrl);
+    if (!buffer) {
+      res.status(404).json({ error: "Avatar file not found" });
+      return;
+    }
+    const contentType = user.avatarUrl.endsWith(".jpg") ? "image/jpeg" : "image/png";
+    // Always revalidate (cheap 304 via ETag) because the URL stays the same after a replacement.
+    res.set("Cache-Control", "no-cache").type(contentType).send(buffer);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/** Removes the authenticated user's profile image. */
+authRouter.delete("/me/avatar", requireAuthenticatedUser, async (req, res, next) => {
+  try {
+    const userId = res.locals.userId as string;
+    const user = await findUserById(userId);
+    await updateUserAvatarUrl(userId, null);
+    if (user?.avatarUrl) deleteAvatar(user.avatarUrl).catch(() => {});
     res.status(204).send();
   } catch (error) {
     next(error);

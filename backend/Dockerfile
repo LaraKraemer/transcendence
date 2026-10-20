@@ -2,6 +2,8 @@ FROM node:22-alpine
 
 WORKDIR /app
 RUN chown node:node /app
+# Named volumes inherit this ownership; otherwise the mount point is created root-owned.
+RUN mkdir /app/avatars && chown node:node /app/avatars
 USER node
 
 COPY --chown=node:node package.json package-lock.json ./
