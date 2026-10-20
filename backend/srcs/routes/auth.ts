@@ -18,8 +18,9 @@ import {
   findUserById,
   findUserPasswordHash,
   updateUserPassword,
+  updateUserProfile,
 } from "../db/users.ts";
-import { isValidPassword } from "../validation.ts";
+import { isValidDisplayName, isValidPassword } from "../validation.ts";
 
 export const authRouter = Router();
 // Unknown emails must do the same bcrypt work as a wrong password for an existing user.
@@ -38,7 +39,7 @@ authRouter.post("/register", async (req, res) => {
     res.status(400).json({ error: "Password must be 12 to 72 bytes" });
     return;
   }
-  if (typeof displayName !== "string" || displayName.trim().length === 0 || displayName.trim().length > 100) {
+  if (!isValidDisplayName(displayName)) {
     res.status(400).json({ error: "displayName must be between 1 and 100 characters" });
     return;
   }
@@ -105,6 +106,26 @@ authRouter.delete("/me", requireAuthenticatedUser, async (_req, res, next) => {
     await deleteUser(res.locals.userId as string);
     clearSessionCookie(res);
     res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+});
+
+/** Updates the authenticated user's display name. */
+authRouter.patch("/me", requireAuthenticatedUser, async (req, res, next) => {
+  const body = req.body ?? {};
+  if (!Object.hasOwn(body, "displayName")) {
+    res.status(400).json({ error: "No editable field provided" });
+    return;
+  }
+  const { displayName } = body;
+  if (!isValidDisplayName(displayName)) {
+    res.status(400).json({ error: "displayName must be between 1 and 100 characters" });
+    return;
+  }
+  try {
+    const user = await updateUserProfile(res.locals.userId as string, { displayName: displayName.trim() });
+    res.json({ user });
   } catch (error) {
     next(error);
   }
