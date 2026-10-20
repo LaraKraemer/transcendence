@@ -13,7 +13,7 @@ import { cache } from "react";
 
 import { ApiError, fetchApi } from "@/lib/api";
 import { getSessionCookieHeader } from "@/lib/session";
-import type { Account, Currency, User } from "@/lib/types";
+import type { Account, Category, Currency, User } from "@/lib/types";
 
 /**
  * Server-side `fetchApi` that forwards the inbound session cookie to the
@@ -59,6 +59,15 @@ export const getCurrentUser = cache(async (): Promise<User | null> => {
  * Cached per request, so the accounts page and the create-account action share it.
  */
 export const getCurrencies = cache((): Promise<Currency[]> => fetchApiServer<Currency[]>("/currencies"));
+
+/**
+ * Returns the user's active (non-archived) accounts from `GET /accounts`. Cached per
+ * request, so a page and the app shell's "new transaction" button share one request.
+ */
+export const getAccounts = cache((): Promise<Account[]> => fetchApiServer<Account[]>("/accounts"));
+
+/** Returns the user's categories from `GET /categories`, cached per request like getAccounts. */
+export const getCategories = cache((): Promise<Category[]> => fetchApiServer<Category[]>("/categories"));
 
 /**
  * Returns one of the user's accounts from `GET /accounts/:id` (archived ones too).

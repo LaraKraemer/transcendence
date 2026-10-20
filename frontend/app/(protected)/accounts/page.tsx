@@ -7,7 +7,7 @@ import { Fragment, type ReactNode } from "react";
 import { CreateAccountForm } from "@/components/accounts/account-form";
 import { AccountRowActions } from "@/components/accounts/account-row-actions";
 import { LiveStatusProvider } from "@/components/ui/live-status";
-import { fetchApiServer, getCurrencies } from "@/lib/dal";
+import { fetchApiServer, getAccounts, getCurrencies } from "@/lib/dal";
 import type { Account, AccountBalance } from "@/lib/types";
 import type { AccountType } from "@/lib/validation";
 
@@ -31,7 +31,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 /** Loads all non-archived accounts with their current balance (`null` if that request fails). */
 async function loadAccounts(): Promise<AccountWithBalance[]> {
-  const accounts = await fetchApiServer<Account[]>("/accounts");
+  const accounts = await getAccounts();
   const balances = await Promise.all(
     accounts.map((account) =>
       fetchApiServer<AccountBalance>(`/accounts/${account.id}/balance`).then(
