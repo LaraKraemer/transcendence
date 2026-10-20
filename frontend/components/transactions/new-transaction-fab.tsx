@@ -3,6 +3,9 @@ import { LiveStatusProvider } from "@/components/ui/live-status";
 import { getAccounts, getCategories, getCurrencies } from "@/lib/dal";
 
 export async function NewTransactionFab() {
+  // ponytail: AppShell renders this on every protected page, so each page load makes three extra API
+  // calls just for the FAB (cache() only dedupes them within one render). Upgrade path: load the data
+  // lazily when the FAB is first opened.
   const data = await Promise.all([getAccounts(), getCategories(), getCurrencies()]).catch((error) => {
     console.error("NewTransactionFab: loading failed:", error);
     return null;
