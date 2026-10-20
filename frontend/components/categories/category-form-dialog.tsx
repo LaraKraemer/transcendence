@@ -22,9 +22,9 @@ import {
   type CategoryKind,
 } from "@/lib/validation";
 
-// Seven colours picked to be easy to tell apart: the closest pair is ΔE 53 in CIELAB
+// Seven colors picked to be easy to tell apart: the closest pair is ΔE 53 in CIELAB
 // (above ~25 reads as clearly different at a glance). The last circle in the row
-// opens the system palette for any other colour.
+// opens the system palette for any other color.
 const SWATCHES = [
   { name: "red", hex: "#DC2626" },
   { name: "yellow", hex: "#FACC15" },
@@ -37,7 +37,7 @@ const SWATCHES = [
 const DEFAULT_COLOR = "#8B5CF6";
 
 // Shared by the preset circles and the custom one; the selection ring uses the
-// text colour, because a ring in the circle's own colour vanishes on a dark card.
+// text color, because a ring in the circle's own color vanishes on a dark card.
 const circleClasses =
   "flex aspect-square w-full max-w-8 items-center justify-center rounded-full ring-1 ring-foreground/15 ring-inset";
 const selectedRing = "0 0 0 2px var(--card), 0 0 0 4px var(--foreground)";
@@ -253,7 +253,7 @@ function CategoryForm({
   );
 }
 
-/** The live preview at the top of the category forms: the icon on its colour, the name and the kind. */
+/** The live preview at the top of the category forms: the icon on its color, the name and the kind. */
 export function CategoryPreview({
   name,
   kind,
@@ -284,8 +284,8 @@ export function CategoryPreview({
 }
 
 /**
- * Colour choice: seven presets plus the browser's colour picker. `idPrefix`
- * marks the custom colour input with `data-field`, for focusing it after an error.
+ * Color choice: seven presets plus the browser's color picker. `idPrefix`
+ * marks the custom color input with `data-field`, for focusing it after an error.
  */
 export function ColorField({
   value,
@@ -302,7 +302,7 @@ export function ColorField({
   const isCustomColor = !SWATCHES.some((swatch) => swatch.hex === value.toUpperCase());
   return (
     <ChoiceGroup legend={t("form.color")} error={error} idPrefix={idPrefix}>
-      {/* One row: seven presets, then the custom colour. On narrow screens the circles shrink
+      {/* One row: seven presets, then the custom color. On narrow screens the circles shrink
           (never below 24px) instead of wrapping. */}
       <div className="grid grid-cols-8 gap-1 sm:gap-2">
         {SWATCHES.map((swatch) => {
@@ -331,8 +331,8 @@ export function ColorField({
             </label>
           );
         })}
-        {/* Custom colour: the browser's own picker (no library), stretched invisibly over a circle
-            that shows a rainbow until a custom colour is chosen, then that colour with a check. */}
+        {/* Custom color: the browser's own picker (no library), stretched invisibly over a circle
+            that shows a rainbow until a custom color is chosen, then that color with a check. */}
         <label
           title={t("form.customColor")}
           className="relative flex justify-center rounded-full has-[input:focus-visible]:ring-2 has-[input:focus-visible]:ring-ring has-[input:focus-visible]:ring-offset-2 has-[input:focus-visible]:ring-offset-card"

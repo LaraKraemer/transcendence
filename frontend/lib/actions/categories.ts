@@ -65,7 +65,7 @@ export async function createCategory(data: CreateCategoryInput): Promise<ActionR
   return { success: true, message: "Category created" };
 }
 
-/** Validates the colour and saves it with `PATCH /categories/:id`. Name, icon and kind aren't editable here. */
+/** Validates the color and saves it with `PATCH /categories/:id`. Name, icon and kind aren't editable here. */
 export async function updateCategoryColor(categoryId: string, color: string): Promise<ActionResponse> {
   if (!categoryIdSchema.safeParse(categoryId).success) {
     return { success: false, message: "Category not found", status: 404 };
@@ -85,7 +85,7 @@ export async function updateCategoryColor(categoryId: string, color: string): Pr
   }
 
   refresh();
-  return { success: true, message: "Category colour saved" };
+  return { success: true, message: "Category color saved" };
 }
 
 /**

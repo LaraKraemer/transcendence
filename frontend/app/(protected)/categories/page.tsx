@@ -50,7 +50,7 @@ export default async function CategoriesPage() {
   })).filter((group) => group.categories.length > 0);
 
   return (
-    // The live region announces "created", "colour saved" and "deleted" to screen readers.
+    // The live region announces "created", "color saved" and "deleted" to screen readers.
     <LiveStatusProvider>
       <div className="mx-auto w-full max-w-6xl pt-2">
         <div className="mb-6 flex flex-wrap items-start gap-4">
@@ -102,15 +102,15 @@ export default async function CategoriesPage() {
                   {/* As many 15rem columns as fit, so long names have room whether or not the sidebar is shown. */}
                   <ul className="grid grid-cols-[repeat(auto-fill,minmax(15rem,1fr))] gap-3.5">
                     {groupCategories.map((category) => {
-                      // The backend validates colours, but fall back gracefully rather than inject bad CSS.
+                      // The backend validates colors, but fall back gracefully rather than inject bad CSS.
                       const color = HEX_COLOR_PATTERN.test(category.color) ? category.color : undefined;
                       return (
                         <li key={category.id} className="flex min-w-0 items-center gap-3 rounded-xl bg-muted p-3.5">
-                          {/* Filled with the category's colour; the icon is white or black, whichever
-                            contrasts more, so any colour works in both themes. */}
+                          {/* Filled with the category's color; the icon is white or black, whichever
+                            contrasts more, so any color works in both themes. */}
                           <span
                             aria-hidden
-                            // The faint inset ring keeps the tile's edge visible when its colour is close to the card (navy in dark mode).
+                            // The faint inset ring keeps the tile's edge visible when its color is close to the card (navy in dark mode).
                             className="flex size-[38px] shrink-0 items-center justify-center overflow-hidden rounded-[10px] bg-card ring-1 ring-foreground/15 ring-inset"
                             style={color ? { backgroundColor: color, color: readableOn(color) } : undefined}
                           >

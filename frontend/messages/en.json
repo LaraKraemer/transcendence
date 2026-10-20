@@ -255,11 +255,11 @@
       "namePlaceholder": "e.g. Rewe",
       "kind": "Type",
       "icon": "Icon",
-      "color": "Colour",
+      "color": "Color",
       "cancel": "Cancel",
       "submit": "Save category",
       "submitting": "Saving…",
-      "customColor": "Custom colour"
+      "customColor": "Custom color"
     },
     "icons": {
       "shopping-cart": "Shopping cart",
@@ -289,18 +289,18 @@
       "nameTooLong": "The name can be at most {max, number} characters",
       "nameTaken": "A category with this name already exists for this type",
       "iconInvalid": "Choose an icon",
-      "colorInvalid": "Use a colour like #2563EB",
+      "colorInvalid": "Use a color like #2563EB",
       "kindInvalid": "Choose a type",
       "network": "Could not reach the server. Please try again later.",
       "generic": "Something went wrong. Please try again."
     },
     "actions": {
-      "editColor": "Change colour of {name}",
+      "editColor": "Change color of {name}",
       "delete": "Delete {name}"
     },
     "colorDialog": {
-      "title": "Colour of “{name}”",
-      "submit": "Save colour"
+      "title": "Color of “{name}”",
+      "submit": "Save color"
     },
     "deleteDialog": {
       "title": "Delete “{name}”?",
@@ -312,7 +312,7 @@
     },
     "announcements": {
       "created": "“{name}” created",
-      "colorSaved": "Colour of “{name}” saved",
+      "colorSaved": "Color of “{name}” saved",
       "deleted": "“{name}” deleted"
     }
   },

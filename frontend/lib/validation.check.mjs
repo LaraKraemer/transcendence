@@ -47,7 +47,7 @@ assert.deepEqual(changedAccountFields(original, { ...original, institution: null
 assert.deepEqual(changedAccountFields({ ...original, institution: "" }, { ...original, institution: null }), {}); // "" and null both mean unset
 console.log("changedAccountFields: ok");
 
-// readableOn: the icon colour on a category tile always contrasts enough
+// readableOn: the icon color on a category tile always contrasts enough
 assert.equal(readableOn("#1E3352"), "#FFFFFF"); // navy → white
 assert.equal(readableOn("#FFFF00"), "#000000"); // yellow → black
 assert.equal(readableOn("#FFFFFF"), "#000000");

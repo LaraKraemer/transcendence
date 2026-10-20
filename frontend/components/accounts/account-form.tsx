@@ -195,7 +195,7 @@ export function AccountForm(props: AccountFormProps) {
       onSubmit={handleSubmit}
       noValidate
       aria-labelledby={headingId}
-      // bg-card, not bg-muted: red error text only reaches 4.5:1 contrast on the card colour.
+      // bg-card, not bg-muted: red error text only reaches 4.5:1 contrast on the card color.
       className="mt-2 basis-full rounded-[11px] border border-border bg-card p-5"
     >
       <fieldset disabled={isPending}>

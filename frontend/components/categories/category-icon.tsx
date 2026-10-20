@@ -48,7 +48,7 @@ export function isCategoryIconKey(value: string): value is CategoryIconKey {
 export function CategoryIcon({ icon, size = 17 }: { icon: string; size?: number }) {
   if (!isCategoryIconKey(icon)) {
     return (
-      // Inherits the tile's readable colour (see readableOn).
+      // Inherits the tile's readable color (see readableOn).
       <span aria-hidden className="max-w-full truncate text-sm leading-none">
         {icon}
       </span>

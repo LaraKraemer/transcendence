@@ -19,7 +19,7 @@ const iconButtonClasses =
 type ActionError = "network" | "generic" | null;
 
 /**
- * Change colour and Delete for one category tile, each in its own dialog.
+ * Change color and Delete for one category tile, each in its own dialog.
  * Like AccountRowActions, the dialogs mount only while open, so they start
  * fresh each time. `headingId` is where focus goes after deleting, since the
  * tile disappears.
@@ -93,7 +93,7 @@ export function CategoryTileActions({ category, headingId }: { category: Categor
 type ColorFormState = { colorInvalid: boolean; error: ActionError };
 const initialColorState: ColorFormState = { colorInvalid: false, error: null };
 
-/** Picks a new colour with a live preview and saves it with `PATCH /categories/:id`. */
+/** Picks a new color with a live preview and saves it with `PATCH /categories/:id`. */
 function ColorDialog({ category, onClose }: { category: Category; onClose: () => void }) {
   const t = useTranslations("categories");
   const announce = useAnnounce();
