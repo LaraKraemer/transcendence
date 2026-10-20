@@ -86,6 +86,8 @@ export default async function AccountTransactionsPage({
 
   return (
     <div className="mx-auto w-full max-w-5xl pt-2">
+      {/* User-entered text (names, descriptions, notes) is wrapped in <bdi>, so Latin text in an RTL
+          page (or the reverse) keeps its punctuation in place without changing the alignment. */}
       <div className="mb-[18px] flex items-start gap-4 sm:mb-6">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
