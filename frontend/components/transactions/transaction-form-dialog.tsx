@@ -243,7 +243,7 @@ function TransactionForm({
 
   const byName = new Intl.Collator(locale).compare;
   const typeCategories = categories
-    .filter((category) => category.kind === values.type)
+    .filter((category) => category.kind === values.type || category.kind === "transfer")
     .sort((a, b) => byName(a.name, b.name));
   const merchantHintId = `${fieldId("merchant")}-hint`;
 
@@ -279,7 +279,16 @@ function TransactionForm({
                   name="type"
                   value={type}
                   checked={values.type === type}
-                  onChange={() => setValues((prev) => ({ ...prev, type, categoryId: "" }))}
+                  onChange={() =>
+                    setValues((prev) => ({
+                      ...prev,
+                      type,
+                      categoryId:
+                        categories.find((category) => category.id === prev.categoryId)?.kind === "transfer"
+                          ? prev.categoryId
+                          : "",
+                    }))
+                  }
                   id={index === 0 ? fieldId("type") : undefined}
                   className="peer sr-only"
                 />
