@@ -9,6 +9,7 @@
  */
 import "server-only";
 
+import { notFound } from "next/navigation";
 import { cache } from "react";
 
 import { ApiError, fetchApi } from "@/lib/api";
@@ -77,3 +78,13 @@ export const getCategories = cache((): Promise<Category[]> => fetchApiServer<Cat
 export const getAccount = cache(
   (accountId: string): Promise<Account> => fetchApiServer<Account>(`/accounts/${encodeURIComponent(accountId)}`),
 );
+
+/**
+ * For pages that load a resource by an id from the URL: `.catch(notFoundOnMissingResource)`
+ * shows the 404 page when the backend answers 404 (missing or someone else's) or 400 (malformed
+ * id). Any other error is rethrown for the error page.
+ */
+export function notFoundOnMissingResource(error: unknown): never {
+  if (error instanceof ApiError && (error.status === 404 || error.status === 400)) notFound();
+  throw error;
+}

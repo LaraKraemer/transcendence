@@ -2,14 +2,19 @@ import { ArrowDownLeft, ArrowUpRight, Wallet, type LucideIcon } from "lucide-rea
 import type { Metadata } from "next";
 import { getFormatter, getTranslations } from "next-intl/server";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 
 import { AccountSwitcher } from "@/components/transactions/account-switcher";
 import { DeleteTransactionButton } from "@/components/transactions/delete-transaction-button";
 import { NewTransactionButton } from "@/components/transactions/transaction-form-dialog";
 import { LiveStatusProvider } from "@/components/ui/live-status";
-import { ApiError } from "@/lib/api";
-import { fetchApiServer, getAccount, getAccounts, getCategories, getCurrencies } from "@/lib/dal";
+import {
+  fetchApiServer,
+  getAccount,
+  getAccounts,
+  getCategories,
+  getCurrencies,
+  notFoundOnMissingResource,
+} from "@/lib/dal";
 import type { AccountBalance, TransactionPage } from "@/lib/types";
 
 const TRANSACTIONS_LIMIT = 200;
@@ -28,15 +33,9 @@ type RouteParams = { params: Promise<{ accountId: string }> };
 
 export async function generateMetadata({ params }: RouteParams): Promise<Metadata> {
   const [{ accountId }, t] = await Promise.all([params, getTranslations()]);
-  const account = await getAccount(accountId).catch(() => null);
-  return {
-    title: account ? t("metadata.accountTransactionsTitle", { account: account.name }) : t("nav.transactions"),
-  };
-}
-
-function notFoundOnMissingAccount(error: unknown): never {
-  if (error instanceof ApiError && (error.status === 404 || error.status === 400)) notFound();
-  throw error;
+  // A missing account shows the 404 page, with its title instead of "Transactions".
+  const account = await getAccount(accountId).catch(notFoundOnMissingResource);
+  return { title: t("metadata.accountTransactionsTitle", { account: account.name }) };
 }
 
 export default async function AccountTransactionsPage({
@@ -61,7 +60,7 @@ export default async function AccountTransactionsPage({
         (balance) => balance.balanceMinor,
         () => null,
       ),
-    ]).catch(notFoundOnMissingAccount);
+    ]).catch(notFoundOnMissingResource);
   const categories = new Map(activeCategories.map((c) => [c.id, c]));
   const switcherAccounts = activeAccounts.some((other) => other.id === account.id)
     ? activeAccounts

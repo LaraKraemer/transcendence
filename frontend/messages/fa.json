@@ -297,5 +297,19 @@
     "announcements": {
       "created": "«{name}» ساخته شد"
     }
+  },
+  "status": {
+    "toAccounts": "رفتن به حساب‌ها",
+    "toSignIn": "ورود",
+    "notFound": {
+      "title": "صفحه پیدا نشد",
+      "description": "این صفحه وجود ندارد یا در دسترس نیست."
+    },
+    "error": {
+      "title": "مشکلی پیش آمد",
+      "description": "این صفحه بارگیری نشد. لطفاً دوباره تلاش کنید.",
+      "retry": "تلاش دوباره",
+      "reference": "کد پیگیری: {code}"
+    }
   }
 }
