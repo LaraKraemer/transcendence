@@ -124,9 +124,9 @@
       "nameTooLong": "Der Name ist zu lang",
       "typeInvalid": "Wähle eine Kontoart",
       "currencyInvalid": "Wähle eine Währung",
-      "openingBalanceInvalid": "Gib einen Betrag wie {example} ein",
-      "openingBalanceDecimals": "{digits, plural, =0 {Gib einen ganzen Betrag ohne Nachkommastellen ein} one {Gib einen Betrag mit höchstens # Nachkommastelle ein} other {Gib einen Betrag mit höchstens # Nachkommastellen ein}}",
-      "openingBalanceTooLarge": "Dieser Betrag ist zu groß",
+      "amountInvalid": "Gib einen Betrag wie {example} ein",
+      "amountDecimals": "{digits, plural, =0 {Gib einen ganzen Betrag ohne Nachkommastellen ein} one {Gib einen Betrag mit höchstens # Nachkommastelle ein} other {Gib einen Betrag mit höchstens # Nachkommastellen ein}}",
+      "amountTooLarge": "Dieser Betrag ist zu groß",
       "network": "Der Server ist nicht erreichbar. Bitte versuche es später erneut.",
       "generic": "Etwas ist schiefgelaufen. Bitte versuche es erneut."
     },

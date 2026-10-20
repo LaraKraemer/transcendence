@@ -124,9 +124,9 @@
       "nameTooLong": "نام بیش از حد طولانی است",
       "typeInvalid": "نوع حساب را انتخاب کنید",
       "currencyInvalid": "یک ارز انتخاب کنید",
-      "openingBalanceInvalid": "مبلغی مانند {example} وارد کنید",
-      "openingBalanceDecimals": "{digits, plural, =0 {مبلغ را بدون اعشار وارد کنید} other {مبلغی با حداکثر # رقم اعشار وارد کنید}}",
-      "openingBalanceTooLarge": "این مبلغ بیش از حد بزرگ است",
+      "amountInvalid": "مبلغی مانند {example} وارد کنید",
+      "amountDecimals": "{digits, plural, =0 {مبلغ را بدون اعشار وارد کنید} other {مبلغی با حداکثر # رقم اعشار وارد کنید}}",
+      "amountTooLarge": "این مبلغ بیش از حد بزرگ است",
       "network": "ارتباط با سرور برقرار نشد. لطفاً بعداً دوباره تلاش کنید.",
       "generic": "مشکلی پیش آمد. لطفاً دوباره تلاش کنید."
     },
