@@ -41,3 +41,13 @@ export async function updateCategory(
 
   return category;
 }
+
+/** Deletes a category owned by the user; linked transactions keep existing with `categoryId = null`. Returns whether a row was deleted. */
+export async function deleteOwnedCategory(categoryId: string, userId: string) {
+  const [category] = await db
+    .delete(categories)
+    .where(and(eq(categories.id, categoryId), eq(categories.userId, userId)))
+    .returning({ id: categories.id });
+
+  return category !== undefined;
+}

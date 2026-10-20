@@ -5,7 +5,7 @@
  * the auth server actions. Imported by the API client, the DAL, the server
  * actions, and the auth context.
  */
-import type { AccountType } from "@/lib/validation";
+import type { AccountType, CategoryKind } from "@/lib/validation";
 
 /** The authenticated user, as exposed to the UI (a safe subset of the backend row). */
 export type User = {
@@ -83,7 +83,7 @@ export type Category = {
   name: string;
   icon: string;
   color: string;
-  kind: "expense" | "income" | "transfer";
+  kind: CategoryKind;
   createdAt: string;
 };
 

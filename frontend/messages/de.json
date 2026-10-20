@@ -188,5 +188,72 @@
       "network": "Der Server ist nicht erreichbar. Bitte versuche es später erneut.",
       "generic": "Etwas ist schiefgelaufen. Bitte versuche es erneut."
     }
+  },
+  "categories": {
+    "title": "Kategorien",
+    "subtitle": "{count, plural, =0 {Keine Kategorien} one {# Kategorie} other {# Kategorien}}",
+    "empty": "Noch keine Kategorien. Lege deine erste an.",
+    "newCategory": "Neue Kategorie",
+    "addCategory": "Kategorie hinzufügen",
+    "groups": {
+      "expense": "Ausgaben",
+      "income": "Einnahmen",
+      "transfer": "Umbuchungen"
+    },
+    "groupCount": "{count, plural, one {# Kategorie} other {# Kategorien}}",
+    "kinds": {
+      "expense": "Ausgabe",
+      "income": "Einnahme",
+      "transfer": "Umbuchung"
+    },
+    "form": {
+      "title": "Neue Kategorie",
+      "previewName": "Neue Kategorie",
+      "name": "Name",
+      "namePlaceholder": "z. B. Rewe",
+      "kind": "Typ",
+      "icon": "Symbol",
+      "color": "Farbe",
+      "cancel": "Abbrechen",
+      "submit": "Kategorie speichern",
+      "submitting": "Wird gespeichert…",
+      "customColor": "Eigene Farbe"
+    },
+    "icons": {
+      "shopping-cart": "Einkaufswagen",
+      "utensils": "Essen",
+      "home": "Wohnen",
+      "car": "Auto",
+      "zap": "Nebenkosten",
+      "heart": "Gesundheit",
+      "gift": "Geschenke",
+      "plane": "Reisen",
+      "briefcase": "Arbeit",
+      "piggy-bank": "Sparen",
+      "music": "Unterhaltung",
+      "tag": "Etikett"
+    },
+    "colors": {
+      "red": "Rot",
+      "yellow": "Gelb",
+      "green": "Grün",
+      "blue": "Blau",
+      "violet": "Violett",
+      "pink": "Rosa",
+      "slate": "Schiefergrau"
+    },
+    "errors": {
+      "nameRequired": "Gib einen Namen für die Kategorie ein",
+      "nameTooLong": "Der Name darf höchstens {max, number} Zeichen lang sein",
+      "nameTaken": "Für diesen Typ gibt es bereits eine Kategorie mit diesem Namen",
+      "iconInvalid": "Wähle ein Symbol",
+      "colorInvalid": "Verwende eine Farbe wie #2563EB",
+      "kindInvalid": "Wähle einen Typ",
+      "network": "Der Server ist nicht erreichbar. Bitte versuche es später erneut.",
+      "generic": "Etwas ist schiefgelaufen. Bitte versuche es erneut."
+    },
+    "announcements": {
+      "created": "„{name}“ angelegt"
+    }
   }
 }

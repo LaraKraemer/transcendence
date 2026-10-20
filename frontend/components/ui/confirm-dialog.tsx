@@ -1,11 +1,11 @@
 "use client";
 
-import { X } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useEffect, useId, useRef, type ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 
 import { FormAlert } from "@/components/auth/form-parts";
 import { Button } from "@/components/ui/button";
+import { Modal } from "@/components/ui/modal";
 
 type ConfirmDialogProps = {
   open: boolean;
@@ -18,11 +18,7 @@ type ConfirmDialogProps = {
   error?: string | null;
 };
 
-/**
- * Confirmation for a destructive action, built on the native <dialog>:
- * `showModal()` traps focus, makes the page inert, closes on Esc and returns
- * focus to the opener. Styled after the modal in docs/design/desktop/categories.html.
- */
+/** Confirmation for a destructive action. Focus starts on Cancel, so Enter right after opening doesn't confirm. */
 export function ConfirmDialog({
   open,
   title,
@@ -34,68 +30,22 @@ export function ConfirmDialog({
   error,
 }: ConfirmDialogProps) {
   const t = useTranslations("common");
-  const dialogRef = useRef<HTMLDialogElement>(null);
-  const cancelRef = useRef<HTMLButtonElement>(null);
-  const titleId = useId();
   const descriptionId = useId();
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-    if (open && !dialog.open) {
-      dialog.showModal();
-      // Start on the safe choice, so Enter right after opening doesn't confirm.
-      cancelRef.current?.focus();
-    }
-    if (!open && dialog.open) dialog.close();
-  }, [open]);
-
   return (
-    <dialog
-      ref={dialogRef}
-      aria-labelledby={titleId}
-      // Focus starts on Cancel, so without this a screen reader could skip what the action does.
-      aria-describedby={descriptionId}
-      // Esc fires "cancel"; route it through onCancel so React state stays the source of truth.
-      onCancel={(event) => {
-        event.preventDefault();
-        if (!pending) onCancel();
-      }}
-      // Only a backdrop click targets the <dialog> itself: all the padding and gaps
-      // belong to the inner wrapper, so clicks inside the box never land here.
-      onClick={(event) => {
-        if (event.target === event.currentTarget && !pending) onCancel();
-      }}
-      className="m-auto w-[460px] max-w-[calc(100%-2rem)] rounded-[18px] border border-border bg-card p-0 text-foreground shadow-[0_24px_60px_rgba(8,14,25,.3)] backdrop:bg-[rgba(8,14,25,.55)] backdrop:backdrop-blur-[2px]"
-    >
-      <div className="p-7">
-        <div className="mb-3 flex items-center gap-3">
-          <h2 id={titleId} className="min-w-0 text-xl font-bold break-words">
-            {title}
-          </h2>
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={pending}
-            aria-label={t("close")}
-            className="ms-auto flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-[9px] bg-muted text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-          >
-            <X size={16} aria-hidden />
-          </button>
-        </div>
-        <div id={descriptionId} className="mb-6 text-sm text-muted-foreground">
-          {children}
-        </div>
-        <FormAlert message={error ?? null} />
-        <div className="flex gap-3">
-          <Button ref={cancelRef} variant="outline" onClick={onCancel} disabled={pending}>
-            {t("cancel")}
-          </Button>
-          <Button variant="danger" onClick={onConfirm} disabled={pending}>
-            {confirmLabel}
-          </Button>
-        </div>
+    // Described by its text: focus starts on Cancel, so a screen reader could otherwise skip what the action does.
+    <Modal open={open} title={title} onClose={onCancel} busy={pending} describedBy={descriptionId}>
+      <div id={descriptionId} className="mb-6 text-sm text-muted-foreground">
+        {children}
       </div>
-    </dialog>
+      <FormAlert message={error ?? null} />
+      <div className="flex gap-3">
+        <Button variant="outline" onClick={onCancel} disabled={pending} data-autofocus>
+          {t("cancel")}
+        </Button>
+        <Button variant="danger" onClick={onConfirm} disabled={pending}>
+          {confirmLabel}
+        </Button>
+      </div>
+    </Modal>
   );
 }
