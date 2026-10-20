@@ -24,7 +24,7 @@ const userId = "550e8400-e29b-41d4-a716-446655440001";
 
 // Transaction row in schema column order:
 // id, accountId, categoryId, createdById, amountMinor, description, notes,
-// bookedOn, occurredAt, createdAt, updatedAt
+// merchant, bookedOn, occurredAt, createdAt, updatedAt
 function txRow(overrides: Record<string, unknown> = {}) {
   return [
     overrides.id ?? transactionId,
@@ -34,6 +34,7 @@ function txRow(overrides: Record<string, unknown> = {}) {
     overrides.amountMinor ?? "-1000",
     overrides.description ?? "Coffee",
     overrides.notes ?? null,
+    overrides.merchant ?? null,
     overrides.bookedOn ?? "2025-01-15",
     overrides.occurredAt ?? null,
     overrides.createdAt ?? new Date().toISOString(),
@@ -473,7 +474,7 @@ describe("POST /transactions", () => {
     const insertSql: string = query.mock.calls[1]![0].text;
     expect(insertSql).toContain("default"); // confirms defaults are used
     expect(insertSql).not.toContain('"status"');
-    expect(insertParams).toEqual([accountId, userId, -1000, "Coffee", "2025-01-15"]);
+    expect(insertParams).toEqual([accountId, userId, -1000, "Coffee", null, "2025-01-15"]);
   });
 
   it("does not run category query when categoryId is not sent", async () => {
@@ -795,5 +796,93 @@ describe("restored account writes", () => {
       status: 200,
       body: [{ categoryId: null, totalMinor: -1000, count: 1 }],
     });
+  });
+});
+
+describe("transaction merchants", () => {
+  const validBody = { accountId, amountMinor: -1000, description: "Coffee", bookedOn: "2025-01-15" };
+  const merchantError = { error: "merchant must be a string of at most 100 characters or null" };
+
+  it.each([
+    [undefined, null],
+    [null, null],
+    ["", null],
+    [" \t ", null],
+    ["  Cafe  ", "Cafe"],
+    [" " + "a".repeat(100) + " ", "a".repeat(100)],
+  ])("creates with merchant %j", async (merchant, expected) => {
+    query.mockResolvedValueOnce({ rows: [acctRow()] });
+    query.mockResolvedValueOnce({ rows: [txRow({ merchant: expected })] });
+    const body = { ...validBody, ...(merchant === undefined ? {} : { merchant }) };
+    expect(await dispatch(transactionsRouter, { method: "POST", url: "/", body })).toMatchObject({
+      status: 201,
+      body: { merchant: expected },
+    });
+    expect(query.mock.calls[1]![1]).toContain(expected);
+  });
+
+  it.each([null, "", " \t ", "  New Cafe  ", "a".repeat(100)])("sets or clears merchant %j", async (merchant) => {
+    const expected = merchant?.trim() || null;
+    query.mockResolvedValueOnce({ rows: [txRow({ merchant: "Old Cafe" })] });
+    query.mockResolvedValueOnce({ rows: [txRow({ merchant: expected })] });
+    expect(
+      await dispatch(transactionsRouter, { method: "PATCH", url: `/${transactionId}`, body: { merchant } }),
+    ).toMatchObject({ status: 200, body: { merchant: expected } });
+    expect(query.mock.calls[1]![1]).toContain(expected);
+    expect(query.mock.calls[1]![0].text).toContain('"merchant_name" =');
+  });
+
+  it("preserves merchant when PATCH omits it", async () => {
+    query.mockResolvedValueOnce({ rows: [txRow({ merchant: "Cafe" })] });
+    query.mockResolvedValueOnce({ rows: [txRow({ merchant: "Cafe", description: "Lunch" })] });
+    expect(
+      await dispatch(transactionsRouter, { method: "PATCH", url: `/${transactionId}`, body: { description: "Lunch" } }),
+    ).toMatchObject({ status: 200, body: { merchant: "Cafe" } });
+    expect(query.mock.calls[1]![0].text.split(" returning ")[0]).not.toContain('"merchant_name" =');
+  });
+
+  it.each([123, true, [], {}, "a".repeat(101)])("rejects invalid merchant %j without writing", async (merchant) => {
+    expect(await dispatch(transactionsRouter, { method: "POST", url: "/", body: { ...validBody, merchant } })).toEqual({
+      status: 400,
+      body: merchantError,
+    });
+    expect(query).not.toHaveBeenCalled();
+    query.mockResolvedValueOnce({ rows: [txRow()] });
+    expect(
+      await dispatch(transactionsRouter, {
+        method: "PATCH",
+        url: `/${transactionId}`,
+        body: { description: "Lunch", merchant },
+      }),
+    ).toEqual({ status: 400, body: merchantError });
+    expect(query).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([null, "Cafe"])("includes merchant %j in list and detail", async (merchant) => {
+    query.mockResolvedValueOnce({ rows: [acctRow()] });
+    query.mockResolvedValueOnce({ rows: [txRow({ merchant })] });
+    query.mockResolvedValueOnce({ rows: [[1]] });
+    expect(await dispatch(transactionsRouter, { url: "/", query: { accountId } })).toMatchObject({
+      status: 200,
+      body: { items: [{ merchant }] },
+    });
+    query.mockResolvedValueOnce({ rows: [txRow({ merchant })] });
+    expect(await dispatch(transactionsRouter, { url: `/${transactionId}` })).toMatchObject({
+      status: 200,
+      body: { merchant },
+    });
+  });
+
+  it.each(["POST", "PATCH"])("checks ownership for merchant %s", async (method) => {
+    query.mockResolvedValueOnce({ rows: [] });
+    expect(
+      await dispatch(transactionsRouter, {
+        method,
+        url: method === "POST" ? "/" : `/${transactionId}`,
+        body: { ...validBody, merchant: "Cafe" },
+      }),
+    ).toMatchObject({ status: 404 });
+    expect(query).toHaveBeenCalledTimes(1);
+    expect(query.mock.calls[0]![1]).toContain(userId);
   });
 });

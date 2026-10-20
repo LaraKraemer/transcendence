@@ -53,3 +53,11 @@ export function isJpegOrPng(header: Buffer): "image/jpeg" | "image/png" | null {
   if (PNG_SIGNATURE.every((b, i) => header[i] === b)) return "image/png";
   return null;
 }
+
+/** Trims nullable text, treating blanks as null; undefined signals an invalid value. */
+export function parseOptionalText(value: unknown, maxLength: number): string | null | undefined {
+  if (value === null) return null;
+  if (typeof value !== "string") return undefined;
+  const text = value.trim();
+  return text.length > maxLength ? undefined : text || null;
+}
