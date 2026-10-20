@@ -85,7 +85,7 @@ Browser → Next.js `:3000` → Express `:3001` → Postgres `:5432` (bound to 1
 - CORS allows `FRONTEND_ORIGIN` (default `http://localhost:3000`) with credentials, so frontend fetches to `NEXT_PUBLIC_API_URL` must use `credentials: "include"`.
 - Queries live in `srcs/db/{accounts,categories,currencies,transactions,users}.ts`; routers in `srcs/routes/` call them. Reuse these helpers, e.g. `findOwnedAccount`.
 - The schema's source of truth is `srcs/db/schema.ts`. `docs/*-db-schema.md` are target designs that include tables not built yet.
-- Avatar files are stored on a persistent Docker volume mounted at `/app/avatars` (override with `AVATAR_DIR`). File I/O lives in `srcs/storage.ts`; mock it in tests with `vi.mock("../../srcs/storage.ts")`. Storage keys are `<uuid>.<ext>` server-generated — never derived from client-supplied filenames.
+- Avatar files are stored on a persistent Docker volume mounted at `/app/avatars` (override with `AVATAR_DIR`). `PUT /auth/me/avatar` reads a raw JPEG/PNG body through `express.raw` (no multipart); `GET /auth/me` exposes `avatarUrl` as the route `/auth/me/avatar`, never the storage key. File I/O lives in `srcs/storage.ts`; mock it in tests with `vi.mock("../../srcs/storage.ts")`. Storage keys are `<uuid>.<ext>` server-generated — never derived from client-supplied filenames.
 
 | Mount | Routes |
 |---|---|

@@ -216,14 +216,24 @@ deleted at startup and every six hours.
 | `POST` | `/auth/logout` | Revoke the current session |
 | `GET` | `/auth/me` | Return the current authenticated user |
 | `PATCH` | `/auth/me` | Update the current user's display name |
-| `PUT` | `/auth/me/avatar` | Upload or replace the profile image (JPEG/PNG, max 5 MiB) |
+| `PUT` | `/auth/me/avatar` | Upload or replace the profile image (raw JPEG/PNG body, max 5 MiB) |
 | `GET` | `/auth/me/avatar` | Retrieve the profile image |
 | `DELETE` | `/auth/me/avatar` | Remove the profile image |
 
-Avatar uploads are validated by reading the file's format signature (the first
-bytes every JPEG/PNG file must start with per their specs), not by the
-`Content-Type` header or file extension. This prevents a client from uploading
-a non-image file with a renamed extension.
+`PUT /auth/me/avatar` takes the image as the raw request body with
+`Content-Type: image/jpeg` or `image/png` (not multipart). Anything else is
+rejected with 415 and bodies over 5 MiB with 413. The upload is also validated
+by reading the file's format signature (the first bytes every JPEG/PNG file
+must start with), so a renamed non-image with the right header is still
+rejected. `GET /auth/me` returns `avatarUrl` as `/auth/me/avatar` when an image
+exists, otherwise `null`.
+
+```bash
+curl -i -b cookies.txt -X PUT \
+  -H 'Content-Type: image/png' \
+  --data-binary @avatar.png \
+  http://localhost:3001/auth/me/avatar
+```
 
 Example registration request:
 

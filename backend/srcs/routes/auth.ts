@@ -1,6 +1,6 @@
 import { randomBytes, randomUUID } from "node:crypto";
 
-import { Router } from "express";
+import express, { Router } from "express";
 
 import {
   clearSessionCookie,
@@ -21,10 +21,18 @@ import {
   updateUserPassword,
   updateUserProfile,
 } from "../db/users.ts";
-import { deleteAvatar, parseAvatarUpload, readAvatar, writeAvatar } from "../storage.ts";
-import { isValidDisplayName, isValidPassword } from "../validation.ts";
+import { deleteAvatar, readAvatar, writeAvatar } from "../storage.ts";
+import { isJpegOrPng, isValidDisplayName, isValidPassword } from "../validation.ts";
 
 export const authRouter = Router();
+const avatarMaxBytes = 5 * 1024 * 1024;
+const avatarRoute = "/auth/me/avatar";
+
+/** Replaces the stored avatar key with the retrieval route so storage details never reach clients. */
+function toPublicUser<User extends { avatarUrl: string | null }>(user: User) {
+  return { ...user, avatarUrl: user.avatarUrl ? avatarRoute : null };
+}
+
 // Unknown emails must do the same bcrypt work as a wrong password for an existing user.
 const dummyPasswordHash = hashPassword(randomBytes(32).toString("hex"));
 
@@ -99,13 +107,16 @@ authRouter.get("/me", async (req, res) => {
   }
 
   const user = await findUserById(userId);
-  res.json({ user });
+  res.json({ user: user && toPublicUser(user) });
 });
 
 /** Permanently deletes the authenticated profile and signs out every device. */
 authRouter.delete("/me", requireAuthenticatedUser, async (_req, res, next) => {
   try {
-    await deleteUser(res.locals.userId as string);
+    const userId = res.locals.userId as string;
+    const user = await findUserById(userId);
+    await deleteUser(userId);
+    if (user?.avatarUrl) deleteAvatar(user.avatarUrl).catch(() => {});
     clearSessionCookie(res);
     res.status(204).send();
   } catch (error) {
@@ -133,34 +144,45 @@ authRouter.patch("/me", requireAuthenticatedUser, async (req, res, next) => {
   }
 });
 
-/** Uploads or replaces the authenticated user's profile image. */
-authRouter.put("/me/avatar", requireAuthenticatedUser, async (req, res, next) => {
-  let newKey: string | undefined;
-  try {
-    const { buffer, mimeType } = await parseAvatarUpload(req);
-    const ext = mimeType === "image/jpeg" ? ".jpg" : ".png";
-    newKey = `${randomUUID()}${ext}`;
-
-    const userId = res.locals.userId as string;
-    const oldUser = await findUserById(userId);
-
-    await writeAvatar(newKey, buffer);
-    await updateUserAvatarUrl(userId, newKey);
-
-    if (oldUser?.avatarUrl) deleteAvatar(oldUser.avatarUrl).catch(() => {});
-
-    const user = await findUserById(userId);
-    res.json({ user });
-  } catch (error) {
-    if (newKey) deleteAvatar(newKey).catch(() => {});
-    const err = error as { status?: number; message?: string };
-    if (err.status === 400 || err.status === 413 || err.status === 415) {
-      res.status(err.status).json({ error: err.message });
+/** Uploads or replaces the authenticated user's profile image (raw JPEG or PNG request body). */
+authRouter.put(
+  "/me/avatar",
+  requireAuthenticatedUser,
+  express.raw({ type: ["image/jpeg", "image/png"], limit: avatarMaxBytes }),
+  async (req, res, next) => {
+    const image: unknown = req.body;
+    const mimeType = Buffer.isBuffer(image) ? isJpegOrPng(image) : null;
+    if (!Buffer.isBuffer(image) || mimeType === null) {
+      res.status(415).json({ error: "Body must be a JPEG or PNG image" });
       return;
     }
-    next(error);
-  }
-});
+
+    let newKey: string | undefined;
+    let isSaved = false;
+    try {
+      const userId = res.locals.userId as string;
+      const oldUser = await findUserById(userId);
+      if (!oldUser) {
+        res.status(404).json({ error: "User not found" });
+        return;
+      }
+
+      // tradeoff: two simultaneous uploads by one user can orphan a file; fix with a row lock or a sweep.
+      const fileExtension = mimeType === "image/jpeg" ? ".jpg" : ".png";
+      newKey = `${randomUUID()}${fileExtension}`;
+      await writeAvatar(newKey, image);
+      await updateUserAvatarUrl(userId, newKey);
+      isSaved = true;
+
+      if (oldUser.avatarUrl) deleteAvatar(oldUser.avatarUrl).catch(() => {});
+      res.json({ user: toPublicUser({ ...oldUser, avatarUrl: newKey }) });
+    } catch (error) {
+      // Once the database points at newKey, the file must survive any later failure.
+      if (newKey && !isSaved) deleteAvatar(newKey).catch(() => {});
+      next(error);
+    }
+  },
+);
 
 /** Returns the authenticated user's profile image. */
 authRouter.get("/me/avatar", requireAuthenticatedUser, async (req, res, next) => {
@@ -188,8 +210,8 @@ authRouter.delete("/me/avatar", requireAuthenticatedUser, async (req, res, next)
   try {
     const userId = res.locals.userId as string;
     const user = await findUserById(userId);
-    if (user?.avatarUrl) await deleteAvatar(user.avatarUrl);
     await updateUserAvatarUrl(userId, null);
+    if (user?.avatarUrl) deleteAvatar(user.avatarUrl).catch(() => {});
     res.status(204).send();
   } catch (error) {
     next(error);

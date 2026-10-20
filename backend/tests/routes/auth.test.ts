@@ -6,9 +6,8 @@ vi.mock("../../srcs/db/client.ts", async () => {
   return { db: drizzle({ query } as unknown as import("pg").Pool) };
 });
 
-// Mock storage to keep file I/O and busboy out of unit tests.
+// Mock storage to keep file I/O out of unit tests.
 const storageMocks = vi.hoisted(() => ({
-  parseAvatarUpload: vi.fn(),
   writeAvatar: vi.fn(),
   readAvatar: vi.fn(),
   deleteAvatar: vi.fn(),
@@ -332,8 +331,18 @@ describe("GET /me", () => {
     const result = await dispatch(authRouter, { method: "GET", url: "/me" });
 
     expect(result.status).toBe(200);
+    expect(result.body).toEqual({
+      user: { id: userId, email: "alice@example.com", displayName: "Alice", avatarUrl: null },
+    });
     const sql: string = query.mock.calls[0]![0].text;
     expect(sql).not.toContain("password_hash");
+  });
+
+  it("exposes the avatar route instead of the storage key", async () => {
+    authMocks.getAuthenticatedUserId.mockResolvedValueOnce(userId);
+    query.mockResolvedValueOnce({ rows: [[userId, "alice@example.com", "Alice", "secret-key.png"]] });
+    const result = await dispatch(authRouter, { method: "GET", url: "/me" });
+    expect(result.body).toMatchObject({ user: { avatarUrl: "/auth/me/avatar" } });
   });
 
   it("forwards database errors", async () => {
@@ -357,18 +366,30 @@ describe("DELETE /me", () => {
 
   it("deletes only the authenticated user and clears the session cookie", async () => {
     query.mockResolvedValueOnce({ rows: [[userId]] });
+    query.mockResolvedValueOnce({ rows: [meRow()] }); // findUserById
     query.mockResolvedValueOnce({ rows: [] });
     expect(await remove({ session: "valid" })).toEqual({ status: 204, body: undefined });
-    expect(query.mock.calls[1]![0].text).toMatch(/^delete from "app_user" where "app_user"\."id" = \$1$/);
-    expect(query.mock.calls[1]![1]).toEqual([userId]);
+    expect(query.mock.calls[2]![0].text).toMatch(/^delete from "app_user" where "app_user"\."id" = \$1$/);
+    expect(query.mock.calls[2]![1]).toEqual([userId]);
     expect(authMocks.clearSessionCookie).toHaveBeenCalledOnce();
+    expect(storageMocks.deleteAvatar).not.toHaveBeenCalled();
+  });
+
+  it("removes the avatar file once the user is deleted", async () => {
+    query.mockResolvedValueOnce({ rows: [[userId]] });
+    query.mockResolvedValueOnce({ rows: [meRow("photo.jpg")] });
+    query.mockResolvedValueOnce({ rows: [] });
+    await remove({ session: "valid" });
+    expect(storageMocks.deleteAvatar).toHaveBeenCalledWith("photo.jpg");
   });
 
   it("forwards deletion failures without clearing the cookie", async () => {
     query.mockResolvedValueOnce({ rows: [[userId]] });
+    query.mockResolvedValueOnce({ rows: [meRow("photo.jpg")] });
     query.mockRejectedValueOnce(new Error("Deletion failed"));
     await expect(remove({ session: "valid" })).rejects.toThrow();
     expect(authMocks.clearSessionCookie).not.toHaveBeenCalled();
+    expect(storageMocks.deleteAvatar).not.toHaveBeenCalled();
   });
 });
 
@@ -560,55 +581,82 @@ function meRow(avatarUrl: string | null = null) {
   return [userId, "alice@example.com", "Alice", avatarUrl];
 }
 
+const jpegBytes = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00]);
+const pngBytes = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00]);
+
 describe("PUT /me/avatar", () => {
-  const avatarRequest = () => dispatch(authRouter, { method: "PUT", url: "/me/avatar", cookies: { session: "token" } });
+  const avatarRequest = (body?: unknown) =>
+    dispatch(authRouter, { method: "PUT", url: "/me/avatar", body, cookies: { session: "token" } });
 
   it("returns 401 without authentication", async () => {
-    expect((await dispatch(authRouter, { method: "PUT", url: "/me/avatar" })).status).toBe(401);
-    expect(storageMocks.parseAvatarUpload).not.toHaveBeenCalled();
+    expect((await dispatch(authRouter, { method: "PUT", url: "/me/avatar", body: jpegBytes })).status).toBe(401);
+    expect(storageMocks.writeAvatar).not.toHaveBeenCalled();
   });
 
-  it("returns 415 when the upload is not a valid image", async () => {
+  it.each([
+    ["a missing body", undefined],
+    ["a parsed JSON body", {}],
+    ["bytes that are not JPEG or PNG", Buffer.from("not an image")],
+  ])("returns 415 for %s", async (_label, body) => {
     query.mockResolvedValueOnce({ rows: [[userId]] }); // requireAuthenticatedUser session lookup
-    storageMocks.parseAvatarUpload.mockRejectedValueOnce(
-      Object.assign(new Error("Only JPEG and PNG images are accepted"), { status: 415 }),
-    );
-    expect((await avatarRequest()).status).toBe(415);
+    expect(await avatarRequest(body)).toEqual({
+      status: 415,
+      body: { error: "Body must be a JPEG or PNG image" },
+    });
     expect(storageMocks.writeAvatar).not.toHaveBeenCalled();
   });
 
-  it("returns 413 when the file is too large", async () => {
-    query.mockResolvedValueOnce({ rows: [[userId]] });
-    storageMocks.parseAvatarUpload.mockRejectedValueOnce(
-      Object.assign(new Error("File exceeds 5 MiB limit"), { status: 413 }),
-    );
-    expect((await avatarRequest()).status).toBe(413);
-    expect(storageMocks.writeAvatar).not.toHaveBeenCalled();
-  });
-
-  it("returns 200 with avatarUrl on valid JPEG upload", async () => {
+  it("stores a JPEG and returns the avatar route instead of the key", async () => {
     query.mockResolvedValueOnce({ rows: [[userId]] }); // session lookup
-    storageMocks.parseAvatarUpload.mockResolvedValueOnce({ buffer: Buffer.from("img"), mimeType: "image/jpeg" });
     query.mockResolvedValueOnce({ rows: [meRow()] }); // findUserById (old key)
     query.mockResolvedValueOnce({ rows: [] }); // updateUserAvatarUrl
-    query.mockResolvedValueOnce({ rows: [meRow("abc123.jpg")] }); // findUserById (new key)
 
-    const result = await avatarRequest();
-    expect(result.status).toBe(200);
-    const body = result.body as { user: { avatarUrl: string } };
-    expect(body.user.avatarUrl).toBe("abc123.jpg");
-    expect(storageMocks.writeAvatar).toHaveBeenCalledTimes(1);
+    const result = await avatarRequest(jpegBytes);
+    expect(result).toEqual({
+      status: 200,
+      body: { user: { id: userId, email: "alice@example.com", displayName: "Alice", avatarUrl: "/auth/me/avatar" } },
+    });
+    const [storedKey, storedBytes] = storageMocks.writeAvatar.mock.calls[0]!;
+    expect(storedKey).toMatch(/^[0-9a-f-]{36}\.jpg$/);
+    expect(storedBytes).toBe(jpegBytes);
+    expect(query.mock.calls[2]![1]).toContain(storedKey);
+  });
+
+  it("stores a PNG with a .png key", async () => {
+    query.mockResolvedValueOnce({ rows: [[userId]] });
+    query.mockResolvedValueOnce({ rows: [meRow()] });
+    query.mockResolvedValueOnce({ rows: [] });
+    await avatarRequest(pngBytes);
+    expect(storageMocks.writeAvatar.mock.calls[0]![0]).toMatch(/\.png$/);
   });
 
   it("deletes the old avatar when replacing", async () => {
     query.mockResolvedValueOnce({ rows: [[userId]] });
-    storageMocks.parseAvatarUpload.mockResolvedValueOnce({ buffer: Buffer.from("img"), mimeType: "image/png" });
-    query.mockResolvedValueOnce({ rows: [meRow("old-key.jpg")] }); // findUserById
-    query.mockResolvedValueOnce({ rows: [] }); // updateUserAvatarUrl
-    query.mockResolvedValueOnce({ rows: [meRow("new-key.png")] }); // findUserById
+    query.mockResolvedValueOnce({ rows: [meRow("old-key.jpg")] });
+    query.mockResolvedValueOnce({ rows: [] });
 
-    await avatarRequest();
+    await avatarRequest(pngBytes);
     expect(storageMocks.deleteAvatar).toHaveBeenCalledWith("old-key.jpg");
+  });
+
+  it("removes the new file when the database update fails", async () => {
+    query.mockResolvedValueOnce({ rows: [[userId]] });
+    query.mockResolvedValueOnce({ rows: [meRow("old-key.jpg")] });
+    query.mockRejectedValueOnce(new Error("DB down"));
+
+    await expect(avatarRequest(jpegBytes)).rejects.toThrow();
+    const [newKey] = storageMocks.writeAvatar.mock.calls[0]!;
+    expect(storageMocks.deleteAvatar).toHaveBeenCalledExactlyOnceWith(newKey);
+  });
+
+  it("keeps the new file when the old file cannot be removed", async () => {
+    query.mockResolvedValueOnce({ rows: [[userId]] });
+    query.mockResolvedValueOnce({ rows: [meRow("old-key.jpg")] });
+    query.mockResolvedValueOnce({ rows: [] });
+    storageMocks.deleteAvatar.mockRejectedValueOnce(new Error("disk error"));
+
+    expect((await avatarRequest(jpegBytes)).status).toBe(200);
+    expect(storageMocks.deleteAvatar).toHaveBeenCalledExactlyOnceWith("old-key.jpg");
   });
 });
 
@@ -639,6 +687,8 @@ describe("GET /me/avatar", () => {
     storageMocks.readAvatar.mockResolvedValueOnce(buf);
     const result = await avatarGet();
     expect(result.status).toBe(200);
+    expect(result.contentType).toBe("image/jpeg");
+    expect(result.body).toBe(buf);
     expect(storageMocks.readAvatar).toHaveBeenCalledWith("photo.jpg");
   });
 });
@@ -659,6 +709,8 @@ describe("DELETE /me/avatar", () => {
     const result = await avatarDelete();
     expect(result.status).toBe(204);
     expect(storageMocks.deleteAvatar).toHaveBeenCalledWith("photo.jpg");
+    // The database is cleared before the file goes, so a failure never leaves a dangling key.
+    expect(query.mock.invocationCallOrder[2]!).toBeLessThan(storageMocks.deleteAvatar.mock.invocationCallOrder[0]!);
   });
 
   it("returns 204 when no avatar is set (idempotent)", async () => {
