@@ -24,6 +24,8 @@ export function SelectField({
       <label htmlFor={id} className="mb-[7px] block text-[13px] font-semibold">
         {label}
       </label>
+      {/* The native arrow can't be spaced from the edge, so it's hidden and drawn
+          as an icon at the input's own inline padding (mirrors in RTL). */}
       <div className="relative">
         <select
           id={id}
