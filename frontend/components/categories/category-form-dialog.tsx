@@ -165,7 +165,7 @@ function CategoryForm({
 
   return (
     <form onSubmit={handleSubmit} noValidate>
-      <fieldset disabled={isPending}>
+      <fieldset disabled={isPending} className="min-w-0">
         <CategoryPreview
           name={values.name.trim() || t("form.previewName")}
           kind={values.kind as CategoryKind}

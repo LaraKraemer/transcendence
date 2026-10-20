@@ -7,6 +7,8 @@ import { useEffect, useId, useRef, type ReactNode } from "react";
 type ModalProps = {
   open: boolean;
   title: string;
+  /** Hides the title visually (screen readers still use it as the dialog's name), e.g. when the content already says it. */
+  titleHidden?: boolean;
   onClose: () => void;
   /** While true (e.g. a request is running), Esc, the backdrop and ✕ don't close it. */
   busy?: boolean;
@@ -20,7 +22,7 @@ type ModalProps = {
  * inert, and returns focus to the opener on close. Focus starts on the element
  * marked `data-autofocus`. Styled after the modal in docs/design/desktop/categories.html.
  */
-export function Modal({ open, title, onClose, busy, describedBy, children }: ModalProps) {
+export function Modal({ open, title, titleHidden, onClose, busy, describedBy, children }: ModalProps) {
   const t = useTranslations("common");
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
@@ -68,9 +70,11 @@ export function Modal({ open, title, onClose, busy, describedBy, children }: Mod
       className="m-auto max-h-[calc(100%-2rem)] w-[460px] max-w-[calc(100%-2rem)] overflow-hidden rounded-[18px] border border-border bg-card p-0 text-foreground shadow-[0_24px_60px_rgba(8,14,25,.3)] open:flex open:flex-col backdrop:bg-[rgba(8,14,25,.55)] backdrop:backdrop-blur-[2px]"
     >
       <div className="flex min-h-0 flex-col py-3">
-        <div className="min-h-0 overflow-y-auto px-7 py-4">
-          <div className="mb-3 flex items-center gap-3">
-            <h2 id={titleId} className="min-w-0 text-xl font-bold break-words">
+        <div className="relative min-h-0 overflow-y-auto px-7 py-4">
+          {/* With the title hidden, only ✕ is left: pin it to the corner instead of leaving an empty row.
+              The content's first line then has to leave room for it (pe-11). */}
+          <div className={titleHidden ? "absolute end-7 top-4" : "mb-3 flex items-center gap-3"}>
+            <h2 id={titleId} className={titleHidden ? "sr-only" : "min-w-0 text-xl font-bold break-words"}>
               {title}
             </h2>
             <button

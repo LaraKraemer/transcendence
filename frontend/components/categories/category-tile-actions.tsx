@@ -131,10 +131,14 @@ function ColorDialog({ category, onClose }: { category: Category; onClose: () =>
   }
 
   return (
-    <Modal open title={t("colorDialog.title", { name: category.name })} onClose={onClose} busy={isPending}>
+    // The preview already shows the name, so the title is only for screen readers.
+    <Modal open title={t("colorDialog.title", { name: category.name })} titleHidden onClose={onClose} busy={isPending}>
       <form onSubmit={handleSubmit} noValidate>
-        <fieldset disabled={isPending}>
-          <CategoryPreview name={category.name} kind={category.kind} icon={category.icon} color={color} />
+        <fieldset disabled={isPending} className="min-w-0">
+          {/* pe-11 keeps a long name clear of the modal's ✕. */}
+          <div className="pe-11">
+            <CategoryPreview name={category.name} kind={category.kind} icon={category.icon} color={color} />
+          </div>
           <FormAlert message={error && t(`errors.${error}`)} />
           <ColorField
             value={color}
