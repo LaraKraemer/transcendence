@@ -40,6 +40,7 @@ services:
       # Keep the repository-level formatting rules available above /app.
       - ./.prettierrc.json:/.prettierrc.json:ro
       - /app/node_modules
+      - avatar-data:/app/avatars
 
     environment:
       NODE_ENV: development
@@ -83,3 +84,4 @@ services:
 
 volumes:
   db-data:
+  avatar-data:

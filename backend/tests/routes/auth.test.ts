@@ -6,6 +6,15 @@ vi.mock("../../srcs/db/client.ts", async () => {
   return { db: drizzle({ query } as unknown as import("pg").Pool) };
 });
 
+// Mock storage to keep file I/O out of unit tests.
+const storageMocks = vi.hoisted(() => ({
+  writeAvatar: vi.fn(),
+  readAvatar: vi.fn(),
+  deleteAvatar: vi.fn(),
+  avatarDir: vi.fn().mockReturnValue("/tmp/avatars"),
+}));
+vi.mock("../../srcs/storage.ts", () => storageMocks);
+
 // Mock auth helpers to keep bcrypt out of these tests.
 const authMocks = vi.hoisted(() => ({
   createSession: vi.fn(),
@@ -60,6 +69,9 @@ beforeEach(() => {
   authMocks.clearSessionCookie.mockReturnValue(undefined);
   authMocks.verifyPassword.mockResolvedValue(true);
   authMocks.getAuthenticatedUserId.mockResolvedValue(undefined);
+  storageMocks.writeAvatar.mockResolvedValue(undefined);
+  storageMocks.deleteAvatar.mockResolvedValue(undefined);
+  storageMocks.avatarDir.mockReturnValue("/tmp/avatars");
 });
 
 // ─── POST /register ───────────────────────────────────────────────────────────
@@ -313,14 +325,24 @@ describe("GET /me", () => {
 
   it("returns 200 with user, select does not include password_hash", async () => {
     authMocks.getAuthenticatedUserId.mockResolvedValueOnce(userId);
-    // findUserById returns { id, email, displayName }
-    query.mockResolvedValueOnce({ rows: [[userId, "alice@example.com", "Alice"]] });
+    // findUserById returns { id, email, displayName, avatarUrl }
+    query.mockResolvedValueOnce({ rows: [[userId, "alice@example.com", "Alice", null]] });
 
     const result = await dispatch(authRouter, { method: "GET", url: "/me" });
 
     expect(result.status).toBe(200);
+    expect(result.body).toEqual({
+      user: { id: userId, email: "alice@example.com", displayName: "Alice", avatarUrl: null },
+    });
     const sql: string = query.mock.calls[0]![0].text;
     expect(sql).not.toContain("password_hash");
+  });
+
+  it("exposes the avatar route instead of the storage key", async () => {
+    authMocks.getAuthenticatedUserId.mockResolvedValueOnce(userId);
+    query.mockResolvedValueOnce({ rows: [[userId, "alice@example.com", "Alice", "secret-key.png"]] });
+    const result = await dispatch(authRouter, { method: "GET", url: "/me" });
+    expect(result.body).toMatchObject({ user: { avatarUrl: "/auth/me/avatar" } });
   });
 
   it("forwards database errors", async () => {
@@ -344,18 +366,30 @@ describe("DELETE /me", () => {
 
   it("deletes only the authenticated user and clears the session cookie", async () => {
     query.mockResolvedValueOnce({ rows: [[userId]] });
+    query.mockResolvedValueOnce({ rows: [meRow()] }); // findUserById
     query.mockResolvedValueOnce({ rows: [] });
     expect(await remove({ session: "valid" })).toEqual({ status: 204, body: undefined });
-    expect(query.mock.calls[1]![0].text).toMatch(/^delete from "app_user" where "app_user"\."id" = \$1$/);
-    expect(query.mock.calls[1]![1]).toEqual([userId]);
+    expect(query.mock.calls[2]![0].text).toMatch(/^delete from "app_user" where "app_user"\."id" = \$1$/);
+    expect(query.mock.calls[2]![1]).toEqual([userId]);
     expect(authMocks.clearSessionCookie).toHaveBeenCalledOnce();
+    expect(storageMocks.deleteAvatar).not.toHaveBeenCalled();
+  });
+
+  it("removes the avatar file once the user is deleted", async () => {
+    query.mockResolvedValueOnce({ rows: [[userId]] });
+    query.mockResolvedValueOnce({ rows: [meRow("photo.jpg")] });
+    query.mockResolvedValueOnce({ rows: [] });
+    await remove({ session: "valid" });
+    expect(storageMocks.deleteAvatar).toHaveBeenCalledWith("photo.jpg");
   });
 
   it("forwards deletion failures without clearing the cookie", async () => {
     query.mockResolvedValueOnce({ rows: [[userId]] });
+    query.mockResolvedValueOnce({ rows: [meRow("photo.jpg")] });
     query.mockRejectedValueOnce(new Error("Deletion failed"));
     await expect(remove({ session: "valid" })).rejects.toThrow();
     expect(authMocks.clearSessionCookie).not.toHaveBeenCalled();
+    expect(storageMocks.deleteAvatar).not.toHaveBeenCalled();
   });
 });
 
@@ -522,20 +556,178 @@ describe("PATCH /me", () => {
 
   it("returns 200 with updated user on valid displayName", async () => {
     query.mockResolvedValueOnce({ rows: [[userId]] }); // requireAuthenticatedUser session lookup
-    query.mockResolvedValueOnce({ rows: [[userId, "alice@example.com", "Bob"]] }); // updateUserProfile returning
+    query.mockResolvedValueOnce({ rows: [[userId, "alice@example.com", "Bob", null]] }); // updateUserProfile returning
     const result = await patch({ displayName: "Bob" });
     expect(result).toEqual({
       status: 200,
-      body: { user: { id: userId, email: "alice@example.com", displayName: "Bob" } },
+      body: { user: { id: userId, email: "alice@example.com", displayName: "Bob", avatarUrl: null } },
     });
+  });
+
+  it("returns the avatar route, not the storage key, so clients keep the avatar", async () => {
+    query.mockResolvedValueOnce({ rows: [[userId]] });
+    query.mockResolvedValueOnce({ rows: [[userId, "alice@example.com", "Bob", "secret-key.png"]] });
+    const result = await patch({ displayName: "Bob" });
+    expect(result.body).toMatchObject({ user: { avatarUrl: "/auth/me/avatar" } });
   });
 
   it("trims the displayName before storing", async () => {
     query.mockResolvedValueOnce({ rows: [[userId]] });
-    query.mockResolvedValueOnce({ rows: [[userId, "alice@example.com", "Bob"]] });
+    query.mockResolvedValueOnce({ rows: [[userId, "alice@example.com", "Bob", null]] });
     await patch({ displayName: "  Bob  " });
     const updateParams: unknown[] = query.mock.calls[1]![1];
     expect(updateParams).toContain("Bob");
     expect(updateParams).not.toContain("  Bob  ");
+  });
+});
+
+// ─── Avatar endpoints ─────────────────────────────────────────────────────────
+
+// findUserById positional row: [id, email, displayName, avatarUrl]
+function meRow(avatarUrl: string | null = null) {
+  return [userId, "alice@example.com", "Alice", avatarUrl];
+}
+
+const jpegBytes = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00]);
+const pngBytes = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00]);
+
+describe("PUT /me/avatar", () => {
+  const avatarRequest = (body?: unknown) =>
+    dispatch(authRouter, { method: "PUT", url: "/me/avatar", body, cookies: { session: "token" } });
+
+  it("returns 401 without authentication", async () => {
+    expect((await dispatch(authRouter, { method: "PUT", url: "/me/avatar", body: jpegBytes })).status).toBe(401);
+    expect(storageMocks.writeAvatar).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["a missing body", undefined],
+    ["a parsed JSON body", {}],
+    ["bytes that are not JPEG or PNG", Buffer.from("not an image")],
+  ])("returns 415 for %s", async (_label, body) => {
+    query.mockResolvedValueOnce({ rows: [[userId]] }); // requireAuthenticatedUser session lookup
+    expect(await avatarRequest(body)).toEqual({
+      status: 415,
+      body: { error: "Body must be a JPEG or PNG image" },
+    });
+    expect(storageMocks.writeAvatar).not.toHaveBeenCalled();
+  });
+
+  it("stores a JPEG and returns the avatar route instead of the key", async () => {
+    query.mockResolvedValueOnce({ rows: [[userId]] }); // session lookup
+    query.mockResolvedValueOnce({ rows: [meRow()] }); // findUserById (old key)
+    query.mockResolvedValueOnce({ rows: [] }); // updateUserAvatarUrl
+
+    const result = await avatarRequest(jpegBytes);
+    expect(result).toEqual({
+      status: 200,
+      body: { user: { id: userId, email: "alice@example.com", displayName: "Alice", avatarUrl: "/auth/me/avatar" } },
+    });
+    const [storedKey, storedBytes] = storageMocks.writeAvatar.mock.calls[0]!;
+    expect(storedKey).toMatch(/^[0-9a-f-]{36}\.jpg$/);
+    expect(storedBytes).toBe(jpegBytes);
+    expect(query.mock.calls[2]![1]).toContain(storedKey);
+  });
+
+  it("stores a PNG with a .png key", async () => {
+    query.mockResolvedValueOnce({ rows: [[userId]] });
+    query.mockResolvedValueOnce({ rows: [meRow()] });
+    query.mockResolvedValueOnce({ rows: [] });
+    await avatarRequest(pngBytes);
+    expect(storageMocks.writeAvatar.mock.calls[0]![0]).toMatch(/\.png$/);
+  });
+
+  it("deletes the old avatar when replacing", async () => {
+    query.mockResolvedValueOnce({ rows: [[userId]] });
+    query.mockResolvedValueOnce({ rows: [meRow("old-key.jpg")] });
+    query.mockResolvedValueOnce({ rows: [] });
+
+    await avatarRequest(pngBytes);
+    expect(storageMocks.deleteAvatar).toHaveBeenCalledWith("old-key.jpg");
+  });
+
+  it("removes the new file when the database update fails", async () => {
+    query.mockResolvedValueOnce({ rows: [[userId]] });
+    query.mockResolvedValueOnce({ rows: [meRow("old-key.jpg")] });
+    query.mockRejectedValueOnce(new Error("DB down"));
+
+    await expect(avatarRequest(jpegBytes)).rejects.toThrow();
+    const [newKey] = storageMocks.writeAvatar.mock.calls[0]!;
+    expect(storageMocks.deleteAvatar).toHaveBeenCalledExactlyOnceWith(newKey);
+  });
+
+  it("keeps the new file when the old file cannot be removed", async () => {
+    query.mockResolvedValueOnce({ rows: [[userId]] });
+    query.mockResolvedValueOnce({ rows: [meRow("old-key.jpg")] });
+    query.mockResolvedValueOnce({ rows: [] });
+    storageMocks.deleteAvatar.mockRejectedValueOnce(new Error("disk error"));
+
+    expect((await avatarRequest(jpegBytes)).status).toBe(200);
+    expect(storageMocks.deleteAvatar).toHaveBeenCalledExactlyOnceWith("old-key.jpg");
+  });
+});
+
+describe("GET /me/avatar", () => {
+  const avatarGet = () => dispatch(authRouter, { method: "GET", url: "/me/avatar", cookies: { session: "token" } });
+
+  it("returns 401 without authentication", async () => {
+    expect((await dispatch(authRouter, { method: "GET", url: "/me/avatar" })).status).toBe(401);
+  });
+
+  it("returns 404 when no avatar is set", async () => {
+    query.mockResolvedValueOnce({ rows: [[userId]] }); // session lookup
+    query.mockResolvedValueOnce({ rows: [meRow(null)] }); // findUserById
+    expect((await avatarGet()).status).toBe(404);
+  });
+
+  it("returns 404 when avatar key is set but file is missing", async () => {
+    query.mockResolvedValueOnce({ rows: [[userId]] });
+    query.mockResolvedValueOnce({ rows: [meRow("lost.jpg")] });
+    storageMocks.readAvatar.mockResolvedValueOnce(null);
+    expect((await avatarGet()).status).toBe(404);
+  });
+
+  it("returns 200 with image buffer and correct content-type for JPEG", async () => {
+    const buf = Buffer.from("fakeimage");
+    query.mockResolvedValueOnce({ rows: [[userId]] });
+    query.mockResolvedValueOnce({ rows: [meRow("photo.jpg")] });
+    storageMocks.readAvatar.mockResolvedValueOnce(buf);
+    const result = await avatarGet();
+    expect(result.status).toBe(200);
+    expect(result.contentType).toBe("image/jpeg");
+    expect(result.headers).toEqual({ "Cache-Control": "no-cache" });
+    expect(result.body).toBe(buf);
+    expect(storageMocks.readAvatar).toHaveBeenCalledWith("photo.jpg");
+  });
+});
+
+describe("DELETE /me/avatar", () => {
+  const avatarDelete = () =>
+    dispatch(authRouter, { method: "DELETE", url: "/me/avatar", cookies: { session: "token" } });
+
+  it("returns 401 without authentication", async () => {
+    expect((await dispatch(authRouter, { method: "DELETE", url: "/me/avatar" })).status).toBe(401);
+  });
+
+  it("removes the avatar file and clears avatar_url, returns 204", async () => {
+    query.mockResolvedValueOnce({ rows: [[userId]] }); // session lookup
+    query.mockResolvedValueOnce({ rows: [meRow("photo.jpg")] }); // findUserById
+    query.mockResolvedValueOnce({ rows: [] }); // updateUserAvatarUrl
+
+    const result = await avatarDelete();
+    expect(result.status).toBe(204);
+    expect(storageMocks.deleteAvatar).toHaveBeenCalledWith("photo.jpg");
+    // The database is cleared before the file goes, so a failure never leaves a dangling key.
+    expect(query.mock.invocationCallOrder[2]!).toBeLessThan(storageMocks.deleteAvatar.mock.invocationCallOrder[0]!);
+  });
+
+  it("returns 204 when no avatar is set (idempotent)", async () => {
+    query.mockResolvedValueOnce({ rows: [[userId]] });
+    query.mockResolvedValueOnce({ rows: [meRow(null)] });
+    query.mockResolvedValueOnce({ rows: [] }); // updateUserAvatarUrl always runs
+
+    const result = await avatarDelete();
+    expect(result.status).toBe(204);
+    expect(storageMocks.deleteAvatar).not.toHaveBeenCalled();
   });
 });
