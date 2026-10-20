@@ -2,12 +2,14 @@ import type { ComponentProps } from "react";
 
 export type ButtonVariant = "primary" | "success" | "outline" | "danger";
 
+// The filled styles drop to 14px (like outline) on phones, so two buttons side by side fit at 320px.
 const variantClasses: Record<ButtonVariant, string> = {
-  primary: "border-transparent bg-primary py-3.5 text-[15px] text-primary-foreground",
+  primary: "border-transparent bg-primary py-3.5 text-sm sm:text-[15px] text-primary-foreground",
   // White on the dark-mode green is only 2.28:1, so dark text there (8.48:1).
-  success: "border-transparent bg-success py-3.5 text-[15px] text-white dark:text-background",
+  success: "border-transparent bg-success py-3.5 text-sm sm:text-[15px] text-white dark:text-background",
   outline: "border-border bg-card py-[13px] text-sm text-foreground",
-  danger: "border-transparent bg-destructive py-3.5 text-[15px] text-white dark:bg-danger-bg dark:text-destructive",
+  danger:
+    "border-transparent bg-destructive py-3.5 text-sm sm:text-[15px] text-white dark:bg-danger-bg dark:text-destructive",
 };
 
 // ComponentProps includes `ref` (a plain prop in React 19), so callers can focus the button.

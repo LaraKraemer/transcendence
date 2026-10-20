@@ -70,10 +70,10 @@ export function Modal({ open, title, titleHidden, onClose, busy, describedBy, ch
       className="m-auto max-h-[calc(100%-2rem)] w-[460px] max-w-[calc(100%-2rem)] overflow-hidden rounded-[18px] border border-border bg-card p-0 text-foreground shadow-[0_24px_60px_rgba(8,14,25,.3)] open:flex open:flex-col backdrop:bg-[rgba(8,14,25,.55)] backdrop:backdrop-blur-[2px]"
     >
       <div className="flex min-h-0 flex-col py-3">
-        <div className="relative min-h-0 overflow-y-auto px-7 py-4">
+        <div className="relative min-h-0 overflow-y-auto px-5 py-2 sm:px-7 sm:py-4">
           {/* With the title hidden, only ✕ is left: pin it to the corner instead of leaving an empty row.
               The content's first line then has to leave room for it (pe-11). */}
-          <div className={titleHidden ? "absolute end-7 top-4" : "mb-3 flex items-center gap-3"}>
+          <div className={titleHidden ? "absolute end-5 top-2 sm:end-7 sm:top-4" : "mb-3 flex items-center gap-3"}>
             <h2 id={titleId} className={titleHidden ? "sr-only" : "min-w-0 text-xl font-bold break-words"}>
               {title}
             </h2>

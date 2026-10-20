@@ -244,7 +244,8 @@ function CategoryForm({
             {t("form.cancel")}
           </Button>
           <Button type="submit" variant="success">
-            <Check size={16} aria-hidden />
+            {/* Hidden on phones, where the label needs the room. */}
+            <Check size={16} aria-hidden className="max-sm:hidden" />
             {isPending ? t("form.submitting") : t("form.submit")}
           </Button>
         </div>
