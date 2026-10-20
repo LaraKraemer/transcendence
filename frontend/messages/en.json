@@ -258,6 +258,7 @@
   },
   "status": {
     "toAccounts": "Go to accounts",
+    "toSignIn": "Sign in",
     "notFound": {
       "title": "Page not found",
       "description": "This page doesn't exist or isn't available."

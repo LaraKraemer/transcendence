@@ -80,7 +80,8 @@ export async function AppShell({
           <ThemeToggle variant="app" />
         </header>
 
-        <main id="main" className="flex flex-1 flex-col px-4 pt-4 pb-24 lg:px-8 lg:pt-0 lg:pb-12">
+        {/* tabIndex -1: the error page hands focus back here after Try again recovers. */}
+        <main id="main" tabIndex={-1} className="flex flex-1 flex-col px-4 pt-4 pb-24 outline-none lg:px-8 lg:pt-0 lg:pb-12">
           {children}
         </main>
       </div>

@@ -1,6 +1,6 @@
 import type { ComponentProps } from "react";
 
-type ButtonVariant = "primary" | "success" | "outline" | "danger";
+export type ButtonVariant = "primary" | "success" | "outline" | "danger";
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary: "border-transparent bg-primary py-3.5 text-[15px] text-primary-foreground",

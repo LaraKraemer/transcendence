@@ -258,6 +258,7 @@
   },
   "status": {
     "toAccounts": "Zu den Konten",
+    "toSignIn": "Anmelden",
     "notFound": {
       "title": "Seite nicht gefunden",
       "description": "Diese Seite gibt es nicht oder sie ist nicht verfügbar."

@@ -1,11 +1,9 @@
-import { SearchX } from "lucide-react";
 import type { Metadata } from "next";
-import { useTranslations } from "next-intl";
 import { getTranslations } from "next-intl/server";
-import Link from "next/link";
 
-import { StatusPage } from "@/components/status-page";
-import { buttonClassName } from "@/components/ui/button";
+import { AppShell } from "@/components/app-shell/app-shell";
+import { NotFoundStatus } from "@/components/status-page";
+import { getCurrentUser } from "@/lib/dal";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("status.notFound");
@@ -13,21 +11,16 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 /**
- * The 404 page: URLs that match no route, and `notFound()` outside the app shell.
- * (protected)/not-found.tsx shows the same page inside the app shell.
+ * The 404 page for URLs that match no route and `notFound()` in public pages
+ * ((protected)/not-found.tsx covers the protected ones). Logged-in users keep the app shell,
+ * so a typo in the URL doesn't drop them out of the app.
  */
-export default function NotFound({ inAppShell = false }: { inAppShell?: boolean }) {
-  const t = useTranslations();
+export default async function NotFound() {
+  const user = await getCurrentUser();
+  if (!user) return <NotFoundStatus standalone />;
   return (
-    <StatusPage
-      icon={SearchX}
-      title={t("status.notFound.title")}
-      description={t("status.notFound.description")}
-      standalone={!inAppShell}
-    >
-      <Link href="/accounts" className={buttonClassName("primary")}>
-        {t("status.toAccounts")}
-      </Link>
-    </StatusPage>
+    <AppShell displayName={user.displayName} email={user.email}>
+      <NotFoundStatus standalone={false} />
+    </AppShell>
   );
 }

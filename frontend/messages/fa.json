@@ -258,6 +258,7 @@
   },
   "status": {
     "toAccounts": "رفتن به حساب‌ها",
+    "toSignIn": "ورود",
     "notFound": {
       "title": "صفحه پیدا نشد",
       "description": "این صفحه وجود ندارد یا در دسترس نیست."
