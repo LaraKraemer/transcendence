@@ -162,25 +162,16 @@ function CategoryForm({
   }, [fieldErrors, idPrefix]);
 
   const errorText = (code?: CategoryErrorCode) => code && t(`errors.${code}`, { max: MAX_CATEGORY_NAME_LENGTH });
-  const previewColor = HEX_COLOR_PATTERN.test(values.color) ? values.color : undefined;
-  const isCustomColor = !SWATCHES.some((swatch) => swatch.hex === values.color.toUpperCase());
 
   return (
     <form onSubmit={handleSubmit} noValidate>
       <fieldset disabled={isPending}>
-        {/* Live preview, as in the design */}
-        <div className="mb-[22px] flex items-center gap-3.5" aria-hidden>
-          <span
-            className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-muted ring-1 ring-foreground/15 ring-inset"
-            style={previewColor ? { backgroundColor: previewColor, color: readableOn(previewColor) } : undefined}
-          >
-            <CategoryIcon icon={values.icon} size={22} />
-          </span>
-          <div className="min-w-0">
-            <div className="truncate text-sm font-semibold">{values.name.trim() || t("form.previewName")}</div>
-            <div className="text-[13px] text-muted-foreground">{t(`kinds.${values.kind as CategoryKind}`)}</div>
-          </div>
-        </div>
+        <CategoryPreview
+          name={values.name.trim() || t("form.previewName")}
+          kind={values.kind as CategoryKind}
+          icon={values.icon}
+          color={values.color}
+        />
 
         <FormAlert message={error && t(`errors.${error}`)} />
 
@@ -241,68 +232,12 @@ function CategoryForm({
           </div>
         </ChoiceGroup>
 
-        <ChoiceGroup legend={t("form.color")} error={errorText(fieldErrors.color)} idPrefix={`${idPrefix}-color`}>
-          {/* One row: seven presets, then the custom colour. On narrow screens the circles shrink
-              (never below 24px) instead of wrapping. */}
-          <div className="grid grid-cols-8 gap-1 sm:gap-2">
-            {SWATCHES.map((swatch) => {
-              const selected = values.color.toUpperCase() === swatch.hex;
-              return (
-                <label key={swatch.hex} title={t(`colors.${swatch.name}`)} className="flex justify-center">
-                  <input
-                    type="radio"
-                    name="color-swatch"
-                    value={swatch.hex}
-                    checked={selected}
-                    onChange={() => set("color")(swatch.hex)}
-                    aria-label={t(`colors.${swatch.name}`)}
-                    className="peer sr-only"
-                  />
-                  <span
-                    className={`${circleClasses} cursor-pointer peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-card`}
-                    style={{
-                      backgroundColor: swatch.hex,
-                      color: readableOn(swatch.hex),
-                      boxShadow: selected ? selectedRing : undefined,
-                    }}
-                  >
-                    {selected && <Check size={14} aria-hidden />}
-                  </span>
-                </label>
-              );
-            })}
-            {/* Custom colour: the browser's own picker (no library), stretched invisibly over a circle
-                that shows a rainbow until a custom colour is chosen, then that colour with a check. */}
-            <label
-              title={t("form.customColor")}
-              className="relative flex justify-center rounded-full has-[input:focus-visible]:ring-2 has-[input:focus-visible]:ring-ring has-[input:focus-visible]:ring-offset-2 has-[input:focus-visible]:ring-offset-card"
-            >
-              <span
-                aria-hidden
-                className={circleClasses}
-                style={
-                  isCustomColor
-                    ? { backgroundColor: values.color, color: readableOn(values.color), boxShadow: selectedRing }
-                    : {
-                        backgroundImage:
-                          "conic-gradient(#ef4444, #f59e0b, #eab308, #22c55e, #06b6d4, #3b82f6, #8b5cf6, #ec4899, #ef4444)",
-                      }
-                }
-              >
-                {isCustomColor && <Check size={14} aria-hidden />}
-              </span>
-              <input
-                type="color"
-                // The picker needs a lowercase #rrggbb value.
-                value={values.color.toLowerCase()}
-                onChange={(e) => set("color")(e.target.value.toUpperCase())}
-                aria-label={t("form.customColor")}
-                data-field={`${idPrefix}-color`}
-                className="absolute inset-0 size-full cursor-pointer opacity-0"
-              />
-            </label>
-          </div>
-        </ChoiceGroup>
+        <ColorField
+          value={values.color}
+          onChange={set("color")}
+          error={errorText(fieldErrors.color)}
+          idPrefix={`${idPrefix}-color`}
+        />
 
         <div className="mt-2 flex gap-3">
           <Button variant="outline" onClick={onDone}>
@@ -315,5 +250,118 @@ function CategoryForm({
         </div>
       </fieldset>
     </form>
+  );
+}
+
+/** The live preview at the top of the category forms: the icon on its colour, the name and the kind. */
+export function CategoryPreview({
+  name,
+  kind,
+  icon,
+  color,
+}: {
+  name: string;
+  kind: CategoryKind;
+  icon: string;
+  color: string;
+}) {
+  const t = useTranslations("categories");
+  const previewColor = HEX_COLOR_PATTERN.test(color) ? color : undefined;
+  return (
+    <div className="mb-[22px] flex items-center gap-3.5" aria-hidden>
+      <span
+        className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-muted ring-1 ring-foreground/15 ring-inset"
+        style={previewColor ? { backgroundColor: previewColor, color: readableOn(previewColor) } : undefined}
+      >
+        <CategoryIcon icon={icon} size={22} />
+      </span>
+      <div className="min-w-0">
+        <div className="truncate text-sm font-semibold">{name}</div>
+        <div className="text-[13px] text-muted-foreground">{t(`kinds.${kind}`)}</div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Colour choice: seven presets plus the browser's colour picker. `idPrefix`
+ * marks the custom colour input with `data-field`, for focusing it after an error.
+ */
+export function ColorField({
+  value,
+  onChange,
+  error,
+  idPrefix,
+}: {
+  value: string;
+  onChange: (color: string) => void;
+  error?: string | undefined;
+  idPrefix: string;
+}) {
+  const t = useTranslations("categories");
+  const isCustomColor = !SWATCHES.some((swatch) => swatch.hex === value.toUpperCase());
+  return (
+    <ChoiceGroup legend={t("form.color")} error={error} idPrefix={idPrefix}>
+      {/* One row: seven presets, then the custom colour. On narrow screens the circles shrink
+          (never below 24px) instead of wrapping. */}
+      <div className="grid grid-cols-8 gap-1 sm:gap-2">
+        {SWATCHES.map((swatch) => {
+          const selected = value.toUpperCase() === swatch.hex;
+          return (
+            <label key={swatch.hex} title={t(`colors.${swatch.name}`)} className="flex justify-center">
+              <input
+                type="radio"
+                name="color-swatch"
+                value={swatch.hex}
+                checked={selected}
+                onChange={() => onChange(swatch.hex)}
+                aria-label={t(`colors.${swatch.name}`)}
+                className="peer sr-only"
+              />
+              <span
+                className={`${circleClasses} cursor-pointer peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-card`}
+                style={{
+                  backgroundColor: swatch.hex,
+                  color: readableOn(swatch.hex),
+                  boxShadow: selected ? selectedRing : undefined,
+                }}
+              >
+                {selected && <Check size={14} aria-hidden />}
+              </span>
+            </label>
+          );
+        })}
+        {/* Custom colour: the browser's own picker (no library), stretched invisibly over a circle
+            that shows a rainbow until a custom colour is chosen, then that colour with a check. */}
+        <label
+          title={t("form.customColor")}
+          className="relative flex justify-center rounded-full has-[input:focus-visible]:ring-2 has-[input:focus-visible]:ring-ring has-[input:focus-visible]:ring-offset-2 has-[input:focus-visible]:ring-offset-card"
+        >
+          <span
+            aria-hidden
+            className={circleClasses}
+            style={
+              isCustomColor
+                ? { backgroundColor: value, color: readableOn(value), boxShadow: selectedRing }
+                : {
+                    backgroundImage:
+                      "conic-gradient(#ef4444, #f59e0b, #eab308, #22c55e, #06b6d4, #3b82f6, #8b5cf6, #ec4899, #ef4444)",
+                  }
+            }
+          >
+            {isCustomColor && <Check size={14} aria-hidden />}
+          </span>
+          <input
+            type="color"
+            // The picker needs a lowercase #rrggbb value.
+            value={value.toLowerCase()}
+            onChange={(e) => onChange(e.target.value.toUpperCase())}
+            aria-label={t("form.customColor")}
+            data-field={idPrefix}
+            className="absolute inset-0 size-full cursor-pointer opacity-0"
+          />
+        </label>
+      </div>
+    </ChoiceGroup>
   );
 }

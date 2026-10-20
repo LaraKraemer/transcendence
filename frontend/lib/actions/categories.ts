@@ -14,6 +14,12 @@ import { fetchApiServer } from "@/lib/dal";
 import type { ActionResponse, Category } from "@/lib/types";
 import { CATEGORY_KINDS, HEX_COLOR_PATTERN, MAX_CATEGORY_NAME_LENGTH, type CategoryErrorCode } from "@/lib/validation";
 
+const colorSchema = z
+  .string()
+  .trim()
+  .regex(HEX_COLOR_PATTERN, { error: "colorInvalid" satisfies CategoryErrorCode });
+const categoryIdSchema = z.uuid();
+
 const CreateCategorySchema = z.object({
   name: z
     .string()
@@ -22,10 +28,7 @@ const CreateCategorySchema = z.object({
     .max(MAX_CATEGORY_NAME_LENGTH, { error: "nameTooLong" satisfies CategoryErrorCode }),
   // Only the icons the form offers, so every saved category can be drawn.
   icon: z.string().refine(isCategoryIconKey, { error: "iconInvalid" satisfies CategoryErrorCode }),
-  color: z
-    .string()
-    .trim()
-    .regex(HEX_COLOR_PATTERN, { error: "colorInvalid" satisfies CategoryErrorCode }),
+  color: colorSchema,
   kind: z.enum(CATEGORY_KINDS, { error: "kindInvalid" satisfies CategoryErrorCode }),
 });
 
@@ -60,4 +63,62 @@ export async function createCategory(data: CreateCategoryInput): Promise<ActionR
 
   refresh();
   return { success: true, message: "Category created" };
+}
+
+/** Validates the colour and saves it with `PATCH /categories/:id`. Name, icon and kind aren't editable here. */
+export async function updateCategoryColor(categoryId: string, color: string): Promise<ActionResponse> {
+  if (!categoryIdSchema.safeParse(categoryId).success) {
+    return { success: false, message: "Category not found", status: 404 };
+  }
+  const parsed = colorSchema.safeParse(String(color));
+  if (!parsed.success) {
+    return { success: false, message: "Validation failed", errors: { color: ["colorInvalid"] } };
+  }
+
+  try {
+    await fetchApiServer<Category>(`/categories/${categoryId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ color: parsed.data }),
+    });
+  } catch (error) {
+    return backendFailure(error, "updateCategoryColor");
+  }
+
+  refresh();
+  return { success: true, message: "Category colour saved" };
+}
+
+/**
+ * How many transactions use the category (`GET /transactions/count/:categoryId`),
+ * for the warning before deleting it. `null` when the count couldn't be loaded.
+ */
+export async function countCategoryTransactions(categoryId: string): Promise<number | null> {
+  if (!categoryIdSchema.safeParse(categoryId).success) return null;
+  try {
+    const { transactionCount } = await fetchApiServer<{ transactionCount: number }>(
+      `/transactions/count/${categoryId}`,
+    );
+    return transactionCount;
+  } catch (error) {
+    console.error("countCategoryTransactions: request failed:", error);
+    return null;
+  }
+}
+
+/**
+ * Permanently deletes the category with `DELETE /categories/:id`. Its
+ * transactions are kept; the backend sets their category to none.
+ */
+export async function deleteCategory(categoryId: string): Promise<ActionResponse> {
+  if (!categoryIdSchema.safeParse(categoryId).success) {
+    return { success: false, message: "Category not found", status: 404 };
+  }
+  try {
+    await fetchApiServer<void>(`/categories/${categoryId}`, { method: "DELETE" });
+  } catch (error) {
+    return backendFailure(error, "deleteCategory");
+  }
+
+  refresh();
+  return { success: true, message: "Category deleted" };
 }

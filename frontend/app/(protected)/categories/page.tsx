@@ -4,6 +4,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 
 import { CategoryIcon } from "@/components/categories/category-icon";
 import { NewCategoryButton } from "@/components/categories/category-form-dialog";
+import { CategoryTileActions } from "@/components/categories/category-tile-actions";
 import { LiveStatusProvider } from "@/components/ui/live-status";
 import { getCategories } from "@/lib/dal";
 import { CATEGORY_KINDS, HEX_COLOR_PATTERN, readableOn, type CategoryKind } from "@/lib/validation";
@@ -27,6 +28,8 @@ const KIND_STYLE: Record<CategoryKind, { icon: LucideIcon; className: string; ba
   },
 };
 
+const CATEGORIES_HEADING_ID = "categories-heading";
+
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("nav");
   return { title: t("categories") };
@@ -47,12 +50,19 @@ export default async function CategoriesPage() {
   })).filter((group) => group.categories.length > 0);
 
   return (
-    // The live region announces "created" to screen readers.
+    // The live region announces "created", "colour saved" and "deleted" to screen readers.
     <LiveStatusProvider>
       <div className="mx-auto w-full max-w-6xl pt-2">
         <div className="mb-6 flex flex-wrap items-start gap-4">
           <div className="min-w-0">
-            <h1 className="text-[26px] font-bold tracking-[-0.02em]">{t("title")}</h1>
+            {/* tabIndex -1: focus lands here after a deleted tile disappears. */}
+            <h1
+              id={CATEGORIES_HEADING_ID}
+              tabIndex={-1}
+              className="text-[26px] font-bold tracking-[-0.02em] outline-none"
+            >
+              {t("title")}
+            </h1>
             <p className="mt-1 text-sm text-muted-foreground">{t("subtitle", { count: categories.length })}</p>
           </div>
           <div className="ms-auto">
@@ -117,6 +127,7 @@ export default async function CategoriesPage() {
                               {t(`kinds.${category.kind}`)}
                             </span>
                           </div>
+                          <CategoryTileActions category={category} headingId={CATEGORIES_HEADING_ID} />
                         </li>
                       );
                     })}
