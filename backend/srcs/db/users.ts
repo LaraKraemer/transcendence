@@ -59,7 +59,12 @@ export async function updateUserProfile(id: string, fields: { displayName: strin
     .update(appUsers)
     .set({ ...fields, updatedAt: new Date() })
     .where(eq(appUsers.id, id))
-    .returning({ id: appUsers.id, email: appUsers.email, displayName: appUsers.displayName });
+    .returning({
+      id: appUsers.id,
+      email: appUsers.email,
+      displayName: appUsers.displayName,
+      avatarUrl: appUsers.avatarUrl,
+    });
   return user;
 }
 

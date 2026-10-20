@@ -556,17 +556,24 @@ describe("PATCH /me", () => {
 
   it("returns 200 with updated user on valid displayName", async () => {
     query.mockResolvedValueOnce({ rows: [[userId]] }); // requireAuthenticatedUser session lookup
-    query.mockResolvedValueOnce({ rows: [[userId, "alice@example.com", "Bob"]] }); // updateUserProfile returning
+    query.mockResolvedValueOnce({ rows: [[userId, "alice@example.com", "Bob", null]] }); // updateUserProfile returning
     const result = await patch({ displayName: "Bob" });
     expect(result).toEqual({
       status: 200,
-      body: { user: { id: userId, email: "alice@example.com", displayName: "Bob" } },
+      body: { user: { id: userId, email: "alice@example.com", displayName: "Bob", avatarUrl: null } },
     });
+  });
+
+  it("returns the avatar route, not the storage key, so clients keep the avatar", async () => {
+    query.mockResolvedValueOnce({ rows: [[userId]] });
+    query.mockResolvedValueOnce({ rows: [[userId, "alice@example.com", "Bob", "secret-key.png"]] });
+    const result = await patch({ displayName: "Bob" });
+    expect(result.body).toMatchObject({ user: { avatarUrl: "/auth/me/avatar" } });
   });
 
   it("trims the displayName before storing", async () => {
     query.mockResolvedValueOnce({ rows: [[userId]] });
-    query.mockResolvedValueOnce({ rows: [[userId, "alice@example.com", "Bob"]] });
+    query.mockResolvedValueOnce({ rows: [[userId, "alice@example.com", "Bob", null]] });
     await patch({ displayName: "  Bob  " });
     const updateParams: unknown[] = query.mock.calls[1]![1];
     expect(updateParams).toContain("Bob");
@@ -688,6 +695,7 @@ describe("GET /me/avatar", () => {
     const result = await avatarGet();
     expect(result.status).toBe(200);
     expect(result.contentType).toBe("image/jpeg");
+    expect(result.headers).toEqual({ "Cache-Control": "no-cache" });
     expect(result.body).toBe(buf);
     expect(storageMocks.readAvatar).toHaveBeenCalledWith("photo.jpg");
   });

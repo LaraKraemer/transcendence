@@ -138,7 +138,7 @@ authRouter.patch("/me", requireAuthenticatedUser, async (req, res, next) => {
   }
   try {
     const user = await updateUserProfile(res.locals.userId as string, { displayName: displayName.trim() });
-    res.json({ user });
+    res.json({ user: user && toPublicUser(user) });
   } catch (error) {
     next(error);
   }
@@ -199,7 +199,8 @@ authRouter.get("/me/avatar", requireAuthenticatedUser, async (req, res, next) =>
       return;
     }
     const contentType = user.avatarUrl.endsWith(".jpg") ? "image/jpeg" : "image/png";
-    res.type(contentType).send(buffer);
+    // Always revalidate (cheap 304 via ETag) because the URL stays the same after a replacement.
+    res.set("Cache-Control", "no-cache").type(contentType).send(buffer);
   } catch (error) {
     next(error);
   }
