@@ -6,9 +6,11 @@ import { notFound } from "next/navigation";
 
 import { AccountSwitcher } from "@/components/transactions/account-switcher";
 import { DeleteTransactionButton } from "@/components/transactions/delete-transaction-button";
+import { NewTransactionButton } from "@/components/transactions/transaction-form-dialog";
+import { LiveStatusProvider } from "@/components/ui/live-status";
 import { ApiError } from "@/lib/api";
-import { fetchApiServer, getAccount, getCurrencies } from "@/lib/dal";
-import type { Account, Category, TransactionPage } from "@/lib/types";
+import { fetchApiServer, getAccount, getAccounts, getCategories, getCurrencies } from "@/lib/dal";
+import type { AccountBalance, TransactionPage } from "@/lib/types";
 
 const TRANSACTIONS_LIMIT = 200;
 
@@ -44,17 +46,22 @@ export default async function AccountTransactionsPage({
   const [{ accountId }, { type }] = await Promise.all([params, searchParams]);
   const filter: TypeFilter = type === "income" || type === "expense" ? type : "all";
 
-  const [t, format, account, { items, total }, activeCategories, currencies, activeAccounts] = await Promise.all([
-    getTranslations("transactions"),
-    getFormatter(),
-    getAccount(accountId),
-    fetchApiServer<TransactionPage>(
-      `/transactions?${new URLSearchParams({ accountId, limit: String(TRANSACTIONS_LIMIT) })}`,
-    ),
-    fetchApiServer<Category[]>("/categories"),
-    getCurrencies(),
-    fetchApiServer<Account[]>("/accounts"),
-  ]).catch(notFoundOnMissingAccount);
+  const [t, format, account, { items, total }, activeCategories, currencies, activeAccounts, balanceMinor] =
+    await Promise.all([
+      getTranslations("transactions"),
+      getFormatter(),
+      getAccount(accountId),
+      fetchApiServer<TransactionPage>(
+        `/transactions?${new URLSearchParams({ accountId, limit: String(TRANSACTIONS_LIMIT) })}`,
+      ),
+      getCategories(),
+      getCurrencies(),
+      getAccounts(),
+      fetchApiServer<AccountBalance>(`/accounts/${encodeURIComponent(accountId)}/balance`).then(
+        (balance) => balance.balanceMinor,
+        () => null,
+      ),
+    ]).catch(notFoundOnMissingAccount);
   const categories = new Map(activeCategories.map((c) => [c.id, c]));
   const switcherAccounts = activeAccounts.some((other) => other.id === account.id)
     ? activeAccounts
@@ -81,20 +88,31 @@ export default async function AccountTransactionsPage({
     <div className="mx-auto w-full max-w-5xl pt-2">
       {/* User-entered text (names, descriptions, notes) is wrapped in <bdi>, so Latin text in an RTL
           page (or the reverse) keeps its punctuation in place without changing the alignment. */}
-      <div className="mb-[18px] sm:mb-6">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <h1 className="text-[26px] font-bold tracking-[-0.02em] break-words">
-            {t.rich("heading", { account: account.name, name: (chunks) => <bdi>{chunks}</bdi> })}
-          </h1>
-          {account.isArchived && (
-            <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
-              {t("archived")}
-            </span>
-          )}
+      <div className="mb-[18px] flex items-start gap-4 sm:mb-6">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <h1 className="text-[26px] font-bold tracking-[-0.02em] break-words">
+              {t.rich("heading", { account: account.name, name: (chunks) => <bdi>{chunks}</bdi> })}
+            </h1>
+            {account.isArchived && (
+              <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
+                {t("archived")}
+              </span>
+            )}
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
+            {t("subtitle", { count: total, currency: account.currencyCode })}
+          </p>
         </div>
-        <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
-          {t("subtitle", { count: total, currency: account.currencyCode })}
-        </p>
+        {!account.isArchived && (
+          <LiveStatusProvider>
+            <NewTransactionButton
+              variant="header"
+              accounts={[{ id: account.id, name: account.name, currencyCode: account.currencyCode, minorUnit }]}
+              categories={activeCategories.map(({ id, name, kind }) => ({ id, name, kind }))}
+            />
+          </LiveStatusProvider>
+        )}
       </div>
 
       <div className="mb-3 grid grid-cols-2 gap-2.5 sm:mb-5 sm:grid-cols-3 sm:gap-5">
@@ -117,9 +135,15 @@ export default async function AccountTransactionsPage({
         <StatCard
           icon={Wallet}
           iconClassName="bg-muted text-muted-foreground"
-          label={t("net")}
-          value={money(moneyInMinor + moneyOutMinor)}
-          note={statNote}
+          label={t("balance")}
+          // Not money(): its signDisplay adds a "+" that suits in/out amounts but not a balance.
+          value={
+            balanceMinor === null
+              ? "—"
+              : format.number(balanceMinor / 10 ** minorUnit, { style: "currency", currency: account.currencyCode })
+          }
+          valueClassName={balanceMinor !== null && balanceMinor < 0 ? "text-destructive" : ""}
+          note={balanceMinor === null ? t("balanceUnavailable") : undefined}
           className="max-sm:col-span-2"
         />
       </div>

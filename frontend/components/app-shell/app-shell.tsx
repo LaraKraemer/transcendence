@@ -1,11 +1,12 @@
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 
 import { LogoutButton } from "@/components/app-shell/logout-button";
 import { NavLinks } from "@/components/app-shell/nav-links";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { NewTransactionFab } from "@/components/transactions/new-transaction-fab";
 
 export function initialsOf(displayName: string): string {
   return displayName
@@ -80,12 +81,17 @@ export async function AppShell({
           <ThemeToggle variant="app" />
         </header>
 
-        <main id="main" className="flex flex-1 flex-col px-4 pt-4 pb-24 lg:px-8 lg:pt-0 lg:pb-12">
+        <main id="main" className="flex flex-1 flex-col px-4 pt-4 pb-40 sm:pb-24 lg:px-8 lg:pt-0 lg:pb-12">
           {children}
         </main>
       </div>
 
       <div className="fixed inset-x-0 bottom-0 z-10 border-t border-border bg-card lg:hidden">
+        <div className="absolute end-4 bottom-full mb-4">
+          <Suspense fallback={null}>
+            <NewTransactionFab />
+          </Suspense>
+        </div>
         <NavLinks variant="tabs" />
       </div>
     </div>
