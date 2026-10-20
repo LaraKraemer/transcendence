@@ -88,6 +88,32 @@
     "profile": "Profile",
     "back": "Back"
   },
+  "profile": {
+    "subtitle": "Manage your personal information and profile photo",
+    "editProfile": "Edit Profile",
+    "edit": "Edit",
+    "personalInfo": "Personal Information",
+    "name": "Full name",
+    "email": "Email address",
+    "changePhoto": "Change profile photo",
+    "removePhoto": "Remove photo",
+    "photoAlt": "Profile photo of {name}",
+    "nameDialog": {
+      "title": "Edit profile",
+      "save": "Save changes",
+      "saving": "Saving…"
+    },
+    "announcements": {
+      "photoUpdated": "Profile photo updated",
+      "photoRemoved": "Profile photo removed",
+      "nameSaved": "Name saved"
+    },
+    "errors": {
+      "photoType": "Choose a JPEG or PNG image",
+      "photoTooLarge": "The photo must be 5 MB or smaller",
+      "network": "Could not reach the server. Please try again later."
+    }
+  },
   "accounts": {
     "title": "Accounts",
     "subtitle": "An overview of your financial accounts and balances",
