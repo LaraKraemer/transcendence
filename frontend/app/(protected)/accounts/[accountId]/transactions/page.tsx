@@ -1,6 +1,6 @@
 import { ArrowDownLeft, ArrowUpRight, Wallet, type LucideIcon } from "lucide-react";
 import type { Metadata } from "next";
-import { getFormatter, getTranslations } from "next-intl/server";
+import { getFormatter, getLocale, getTranslations } from "next-intl/server";
 import Link from "next/link";
 
 import { AccountSwitcher } from "@/components/transactions/account-switcher";
@@ -15,6 +15,7 @@ import {
   getCurrencies,
   notFoundOnMissingResource,
 } from "@/lib/dal";
+import { formatAmount } from "@/lib/format";
 import type { AccountBalance, TransactionPage } from "@/lib/types";
 
 const TRANSACTIONS_LIMIT = 200;
@@ -45,10 +46,11 @@ export default async function AccountTransactionsPage({
   const [{ accountId }, { type }] = await Promise.all([params, searchParams]);
   const filter: TypeFilter = type === "income" || type === "expense" ? type : "all";
 
-  const [t, format, account, { items, total }, activeCategories, currencies, activeAccounts, balanceMinor] =
+  const [t, format, locale, account, { items, total }, activeCategories, currencies, activeAccounts, balanceMinor] =
     await Promise.all([
       getTranslations("transactions"),
       getFormatter(),
+      getLocale(),
       getAccount(accountId),
       fetchApiServer<TransactionPage>(
         `/transactions?${new URLSearchParams({ accountId, limit: String(TRANSACTIONS_LIMIT) })}`,
@@ -68,11 +70,7 @@ export default async function AccountTransactionsPage({
 
   const minorUnit = currencies.find((currency) => currency.code === account.currencyCode)?.minorUnit ?? 2;
   const money = (amountMinor: number) =>
-    format.number(amountMinor / 10 ** minorUnit, {
-      style: "currency",
-      currency: account.currencyCode,
-      signDisplay: "exceptZero",
-    });
+    formatAmount(amountMinor, account.currencyCode, minorUnit, locale, "exceptZero");
 
   const bookedOn = (date: string) => format.dateTime(new Date(date), { dateStyle: "medium", timeZone: "UTC" });
 
