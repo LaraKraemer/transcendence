@@ -188,7 +188,7 @@
     "errors": {
       "network": "Der Server ist nicht erreichbar. Bitte versuche es später erneut.",
       "generic": "Etwas ist schiefgelaufen. Bitte versuche es erneut.",
-      "accountArchived": "Dieses Konto ist archiviert. Stelle es wieder her, um Transaktionen hinzuzufügen.",
+      "accountArchived": "Dieses Konto ist archiviert und kann keine neuen Transaktionen erhalten.",
       "typeInvalid": "Wähle Ausgabe oder Einnahme",
       "amountRequired": "Gib einen Betrag ein",
       "amountNotPositive": "Gib einen Betrag über null ein; die Art legt Ausgabe oder Einnahme fest",

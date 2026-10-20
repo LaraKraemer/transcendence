@@ -188,7 +188,7 @@
     "errors": {
       "network": "Could not reach the server. Please try again later.",
       "generic": "Something went wrong. Please try again.",
-      "accountArchived": "This account is archived. Restore it to add transactions.",
+      "accountArchived": "This account is archived, so it can't receive new transactions.",
       "typeInvalid": "Choose expense or income",
       "amountRequired": "Enter an amount",
       "amountNotPositive": "Enter an amount above zero; the type sets expense or income",
