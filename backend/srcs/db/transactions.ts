@@ -80,7 +80,7 @@ export async function countTransactionsByCategory(categoryId: string, userId: st
     .from(transactions)
     .innerJoin(accounts, eq(transactions.accountId, accounts.id))
     .where(and(eq(transactions.categoryId, categoryId), eq(accounts.userId, userId)));
-  return row!.n;
+  return row?.n ?? 0;
 }
 
 export async function insertTransaction(values: NewTransaction) {
