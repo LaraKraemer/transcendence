@@ -186,7 +186,48 @@
     "deleting": "Wird gelöscht…",
     "errors": {
       "network": "Der Server ist nicht erreichbar. Bitte versuche es später erneut.",
-      "generic": "Etwas ist schiefgelaufen. Bitte versuche es erneut."
+      "generic": "Etwas ist schiefgelaufen. Bitte versuche es erneut.",
+      "accountArchived": "Dieses Konto ist archiviert. Stelle es wieder her, um Transaktionen hinzuzufügen.",
+      "typeInvalid": "Wähle Ausgabe oder Einnahme",
+      "amountRequired": "Gib einen Betrag ein",
+      "amountNotPositive": "Gib einen Betrag über null ein; die Art legt Ausgabe oder Einnahme fest",
+      "amountInvalid": "Gib einen Betrag wie {example} ein",
+      "amountDecimals": "{digits, plural, =0 {Gib einen ganzen Betrag ohne Nachkommastellen ein} one {Gib einen Betrag mit höchstens # Nachkommastelle ein} other {Gib einen Betrag mit höchstens # Nachkommastellen ein}}",
+      "amountTooLarge": "Dieser Betrag ist zu groß",
+      "descriptionRequired": "Gib eine Beschreibung ein",
+      "descriptionTooLong": "Die Beschreibung darf höchstens {max, number} Zeichen lang sein",
+      "dateInvalid": "Wähle ein gültiges Datum",
+      "categoryInvalid": "Diese Kategorie ist nicht mehr verfügbar. Wähle eine andere."
+    },
+    "newTransaction": "Neue Transaktion",
+    "form": {
+      "title": "Neue Transaktion",
+      "account": "Konto",
+      "type": "Art",
+      "types": {
+        "expense": "Ausgabe",
+        "income": "Einnahme"
+      },
+      "amount": "Betrag ({currency})",
+      "description": "Beschreibung",
+      "descriptionPlaceholder": "z. B. Wocheneinkauf",
+      "merchant": "Händler (optional)",
+      "date": "Datum",
+      "category": "Kategorie (optional)",
+      "noCategory": "Keine Kategorie",
+      "noCategoriesHint": "{type, select, income {Noch keine Einnahmen-Kategorien. Du kannst eine auf der Seite „Kategorien“ anlegen.} other {Noch keine Ausgaben-Kategorien. Du kannst eine auf der Seite „Kategorien“ anlegen.}}",
+      "notes": "Notizen (optional)",
+      "notesPlaceholder": "Was du dir merken möchtest",
+      "cancel": "Abbrechen",
+      "submit": "Transaktion hinzufügen",
+      "submitting": "Wird hinzugefügt…"
+    },
+    "announcements": {
+      "created": "„{description}“ hinzugefügt"
+    },
+    "added": {
+      "message": "„<desc>{description}</desc>“ zu <name>{account}</name> hinzugefügt.",
+      "view": "Transaktionen ansehen"
     }
   },
   "categories": {
