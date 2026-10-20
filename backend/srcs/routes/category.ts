@@ -2,6 +2,7 @@ import { Router } from "express";
 
 import { requireAuthenticatedUser } from "../auth.ts";
 import {
+  deleteOwnedCategory,
   findCategoryByNameAndKind,
   findOwnedCategory,
   insertCategory,
@@ -82,6 +83,25 @@ categoriesRouter.get("/:categoryId", async (req, res) => {
   }
 
   res.json(category);
+});
+
+/** Permanently deletes a category owned by the authenticated user. Linked transactions have their categoryId set to null. */
+categoriesRouter.delete("/:categoryId", async (req, res, next) => {
+  if (!isUuid(req.params.categoryId)) {
+    res.status(400).json({ error: "categoryId must be a valid UUID" });
+    return;
+  }
+
+  try {
+    const deleted = await deleteOwnedCategory(req.params.categoryId, res.locals.userId);
+    if (!deleted) {
+      res.status(404).json({ error: "Category not found" });
+      return;
+    }
+    res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
 });
 
 /** Updates the display properties of a category owned by the authenticated user. */

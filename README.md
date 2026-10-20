@@ -264,7 +264,7 @@ modify another user's financial data.
 |---|---|
 | Accounts | `GET`, `POST` `/accounts`; `GET`, `PATCH`, `DELETE` `/accounts/:accountId` |
 | Categories | `GET`, `POST` `/categories`; `GET`, `PATCH`, `DELETE` `/categories/:categoryId` |
-| Transactions | `GET`, `POST` `/transactions`; `GET`, `PATCH`, `DELETE` `/transactions/:transactionId` |
+| Transactions | `GET`, `POST` `/transactions`; `GET` `/transactions/count/:categoryId`; `GET`, `PATCH`, `DELETE` `/transactions/:transactionId` |
 | Currencies | `GET` `/currencies` |
 
 `DELETE /auth/me` requires an active session and permanently deletes the authenticated user, all their accounts (including archived accounts), categories, transactions, and sessions. Transactions cascade when their account or creator is deleted,
@@ -287,8 +287,9 @@ Restore with `PATCH /accounts/:accountId` using only `{"isArchived": false}`, th
 separately. Repeated archiving returns `200`; missing or foreign resources return `404`.
 Permanent account deletion is handled separately in #48.
 
-`GET /transactions` requires an `accountId` query parameter. Account and
-category deletion archives the resource; transaction deletion permanently removes the row.
+`GET /transactions` requires an `accountId` query parameter. Category and
+transaction deletion is permanent; deleting a category sets `categoryId = null` on its linked
+transactions. `GET /transactions/count/:categoryId` returns how many transactions use a category.
 
 
 <br>

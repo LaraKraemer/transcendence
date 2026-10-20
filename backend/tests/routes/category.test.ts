@@ -174,6 +174,41 @@ describe("GET /categories/:categoryId", () => {
   });
 });
 
+// ─── DELETE /:categoryId ──────────────────────────────────────────────────────
+
+describe("DELETE /categories/:categoryId", () => {
+  function del(id: string) {
+    return dispatch(categoriesRouter, { method: "DELETE", url: `/${id}` });
+  }
+
+  it("rejects an invalid UUID", async () => {
+    expect(await del("not-a-uuid")).toEqual({ status: 400, body: { error: "categoryId must be a valid UUID" } });
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  it("returns 204 and no body on success", async () => {
+    query.mockResolvedValueOnce({ rows: [[categoryId]] });
+    const result = await del(categoryId);
+    expect(result).toEqual({ status: 204, body: undefined });
+    expect(query).toHaveBeenCalledTimes(1);
+    const sql: string = query.mock.calls[0]![0].text;
+    expect(sql).toContain('delete from "category"');
+    expect(sql).toContain('"id"');
+    expect(query.mock.calls[0]![1]).toEqual([categoryId, userId]);
+  });
+
+  it("returns 404 for a missing or foreign category", async () => {
+    query.mockResolvedValueOnce({ rows: [] });
+    expect(await del(categoryId)).toEqual({ status: 404, body: { error: "Category not found" } });
+    expect(query).toHaveBeenCalledTimes(1);
+  });
+
+  it("forwards errors", async () => {
+    query.mockRejectedValueOnce(new Error("DB down"));
+    await expect(del(categoryId)).rejects.toThrow();
+  });
+});
+
 // ─── PATCH /:categoryId ───────────────────────────────────────────────────────
 
 describe("PATCH /categories/:categoryId", () => {
