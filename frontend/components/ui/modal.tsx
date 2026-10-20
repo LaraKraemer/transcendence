@@ -27,15 +27,22 @@ export function Modal({ open, title, onClose, busy, describedBy, children }: Mod
   // Set on mousedown: a click counts as a backdrop click only if the press also
   // started there, not when a text selection inside the box ends outside it.
   const pressStartedOnBackdrop = useRef(false);
+  const opener = useRef<Element | null>(null);
 
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
     if (open && !dialog.open) {
+      opener.current = document.activeElement;
       dialog.showModal();
       dialog.querySelector<HTMLElement>("[data-autofocus]")?.focus();
     }
-    if (!open && dialog.open) dialog.close();
+    if (!open && dialog.open) {
+      dialog.close();
+      // Browsers only return focus if it is still inside the dialog; a form that
+      // disabled its fields while saving has already dropped it to <body>.
+      if (document.activeElement === document.body && opener.current instanceof HTMLElement) opener.current.focus();
+    }
   }, [open]);
 
   return (
