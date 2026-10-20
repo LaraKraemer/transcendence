@@ -11,7 +11,12 @@ export async function findUserByEmail(email: string) {
 
 export async function findUserById(id: string) {
   const [user] = await db
-    .select({ id: appUsers.id, email: appUsers.email, displayName: appUsers.displayName })
+    .select({
+      id: appUsers.id,
+      email: appUsers.email,
+      displayName: appUsers.displayName,
+      avatarUrl: appUsers.avatarUrl,
+    })
     .from(appUsers)
     .where(eq(appUsers.id, id))
     .limit(1);
@@ -33,6 +38,11 @@ export async function deleteUser(id: string) {
   await db.delete(appUsers).where(eq(appUsers.id, id));
 }
 
+/** Updates the user's avatar_url and sets updatedAt. */
+export async function updateUserAvatarUrl(id: string, avatarUrl: string | null) {
+  await db.update(appUsers).set({ avatarUrl, updatedAt: new Date() }).where(eq(appUsers.id, id));
+}
+
 /** Reads the authenticated user's password hash without exposing it in public user responses. */
 export async function findUserPasswordHash(id: string) {
   const [user] = await db
@@ -41,6 +51,21 @@ export async function findUserPasswordHash(id: string) {
     .where(eq(appUsers.id, id))
     .limit(1);
   return user?.passwordHash;
+}
+
+/** Updates mutable profile fields and sets updatedAt. */
+export async function updateUserProfile(id: string, fields: { displayName: string }) {
+  const [user] = await db
+    .update(appUsers)
+    .set({ ...fields, updatedAt: new Date() })
+    .where(eq(appUsers.id, id))
+    .returning({
+      id: appUsers.id,
+      email: appUsers.email,
+      displayName: appUsers.displayName,
+      avatarUrl: appUsers.avatarUrl,
+    });
+  return user;
 }
 
 /** Atomically replaces the verified password and revokes all of the user's sessions. */

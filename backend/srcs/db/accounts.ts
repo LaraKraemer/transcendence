@@ -69,3 +69,13 @@ export async function updateAccount(
 export async function archiveAccount(accountId: string) {
   await db.update(accounts).set({ isArchived: true, updatedAt: new Date() }).where(eq(accounts.id, accountId));
 }
+
+/** Permanently deletes an owned account and cascades to its transactions. */
+export async function deleteOwnedAccount(accountId: string, userId: string) {
+  const [account] = await db
+    .delete(accounts)
+    .where(and(eq(accounts.id, accountId), eq(accounts.userId, userId)))
+    .returning({ id: accounts.id });
+
+  return account !== undefined;
+}

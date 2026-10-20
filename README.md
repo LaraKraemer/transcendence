@@ -192,8 +192,9 @@ Run `docker compose exec backend npm run db:generate` only after changing
 `backend/srcs/db/schema.ts`; commit the generated files in `backend/drizzle/`.
 
 Database data is stored in the `db-data` Docker volume and survives normal
-container restarts. `make clean` removes that volume and permanently deletes
-your local database data. PostgreSQL reads its initial user, password, and
+container restarts. Profile images are stored in the `avatar-data` volume
+mounted at `/app/avatars` inside the backend container; override the path with
+the `AVATAR_DIR` environment variable. `make clean` removes both volumes. PostgreSQL reads its initial user, password, and
 database name only when this volume is first created, so changing those values
 later requires recreating the volume.
 
@@ -214,6 +215,25 @@ deleted at startup and every six hours.
 | `PATCH` | `/auth/password` | Change password and revoke every session |
 | `POST` | `/auth/logout` | Revoke the current session |
 | `GET` | `/auth/me` | Return the current authenticated user |
+| `PATCH` | `/auth/me` | Update the current user's display name |
+| `PUT` | `/auth/me/avatar` | Upload or replace the profile image (raw JPEG/PNG body, max 5 MiB) |
+| `GET` | `/auth/me/avatar` | Retrieve the profile image |
+| `DELETE` | `/auth/me/avatar` | Remove the profile image |
+
+`PUT /auth/me/avatar` takes the image as the raw request body with
+`Content-Type: image/jpeg` or `image/png` (not multipart). Anything else is
+rejected with 415 and bodies over 5 MiB with 413. The upload is also validated
+by reading the file's format signature (the first bytes every JPEG/PNG file
+must start with), so a renamed non-image with the right header is still
+rejected. `GET /auth/me` returns `avatarUrl` as `/auth/me/avatar` when an image
+exists, otherwise `null`.
+
+```bash
+curl -i -b cookies.txt -X PUT \
+  -H 'Content-Type: image/png' \
+  --data-binary @avatar.png \
+  http://localhost:3001/auth/me/avatar
+```
 
 Example registration request:
 
@@ -291,6 +311,8 @@ Permanent account deletion is handled separately in #48.
 transaction deletion is permanent; deleting a category sets `categoryId = null` on its linked
 transactions. `GET /transactions/count/:categoryId` returns how many transactions use a category.
 
+`DELETE /accounts/:accountId` permanently removes the owned account and all its transactions.
+`DELETE /transactions/:transactionId` permanently removes one transaction.
 
 <br>
 
@@ -298,7 +320,7 @@ transactions. `GET /transactions/count/:categoryId` returns how many transaction
 
 The repository includes a Bruno collection for repeatable local API testing in
 `backend/bruno/`. It registers a disposable user, creates an account, category,
-and transaction, then updates and deletes that transaction.
+and transaction, then updates and deletes that transaction and permanently deletes the account.
 It also checks the currency catalog populated by migrations.
 
 1. Start the services:
