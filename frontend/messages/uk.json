@@ -180,6 +180,7 @@
     "emptyFiltered": "{filter, select, income {Немає доходів.} expense {Немає витрат.} other {Немає транзакцій.}}",
     "showing": "Показано {shown, number} з {total, plural, one {# транзакції} few {# транзакцій} many {# транзакцій} other {# транзакції}}",
     "delete": "Видалити «{description}»",
+    "edit": "Редагувати «{description}»",
     "confirmTitle": "Видалити транзакцію?",
     "confirmBody": "«<name>{description}</name>» буде видалено назавжди. Цю дію не можна скасувати.",
     "cancel": "Скасувати",
@@ -189,6 +190,7 @@
       "network": "Не вдалося з’єднатися із сервером. Спробуйте пізніше.",
       "generic": "Щось пішло не так. Спробуйте ще раз.",
       "accountArchived": "Цей рахунок архівовано, тому до нього не можна додавати нові транзакції.",
+      "notFound": "Цієї транзакції більше не існує. Можливо, її видалили деінде. Закрийте форму, щоб оновити список.",
       "typeInvalid": "Виберіть витрату або дохід",
       "amountRequired": "Введіть суму",
       "amountNotPositive": "Введіть суму, більшу за нуль; тип визначає витрату чи дохід",
@@ -203,6 +205,7 @@
     "newTransaction": "Нова транзакція",
     "form": {
       "title": "Нова транзакція",
+      "editTitle": "Редагування транзакції",
       "account": "Рахунок",
       "type": "Тип",
       "types": {
@@ -221,10 +224,14 @@
       "notesPlaceholder": "Що варто запам’ятати",
       "cancel": "Скасувати",
       "submit": "Додати транзакцію",
-      "submitting": "Додавання…"
+      "submitting": "Додавання…",
+      "save": "Зберегти зміни",
+      "saving": "Збереження…",
+      "delete": "Видалити транзакцію"
     },
     "announcements": {
-      "created": "«{description}» додано"
+      "created": "«{description}» додано",
+      "saved": "Зміни в «{description}» збережено"
     },
     "added": {
       "message": "«<desc>{description}</desc>» додано до рахунку <name>{account}</name>.",

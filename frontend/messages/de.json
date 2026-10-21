@@ -180,6 +180,7 @@
     "emptyFiltered": "{filter, select, income {Keine Einnahmen.} expense {Keine Ausgaben.} other {Keine Transaktionen.}}",
     "showing": "{shown, number} von {total, plural, one {# Transaktion} other {# Transaktionen}}",
     "delete": "{description} löschen",
+    "edit": "{description} bearbeiten",
     "confirmTitle": "Transaktion löschen?",
     "confirmBody": "„<name>{description}</name>“ wird endgültig gelöscht. Das kann nicht rückgängig gemacht werden.",
     "cancel": "Abbrechen",
@@ -189,6 +190,7 @@
       "network": "Der Server ist nicht erreichbar. Bitte versuche es später erneut.",
       "generic": "Etwas ist schiefgelaufen. Bitte versuche es erneut.",
       "accountArchived": "Dieses Konto ist archiviert und kann keine neuen Transaktionen erhalten.",
+      "notFound": "Diese Transaktion existiert nicht mehr. Vielleicht wurde sie an anderer Stelle gelöscht. Schließe dieses Formular, um die Liste zu aktualisieren.",
       "typeInvalid": "Wähle Ausgabe oder Einnahme",
       "amountRequired": "Gib einen Betrag ein",
       "amountNotPositive": "Gib einen Betrag über null ein; die Art legt Ausgabe oder Einnahme fest",
@@ -203,6 +205,7 @@
     "newTransaction": "Neue Transaktion",
     "form": {
       "title": "Neue Transaktion",
+      "editTitle": "Transaktion bearbeiten",
       "account": "Konto",
       "type": "Art",
       "types": {
@@ -221,10 +224,14 @@
       "notesPlaceholder": "Was du dir merken möchtest",
       "cancel": "Abbrechen",
       "submit": "Transaktion hinzufügen",
-      "submitting": "Wird hinzugefügt…"
+      "submitting": "Wird hinzugefügt…",
+      "save": "Änderungen speichern",
+      "saving": "Wird gespeichert…",
+      "delete": "Transaktion löschen"
     },
     "announcements": {
-      "created": "„{description}“ hinzugefügt"
+      "created": "„{description}“ hinzugefügt",
+      "saved": "„{description}“ gespeichert"
     },
     "added": {
       "message": "„<desc>{description}</desc>“ zu <name>{account}</name> hinzugefügt.",

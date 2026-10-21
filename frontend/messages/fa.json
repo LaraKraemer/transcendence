@@ -180,6 +180,7 @@
     "emptyFiltered": "{filter, select, income {درآمدی ثبت نشده است.} expense {هزینه‌ای ثبت نشده است.} other {تراکنشی ثبت نشده است.}}",
     "showing": "نمایش {shown, number} از {total, plural, other {# تراکنش}}",
     "delete": "حذف «{description}»",
+    "edit": "ویرایش «{description}»",
     "confirmTitle": "تراکنش حذف شود؟",
     "confirmBody": "«<name>{description}</name>» برای همیشه حذف می‌شود. این کار برگشت‌پذیر نیست.",
     "cancel": "انصراف",
@@ -189,6 +190,7 @@
       "network": "ارتباط با سرور برقرار نشد. لطفاً بعداً دوباره تلاش کنید.",
       "generic": "مشکلی پیش آمد. لطفاً دوباره تلاش کنید.",
       "accountArchived": "این حساب بایگانی شده است، بنابراین نمی‌توان تراکنش جدیدی به آن اضافه کرد.",
+      "notFound": "این تراکنش دیگر وجود ندارد. ممکن است جای دیگری حذف شده باشد. برای به‌روزرسانی فهرست، این فرم را ببندید.",
       "typeInvalid": "هزینه یا درآمد را انتخاب کنید",
       "amountRequired": "مبلغ را وارد کنید",
       "amountNotPositive": "مبلغی بیشتر از صفر وارد کنید؛ نوع، هزینه یا درآمد بودن را تعیین می‌کند",
@@ -203,6 +205,7 @@
     "newTransaction": "تراکنش جدید",
     "form": {
       "title": "تراکنش جدید",
+      "editTitle": "ویرایش تراکنش",
       "account": "حساب",
       "type": "نوع",
       "types": {
@@ -221,10 +224,14 @@
       "notesPlaceholder": "هر چیزی که ارزش به خاطر سپردن دارد",
       "cancel": "انصراف",
       "submit": "افزودن تراکنش",
-      "submitting": "در حال افزودن…"
+      "submitting": "در حال افزودن…",
+      "save": "ذخیره تغییرات",
+      "saving": "در حال ذخیره…",
+      "delete": "حذف تراکنش"
     },
     "announcements": {
-      "created": "«{description}» افزوده شد"
+      "created": "«{description}» افزوده شد",
+      "saved": "«{description}» ذخیره شد"
     },
     "added": {
       "message": "«<desc>{description}</desc>» به <name>{account}</name> افزوده شد.",

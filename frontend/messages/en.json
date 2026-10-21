@@ -180,6 +180,7 @@
     "emptyFiltered": "{filter, select, income {No income transactions.} expense {No expense transactions.} other {No transactions.}}",
     "showing": "Showing {shown, number} of {total, plural, one {# transaction} other {# transactions}}",
     "delete": "Delete {description}",
+    "edit": "Edit {description}",
     "confirmTitle": "Delete transaction?",
     "confirmBody": "“<name>{description}</name>” will be permanently deleted. This can’t be undone.",
     "cancel": "Cancel",
@@ -189,6 +190,7 @@
       "network": "Could not reach the server. Please try again later.",
       "generic": "Something went wrong. Please try again.",
       "accountArchived": "This account is archived, so it can't receive new transactions.",
+      "notFound": "This transaction no longer exists. It may have been deleted elsewhere. Close this form to update the list.",
       "typeInvalid": "Choose expense or income",
       "amountRequired": "Enter an amount",
       "amountNotPositive": "Enter an amount above zero; the type sets expense or income",
@@ -203,6 +205,7 @@
     "newTransaction": "New transaction",
     "form": {
       "title": "New transaction",
+      "editTitle": "Edit transaction",
       "account": "Account",
       "type": "Type",
       "types": {
@@ -221,10 +224,14 @@
       "notesPlaceholder": "Anything worth remembering",
       "cancel": "Cancel",
       "submit": "Add transaction",
-      "submitting": "Adding…"
+      "submitting": "Adding…",
+      "save": "Save changes",
+      "saving": "Saving…",
+      "delete": "Delete transaction"
     },
     "announcements": {
-      "created": "“{description}” added"
+      "created": "“{description}” added",
+      "saved": "“{description}” saved"
     },
     "added": {
       "message": "“<desc>{description}</desc>” added to <name>{account}</name>.",
