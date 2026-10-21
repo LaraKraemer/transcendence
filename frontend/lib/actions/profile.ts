@@ -6,16 +6,12 @@
  * header and the app shell re-render with the new user.
  */
 import { refresh } from "next/cache";
-import { cookies } from "next/headers";
 import { z } from "zod";
 
 import { backendFailure } from "@/lib/action-errors";
-import { AVATAR_VERSION_COOKIE } from "@/lib/avatar-version";
 import { fetchApiServer } from "@/lib/dal";
 import type { ActionResponse, User } from "@/lib/types";
 import { MAX_DISPLAY_NAME_LENGTH, type ValidationErrorCode } from "@/lib/validation";
-
-const avatarVersionMaxAgeSeconds = 60 * 60 * 24 * 365;
 
 const UpdateNameSchema = z.object({
   displayName: z
@@ -64,7 +60,6 @@ export async function uploadAvatar(formData: FormData): Promise<ActionResponse> 
     return backendFailure(error, "uploadAvatar");
   }
 
-  await bumpAvatarVersion();
   refresh();
   return { success: true, message: "Photo updated" };
 }
@@ -77,18 +72,6 @@ export async function deleteAvatar(): Promise<ActionResponse> {
     return backendFailure(error, "deleteAvatar");
   }
 
-  await bumpAvatarVersion();
   refresh();
   return { success: true, message: "Photo removed" };
-}
-
-// ponytail: only this browser learns about the new photo; another device keeps the
-// old one until its cache revalidates. Upgrade: a version in the backend's avatarUrl.
-async function bumpAvatarVersion() {
-  (await cookies()).set(AVATAR_VERSION_COOKIE, String(Date.now()), {
-    path: "/",
-    maxAge: avatarVersionMaxAgeSeconds,
-    sameSite: "lax",
-    httpOnly: true,
-  });
 }
