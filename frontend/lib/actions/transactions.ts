@@ -8,8 +8,8 @@ import { ApiError } from "@/lib/api";
 import { fetchApiServer, getAccount, getCurrencies } from "@/lib/dal";
 import type { ActionResponse, Transaction } from "@/lib/types";
 import {
+  CATEGORY_TYPES,
   MAX_TRANSACTION_DESCRIPTION_LENGTH,
-  TRANSACTION_TYPES,
   changedFields,
   toPositiveMinorUnits,
   type EditableTransactionFields,
@@ -17,7 +17,8 @@ import {
 } from "@/lib/validation";
 
 const CreateTransactionSchema = z.object({
-  type: z.enum(TRANSACTION_TYPES, { error: "typeInvalid" satisfies TransactionErrorCode }),
+  // Transfers go through createTransfer, so this accepts only the types a category can have.
+  type: z.enum(CATEGORY_TYPES, { error: "typeInvalid" satisfies TransactionErrorCode }),
   amount: z.string(),
   description: z
     .string()
@@ -65,6 +66,7 @@ export async function createTransaction(accountId: string, data: CreateTransacti
       method: "POST",
       body: JSON.stringify({
         accountId,
+        type,
         amountMinor: type === "expense" ? -amountMinor : amountMinor,
         description,
         bookedOn,
@@ -135,6 +137,89 @@ function transactionFailure(error: unknown, sentCategory: boolean, action: strin
     };
   }
   return backendFailure(error, action);
+}
+
+const CreateTransferSchema = z.object({
+  toAccountId: z.uuid({ error: "toAccountInvalid" satisfies TransactionErrorCode }),
+  description: CreateTransactionSchema.shape.description,
+  bookedOn: CreateTransactionSchema.shape.bookedOn,
+  notes: CreateTransactionSchema.shape.notes,
+});
+
+export type CreateTransferInput = Record<"amount" | "toAmount" | keyof z.input<typeof CreateTransferSchema>, string>;
+
+/**
+ * Moves money between two of the user's accounts with `POST /transactions/transfers`. `toAmount` is
+ * the amount received and only counts when the accounts have different currencies; within one
+ * currency the same amount arrives. Errors are keyed like the create form's fields.
+ */
+export async function createTransfer(fromAccountId: string, data: CreateTransferInput): Promise<ActionResponse> {
+  if (!z.uuid().safeParse(fromAccountId).success) {
+    return { success: false, message: "Account not found", status: 404 };
+  }
+  const parsed = CreateTransferSchema.safeParse({
+    toAccountId: String(data.toAccountId),
+    description: String(data.description),
+    bookedOn: String(data.bookedOn),
+    notes: String(data.notes),
+  });
+  const errors: Record<string, string[]> = parsed.success
+    ? {}
+    : (z.flattenError(parsed.error).fieldErrors as Record<string, string[]>);
+  if (String(data.toAccountId) === fromAccountId) errors.toAccountId = ["toAccountInvalid"];
+
+  let fromAmountMinor: number;
+  let toAmountMinor: number;
+  try {
+    // An unknown destination id is also an error next to the destination field, not a failed request.
+    const [fromAccount, toAccount, currencies] = await Promise.all([
+      getAccount(fromAccountId),
+      parsed.success ? getAccount(parsed.data.toAccountId).catch(() => null) : null,
+      getCurrencies(),
+    ]);
+    if (parsed.success && !toAccount) errors.toAccountId = ["toAccountInvalid"];
+    const minorUnitOf = (currencyCode: string) => currencies.find((c) => c.code === currencyCode)?.minorUnit ?? 2;
+    const fromAmount = toPositiveMinorUnits(String(data.amount), minorUnitOf(fromAccount.currencyCode));
+    if (typeof fromAmount === "string") errors.amount = [fromAmount];
+    const sameCurrency = !toAccount || toAccount.currencyCode === fromAccount.currencyCode;
+    const toAmount = sameCurrency
+      ? fromAmount
+      : toPositiveMinorUnits(String(data.toAmount), minorUnitOf(toAccount.currencyCode));
+    if (typeof toAmount === "string" && !sameCurrency) errors.toAmount = [toAmount];
+    if (
+      !parsed.success ||
+      Object.keys(errors).length > 0 ||
+      typeof fromAmount === "string" ||
+      typeof toAmount === "string"
+    ) {
+      return { success: false, message: "Validation failed", errors };
+    }
+    fromAmountMinor = fromAmount;
+    toAmountMinor = toAmount;
+  } catch (error) {
+    return backendFailure(error, "createTransfer");
+  }
+
+  const { toAccountId, description, bookedOn, notes } = parsed.data;
+  try {
+    await fetchApiServer("/transactions/transfers", {
+      method: "POST",
+      body: JSON.stringify({
+        fromAccountId,
+        toAccountId,
+        fromAmountMinor,
+        toAmountMinor,
+        description,
+        bookedOn,
+        ...(notes === "" ? {} : { notes }),
+      }),
+    });
+  } catch (error) {
+    return backendFailure(error, "createTransfer");
+  }
+
+  refresh();
+  return { success: true, message: "Transfer created" };
 }
 
 export async function deleteTransaction(transactionId: string): Promise<ActionResponse> {

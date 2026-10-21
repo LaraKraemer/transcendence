@@ -13,13 +13,13 @@ import { Modal } from "@/components/ui/modal";
 import { TextField } from "@/components/ui/text-field";
 import { createCategory } from "@/lib/actions/categories";
 import {
-  CATEGORY_KINDS,
+  CATEGORY_TYPES,
   HEX_COLOR_PATTERN,
   MAX_CATEGORY_NAME_LENGTH,
   isCategoryErrorCode,
   readableOn,
   type CategoryErrorCode,
-  type CategoryKind,
+  type CategoryType,
 } from "@/lib/validation";
 
 // Seven colours picked to be easy to tell apart: the closest pair is ΔE 53 in CIELAB
@@ -42,8 +42,8 @@ const circleClasses =
   "flex aspect-square w-full max-w-8 items-center justify-center rounded-full ring-1 ring-foreground/15 ring-inset";
 const selectedRing = "0 0 0 2px var(--card), 0 0 0 4px var(--foreground)";
 
-type CategoryFields = "name" | "icon" | "color" | "kind";
-const FIELD_ORDER: CategoryFields[] = ["name", "kind", "icon", "color"];
+type CategoryFields = "name" | "icon" | "color" | "types";
+const FIELD_ORDER: CategoryFields[] = ["name", "types", "icon", "color"];
 
 type FormState = {
   fieldErrors: Partial<Record<CategoryFields, CategoryErrorCode>>;
@@ -53,14 +53,14 @@ const initialState: FormState = { fieldErrors: {}, error: null };
 
 /**
  * "New category" trigger plus its modal form. `variant="tile"` is the dashed
- * "Add category" tile at the end of a group, which preselects that group's kind.
+ * "Add category" tile at the end of a group, which preselects that group's type.
  */
 export function NewCategoryButton({
   variant,
-  defaultKind = "expense",
+  defaultType = "expense",
 }: {
   variant: "header" | "tile";
-  defaultKind?: CategoryKind;
+  defaultType?: CategoryType;
 }) {
   const t = useTranslations("categories");
   const [open, setOpen] = useState(false);
@@ -87,12 +87,12 @@ export function NewCategoryButton({
         <Plus size={variant === "header" ? 16 : 15} aria-hidden />
         {variant === "header" ? t("newCategory") : t("addCategory")}
         {/* Each group has its own tile, so screen readers also hear which group it adds to ("Add category (Expenses)"). */}
-        {variant === "tile" && <span className="sr-only"> ({t(`groups.${defaultKind}`)})</span>}
+        {variant === "tile" && <span className="sr-only"> ({t(`groups.${defaultType}`)})</span>}
       </button>
       <Modal open={open} title={t("form.title")} onClose={() => setOpen(false)} busy={saving}>
         <CategoryForm
           key={formKey}
-          defaultKind={defaultKind}
+          defaultType={defaultType}
           onDone={() => setOpen(false)}
           onPendingChange={setSaving}
         />
@@ -102,27 +102,33 @@ export function NewCategoryButton({
 }
 
 function CategoryForm({
-  defaultKind,
+  defaultType,
   onDone,
   onPendingChange,
 }: {
-  defaultKind: CategoryKind;
+  defaultType: CategoryType;
   onDone: () => void;
   onPendingChange: (pending: boolean) => void;
 }) {
   const t = useTranslations("categories");
   const announce = useAnnounce();
   const idPrefix = useId();
-  const [values, setValues] = useState<Record<CategoryFields, string>>({
+  const [values, setValues] = useState({
     name: "",
-    kind: defaultKind,
-    icon: CATEGORY_ICON_KEYS[0],
+    types: [defaultType] as CategoryType[],
+    icon: CATEGORY_ICON_KEYS[0] as string,
     color: DEFAULT_COLOR,
   });
-  const set = (field: CategoryFields) => (value: string) => setValues((prev) => ({ ...prev, [field]: value }));
+  const set = (field: "name" | "icon" | "color") => (value: string) =>
+    setValues((prev) => ({ ...prev, [field]: value }));
+  const toggleType = (type: CategoryType) =>
+    setValues((prev) => ({
+      ...prev,
+      types: prev.types.includes(type) ? prev.types.filter((selected) => selected !== type) : [...prev.types, type],
+    }));
 
   const [{ fieldErrors, error }, submitAction, isPending] = useActionState(
-    async (_prev: FormState, submitted: Record<CategoryFields, string>): Promise<FormState> => {
+    async (_prev: FormState, submitted: typeof values): Promise<FormState> => {
       try {
         const result = await createCategory(submitted);
         if (result.success) {
@@ -147,7 +153,7 @@ function CategoryForm({
   );
 
   // onSubmit rather than <form action>: React resets a form after every action,
-  // which would drop the radio selections while state still holds them.
+  // which would drop the radio and checkbox selections while state still holds them.
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     startTransition(() => submitAction(values));
@@ -178,7 +184,11 @@ function CategoryForm({
           </span>
           <div className="min-w-0">
             <div className="truncate text-sm font-semibold">{values.name.trim() || t("form.previewName")}</div>
-            <div className="text-[13px] text-muted-foreground">{t(`kinds.${values.kind as CategoryKind}`)}</div>
+            <div className="text-[13px] text-muted-foreground">
+              {CATEGORY_TYPES.filter((type) => values.types.includes(type))
+                .map((type) => t(`types.${type}`))
+                .join(" · ")}
+            </div>
           </div>
         </div>
 
@@ -198,21 +208,21 @@ function CategoryForm({
           error={errorText(fieldErrors.name)}
         />
 
-        <ChoiceGroup legend={t("form.kind")} error={errorText(fieldErrors.kind)} idPrefix={`${idPrefix}-kind`}>
+        <ChoiceGroup legend={t("form.types")} error={errorText(fieldErrors.types)} idPrefix={`${idPrefix}-types`}>
           <div className="flex gap-1 rounded-[11px] border border-border bg-muted p-1">
-            {CATEGORY_KINDS.map((kind, index) => (
-              <label key={kind} className="flex-1">
+            {CATEGORY_TYPES.map((type, index) => (
+              <label key={type} className="flex-1">
                 <input
-                  type="radio"
-                  name="kind"
-                  value={kind}
-                  checked={values.kind === kind}
-                  onChange={() => set("kind")(kind)}
-                  data-field={index === 0 ? `${idPrefix}-kind` : undefined}
+                  type="checkbox"
+                  name="types"
+                  value={type}
+                  checked={values.types.includes(type)}
+                  onChange={() => toggleType(type)}
+                  data-field={index === 0 ? `${idPrefix}-types` : undefined}
                   className="peer sr-only"
                 />
                 <span className="block cursor-pointer rounded-[8px] px-2 py-1.5 text-center text-[13px] font-medium text-muted-foreground peer-checked:bg-card peer-checked:font-semibold peer-checked:text-foreground peer-checked:shadow-sm peer-focus-visible:ring-2 peer-focus-visible:ring-ring">
-                  {t(`kinds.${kind}`)}
+                  {t(`types.${type}`)}
                 </span>
               </label>
             ))}

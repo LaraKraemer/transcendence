@@ -15,11 +15,11 @@ import {
   getCurrencies,
   notFoundOnMissingResource,
 } from "@/lib/dal";
-import type { AccountBalance, TransactionPage } from "@/lib/types";
+import type { AccountBalance, Category, TransactionPage } from "@/lib/types";
 
 const TRANSACTIONS_LIMIT = 200;
 
-const TYPE_FILTERS = ["all", "income", "expense"] as const;
+const TYPE_FILTERS = ["all", "income", "expense", "transfer"] as const;
 type TypeFilter = (typeof TYPE_FILTERS)[number];
 
 // The list heading takes focus after a delete removes the focused row's button.
@@ -43,25 +43,37 @@ export default async function AccountTransactionsPage({
   searchParams,
 }: RouteParams & { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
   const [{ accountId }, { type }] = await Promise.all([params, searchParams]);
-  const filter: TypeFilter = type === "income" || type === "expense" ? type : "all";
+  const filter: TypeFilter = type === "income" || type === "expense" || type === "transfer" ? type : "all";
 
-  const [t, format, account, { items, total }, activeCategories, currencies, activeAccounts, balanceMinor] =
-    await Promise.all([
-      getTranslations("transactions"),
-      getFormatter(),
-      getAccount(accountId),
-      fetchApiServer<TransactionPage>(
-        `/transactions?${new URLSearchParams({ accountId, limit: String(TRANSACTIONS_LIMIT) })}`,
-      ),
-      getCategories(),
-      getCurrencies(),
-      getAccounts(),
-      fetchApiServer<AccountBalance>(`/accounts/${encodeURIComponent(accountId)}/balance`).then(
-        (balance) => balance.balanceMinor,
-        () => null,
-      ),
-    ]).catch(notFoundOnMissingResource);
+  const [
+    t,
+    tCategories,
+    format,
+    account,
+    { items, total },
+    activeCategories,
+    currencies,
+    activeAccounts,
+    balanceMinor,
+  ] = await Promise.all([
+    getTranslations("transactions"),
+    getTranslations("categories"),
+    getFormatter(),
+    getAccount(accountId),
+    fetchApiServer<TransactionPage>(
+      `/transactions?${new URLSearchParams({ accountId, limit: String(TRANSACTIONS_LIMIT) })}`,
+    ),
+    getCategories(),
+    getCurrencies(),
+    getAccounts(),
+    fetchApiServer<AccountBalance>(`/accounts/${encodeURIComponent(accountId)}/balance`).then(
+      (balance) => balance.balanceMinor,
+      () => null,
+    ),
+  ]).catch(notFoundOnMissingResource);
   const categories = new Map(activeCategories.map((c) => [c.id, c]));
+  // The system Transfer category is stored in English, so it is shown translated.
+  const categoryName = (category: Category) => (category.isSystem ? tCategories("types.transfer") : category.name);
   const switcherAccounts = activeAccounts.some((other) => other.id === account.id)
     ? activeAccounts
     : [account, ...activeAccounts];
@@ -69,7 +81,7 @@ export default async function AccountTransactionsPage({
   const minorUnit = currencies.find((currency) => currency.code === account.currencyCode)?.minorUnit ?? 2;
   // Built once and passed to every row: the same object is sent to the client only once.
   const accountOption = { id: account.id, name: account.name, currencyCode: account.currencyCode, minorUnit };
-  const categoryOptions = activeCategories.map(({ id, name, kind }) => ({ id, name, kind }));
+  const categoryOptions = activeCategories.map(({ id, name, types }) => ({ id, name, types }));
   const money = (amountMinor: number) =>
     format.number(amountMinor / 10 ** minorUnit, {
       style: "currency",
@@ -83,8 +95,7 @@ export default async function AccountTransactionsPage({
   const moneyOutMinor = items.reduce((sum, tx) => (tx.amountMinor < 0 ? sum + tx.amountMinor : sum), 0);
   const statNote = total > items.length ? t("latestOnly", { count: items.length }) : undefined;
 
-  const visible =
-    filter === "all" ? items : items.filter((tx) => (filter === "income" ? tx.amountMinor > 0 : tx.amountMinor < 0));
+  const visible = filter === "all" ? items : items.filter((tx) => tx.type === filter);
 
   return (
     <div className="mx-auto w-full max-w-5xl pt-2">
@@ -108,7 +119,17 @@ export default async function AccountTransactionsPage({
         </div>
         {!account.isArchived && (
           <LiveStatusProvider>
-            <NewTransactionButton variant="header" accounts={[accountOption]} categories={categoryOptions} />
+            <NewTransactionButton
+              variant="header"
+              accounts={[accountOption]}
+              allAccounts={activeAccounts.map(({ id, name, currencyCode }) => ({
+                id,
+                name,
+                currencyCode,
+                minorUnit: currencies.find((currency) => currency.code === currencyCode)?.minorUnit ?? 2,
+              }))}
+              categories={categoryOptions}
+            />
           </LiveStatusProvider>
         )}
       </div>
@@ -217,7 +238,7 @@ export default async function AccountTransactionsPage({
                           </div>
                         )}
                         <div className="mt-0.5 text-xs text-muted-foreground sm:text-[13px] lg:hidden">
-                          {category ? <bdi>{category.name}</bdi> : t("uncategorised")}
+                          {category ? <bdi>{categoryName(category)}</bdi> : t("uncategorised")}
                           <span aria-hidden> · </span>
                           <time dateTime={tx.bookedOn}>{bookedOn(tx.bookedOn)}</time>
                         </div>
@@ -230,7 +251,7 @@ export default async function AccountTransactionsPage({
                               className="size-1.5 rounded-full"
                               style={{ backgroundColor: category.color }}
                             />
-                            <bdi>{category.name}</bdi>
+                            <bdi>{categoryName(category)}</bdi>
                           </span>
                         ) : (
                           <span className="text-xs text-muted-foreground">{t("uncategorised")}</span>
@@ -248,15 +269,19 @@ export default async function AccountTransactionsPage({
                       </td>
                       <td className="py-[11px] ps-1 pe-2 sm:py-3.5 sm:pe-4">
                         <div className="flex justify-end gap-1.5">
-                          <EditTransactionButton
-                            transaction={tx}
-                            account={accountOption}
-                            categories={categoryOptions}
-                            focusAfterDeleteId={LIST_HEADING_ID}
-                          />
+                          {/* The backend can't edit transfers; they are deleted and created again. */}
+                          {tx.type !== "transfer" && (
+                            <EditTransactionButton
+                              transaction={tx}
+                              account={accountOption}
+                              categories={categoryOptions}
+                              focusAfterDeleteId={LIST_HEADING_ID}
+                            />
+                          )}
                           <DeleteTransactionButton
                             transactionId={tx.id}
                             description={tx.description}
+                            isTransfer={tx.type === "transfer"}
                             focusAfterDeleteId={LIST_HEADING_ID}
                           />
                         </div>

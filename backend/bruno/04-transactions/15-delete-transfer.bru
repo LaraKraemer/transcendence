@@ -1,0 +1,17 @@
+meta {
+  name: 15 - Delete transfer
+  type: http
+  seq: 15
+}
+
+delete {
+  url: {{baseUrl}}/transactions/{{transferSourceLegId}}
+  body: none
+  auth: none
+}
+
+tests {
+  test("deleting one leg deletes the transfer", function () {
+    expect(res.getStatus()).to.equal(204);
+  });
+}

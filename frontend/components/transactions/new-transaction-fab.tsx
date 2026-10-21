@@ -14,17 +14,19 @@ export async function NewTransactionFab() {
 
   const [accounts, categories, currencies] = data;
   const minorUnits = new Map(currencies.map((currency) => [currency.code, currency.minorUnit]));
+  const accountOptions = accounts.map(({ id, name, currencyCode }) => ({
+    id,
+    name,
+    currencyCode,
+    minorUnit: minorUnits.get(currencyCode) ?? 2,
+  }));
   return (
     <LiveStatusProvider>
       <NewTransactionButton
         variant="fab"
-        accounts={accounts.map(({ id, name, currencyCode }) => ({
-          id,
-          name,
-          currencyCode,
-          minorUnit: minorUnits.get(currencyCode) ?? 2,
-        }))}
-        categories={categories.map(({ id, name, kind }) => ({ id, name, kind }))}
+        accounts={accountOptions}
+        allAccounts={accountOptions}
+        categories={categories.map(({ id, name, types }) => ({ id, name, types }))}
       />
     </LiveStatusProvider>
   );

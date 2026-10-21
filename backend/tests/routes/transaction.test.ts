@@ -14,23 +14,29 @@ vi.mock("../../srcs/auth.ts", () => ({
   },
 }));
 
+import { TRANSFER_CATEGORY_ID } from "../../srcs/db/categories.ts";
 import { transactionsRouter } from "../../srcs/routes/transaction.ts";
+import { isUuid } from "../../srcs/validation.ts";
 import { accountsRouter } from "../../srcs/routes/account.ts";
 
 const accountId = "550e8400-e29b-41d4-a716-446655440000";
 const transactionId = "550e8400-e29b-41d4-a716-446655440003";
 const categoryId = "550e8400-e29b-41d4-a716-446655440002";
 const userId = "550e8400-e29b-41d4-a716-446655440001";
+const otherAccountId = "550e8400-e29b-41d4-a716-446655440005";
+const transferGroupId = "550e8400-e29b-41d4-a716-446655440006";
 
 // Transaction row in schema column order:
-// id, accountId, categoryId, createdById, amountMinor, description, notes,
-// bookedOn, occurredAt, createdAt, updatedAt
+// id, accountId, categoryId, createdById, type, transferGroupId, amountMinor,
+// description, notes, bookedOn, occurredAt, createdAt, updatedAt
 function txRow(overrides: Record<string, unknown> = {}) {
   return [
     overrides.id ?? transactionId,
     overrides.accountId ?? accountId,
     overrides.categoryId ?? null,
     overrides.createdById ?? userId,
+    overrides.type ?? "expense",
+    overrides.transferGroupId ?? null,
     overrides.amountMinor ?? "-1000",
     overrides.description ?? "Coffee",
     overrides.notes ?? null,
@@ -108,15 +114,15 @@ describe("GET /transactions/summary", () => {
     query.mockResolvedValueOnce({ rows: [[accountId]] });
     query.mockResolvedValueOnce({
       rows: [
-        [accountId, "-32000", "2"],
-        [null, "-100", "1"],
+        [accountId, "expense", "-32000", "2"],
+        [null, "income", "100", "1"],
       ],
     });
     expect(await summary({ accountId, from: "2025-01-01", to: "2025-03-31" })).toEqual({
       status: 200,
       body: [
-        { categoryId: accountId, totalMinor: -32000, count: 2 },
-        { categoryId: null, totalMinor: -100, count: 1 },
+        { categoryId: accountId, type: "expense", totalMinor: -32000, count: 2 },
+        { categoryId: null, type: "income", totalMinor: 100, count: 1 },
       ],
     });
     expect(query.mock.calls[0]![0].text.split(" where ")[1]).not.toContain("is_archived");
@@ -126,7 +132,7 @@ describe("GET /transactions/summary", () => {
     expect(statement.text).not.toContain('"status"');
     expect(statement.text).toContain('"transaction"."booked_on" >=');
     expect(statement.text).toContain('"transaction"."booked_on" <=');
-    expect(statement.text).toContain('group by "transaction"."category_id"');
+    expect(statement.text).toContain('group by "transaction"."category_id", "transaction"."type"');
     expect(values).toEqual([accountId, "2025-01-01", "2025-03-31"]);
   });
 
@@ -314,8 +320,8 @@ describe("GET /transactions", () => {
 // ─── GET /count/:categoryId ───────────────────────────────────────────────────
 
 describe("GET /transactions/count/:categoryId", () => {
-  // category row: id, userId, name, icon, color, kind, createdAt
-  const categoryRow = [categoryId, userId, "Food", "🍔", "#2563EB", "expense", new Date().toISOString()];
+  // category row: id, userId, name, icon, color, types, isSystem, createdAt
+  const categoryRow = [categoryId, userId, "Food", "🍔", "#2563EB", ["expense"], false, new Date().toISOString()];
 
   function getCount(id: string) {
     return dispatch(transactionsRouter, { url: `/count/${id}` });
@@ -327,19 +333,19 @@ describe("GET /transactions/count/:categoryId", () => {
   });
 
   it("returns 404 for a missing or foreign category", async () => {
-    query.mockResolvedValueOnce({ rows: [] }); // findOwnedCategory → not found
+    query.mockResolvedValueOnce({ rows: [] }); // findVisibleCategory → not found
     expect(await getCount(categoryId)).toEqual({ status: 404, body: { error: "Category not found" } });
     expect(query).toHaveBeenCalledTimes(1);
   });
 
   it("returns { transactionCount: 0 } when no linked transactions", async () => {
-    query.mockResolvedValueOnce({ rows: [categoryRow] }); // findOwnedCategory
+    query.mockResolvedValueOnce({ rows: [categoryRow] }); // findVisibleCategory
     query.mockResolvedValueOnce({ rows: [[0]] }); // countTransactionsByCategory
     expect(await getCount(categoryId)).toEqual({ status: 200, body: { transactionCount: 0 } });
   });
 
   it("returns { transactionCount: 3 } when transactions exist", async () => {
-    query.mockResolvedValueOnce({ rows: [categoryRow] }); // findOwnedCategory
+    query.mockResolvedValueOnce({ rows: [categoryRow] }); // findVisibleCategory
     query.mockResolvedValueOnce({ rows: [[3]] }); // countTransactionsByCategory
     expect(await getCount(categoryId)).toEqual({ status: 200, body: { transactionCount: 3 } });
   });
@@ -398,6 +404,7 @@ describe("POST /transactions", () => {
 
   const validBody = {
     accountId,
+    type: "expense",
     amountMinor: -1000,
     description: "Coffee",
     bookedOn: "2025-01-15",
@@ -406,6 +413,11 @@ describe("POST /transactions", () => {
   it.each([
     [{ ...validBody, accountId: undefined }, "accountId must be a valid UUID"],
     [{ ...validBody, accountId: "not-a-uuid" }, "accountId must be a valid UUID"],
+    [{ ...validBody, type: undefined }, "type must be expense, income, or transfer"],
+    [{ ...validBody, type: "savings" }, "type must be expense, income, or transfer"],
+    [{ ...validBody, type: "transfer" }, "Transfers are created with POST /transactions/transfers"],
+    [{ ...validBody, amountMinor: 1000 }, "amountMinor must be negative for an expense"],
+    [{ ...validBody, type: "income" }, "amountMinor must be positive for an income"],
     [{ ...validBody, amountMinor: 0 }, "amountMinor must be a non-zero safe integer"],
     [{ ...validBody, amountMinor: 10.5 }, "amountMinor must be a non-zero safe integer"],
     [{ ...validBody, amountMinor: "100" }, "amountMinor must be a non-zero safe integer"],
@@ -468,12 +480,12 @@ describe("POST /transactions", () => {
     await post(validBody);
     // Drizzle uses "default" for omitted columns — params won't include explicit notes/occurredAt
     const insertParams: unknown[] = query.mock.calls[1]![1];
-    // Only amountMinor, description, bookedOn, userId, accountId are bound explicitly
+    // Only type, amountMinor, description, bookedOn, userId, accountId are bound explicitly
     // notes, occurredAt go in as default → not in params list
     const insertSql: string = query.mock.calls[1]![0].text;
     expect(insertSql).toContain("default"); // confirms defaults are used
     expect(insertSql).not.toContain('"status"');
-    expect(insertParams).toEqual([accountId, userId, -1000, "Coffee", "2025-01-15"]);
+    expect(insertParams).toEqual([accountId, userId, "expense", -1000, "Coffee", "2025-01-15"]);
   });
 
   it("does not run category query when categoryId is not sent", async () => {
@@ -516,6 +528,8 @@ describe("PATCH /transactions/:transactionId", () => {
   });
 
   it.each([
+    [{ type: "savings" }, "type must be expense or income"],
+    [{ type: "transfer" }, "type must be expense or income"],
     [{ amountMinor: 0 }, "amountMinor must be a non-zero safe integer"],
     [{ amountMinor: 1.5 }, "amountMinor must be a non-zero safe integer"],
     [{ amountMinor: "100" }, "amountMinor must be a non-zero safe integer"],
@@ -529,6 +543,15 @@ describe("PATCH /transactions/:transactionId", () => {
   ])("returns 400 for invalid field %j (found tx)", async (body, error) => {
     query.mockResolvedValueOnce({ rows: [txRow()] }); // findOwnedTransaction
     expect(await patch(transactionId, body)).toEqual({ status: 400, body: { error } });
+  });
+
+  it("refuses to edit a transfer leg", async () => {
+    query.mockResolvedValueOnce({ rows: [txRow({ type: "transfer", transferGroupId })] });
+    expect(await patch(transactionId, { description: "New" })).toEqual({
+      status: 400,
+      body: { error: "Transfers cannot be edited. Delete the transfer and create a new one." },
+    });
+    expect(query).toHaveBeenCalledTimes(1);
   });
 
   it("returns 400 for empty body or only non-editable fields", async () => {
@@ -600,6 +623,16 @@ describe("DELETE /transactions/:transactionId", () => {
     expect(query.mock.calls[0]![1]).toEqual([transactionId, userId, 1]);
   });
 
+  it("deletes both legs of a transfer", async () => {
+    query.mockResolvedValueOnce({ rows: [txRow({ type: "transfer", transferGroupId })] }); // findOwnedTransaction
+    query.mockResolvedValueOnce({ rows: [] }); // deleteTransaction
+
+    expect((await del(transactionId)).status).toBe(204);
+
+    expect(query.mock.calls[1]![0].text).toContain('"transfer_group_id" =');
+    expect(query.mock.calls[1]![1]).toEqual([transferGroupId]);
+  });
+
   it("forwards errors", async () => {
     query.mockRejectedValueOnce(new Error("DB down"));
     await expect(del(transactionId)).rejects.toThrow();
@@ -611,103 +644,214 @@ describe("DELETE /transactions/:transactionId", () => {
 describe("POST /transactions — category rule", () => {
   const validBody = {
     accountId,
+    type: "expense",
     amountMinor: -1000,
     description: "Coffee",
     bookedOn: "2025-01-15",
   };
 
+  function post(body: unknown) {
+    return dispatch(transactionsRouter, { method: "POST", url: "/", body });
+  }
+
   it("returns 404 for a missing or foreign category", async () => {
     query.mockResolvedValueOnce({ rows: [acctRow()] }); // findOwnedAccount
-    query.mockResolvedValueOnce({ rows: [] }); // findCategoryKind → not found
-    const result = await dispatch(transactionsRouter, {
-      method: "POST",
-      url: "/",
-      body: { ...validBody, categoryId },
-    });
-    expect(result).toEqual({ status: 404, body: { error: "Category not found" } });
+    query.mockResolvedValueOnce({ rows: [] }); // findCategoryTypes → not found
+    expect(await post({ ...validBody, categoryId })).toEqual({ status: 404, body: { error: "Category not found" } });
   });
 
-  it("returns 400 for expense category with positive amount", async () => {
+  it("looks up the user's own categories and the system category", async () => {
     query.mockResolvedValueOnce({ rows: [acctRow()] });
-    query.mockResolvedValueOnce({ rows: [["expense"]] }); // findCategoryKind → expense kind
-    const result = await dispatch(transactionsRouter, {
-      method: "POST",
-      url: "/",
-      body: { ...validBody, amountMinor: 1000, categoryId },
-    });
-    expect(result).toEqual({ status: 400, body: { error: "An income transaction requires an income category" } });
+    query.mockResolvedValueOnce({ rows: [] });
+    await post({ ...validBody, categoryId });
+    expect(query.mock.calls[1]![0].text).toContain('"user_id" = $2 or "category"."is_system" = $3');
   });
 
-  it("returns 400 for income category with negative amount", async () => {
+  it.each([
+    ["income", 1000, ["expense"]],
+    ["expense", -1000, ["income"]],
+    ["expense", -1000, ["transfer"]],
+  ])("returns 400 for a %s transaction with a category that only allows %j", async (type, amountMinor, types) => {
     query.mockResolvedValueOnce({ rows: [acctRow()] });
-    query.mockResolvedValueOnce({ rows: [["income"]] }); // income kind
-    const result = await dispatch(transactionsRouter, {
-      method: "POST",
-      url: "/",
-      body: { ...validBody, amountMinor: -1000, categoryId },
+    query.mockResolvedValueOnce({ rows: [[types]] }); // findCategoryTypes
+    expect(await post({ ...validBody, type, amountMinor, categoryId })).toEqual({
+      status: 400,
+      body: { error: `An ${type} transaction requires a category that allows ${type}` },
     });
-    expect(result).toEqual({ status: 400, body: { error: "An expense transaction requires an expense category" } });
   });
 
-  it("accepts transfer category with any sign", async () => {
+  it.each([
+    ["expense", -1000, ["expense"]],
+    ["expense", -1000, ["expense", "income"]],
+    ["income", 1000, ["expense", "income"]],
+  ])("accepts a %s transaction with a category that allows %j", async (type, amountMinor, types) => {
     query.mockResolvedValueOnce({ rows: [acctRow()] });
-    query.mockResolvedValueOnce({ rows: [["transfer"]] });
+    query.mockResolvedValueOnce({ rows: [[types]] });
     query.mockResolvedValueOnce({ rows: [txRow()] });
-    const result = await dispatch(transactionsRouter, {
-      method: "POST",
-      url: "/",
-      body: { ...validBody, amountMinor: 1000, categoryId },
-    });
-    expect(result.status).toBe(201);
-  });
-
-  it("accepts matching kind (expense + negative amount)", async () => {
-    query.mockResolvedValueOnce({ rows: [acctRow()] });
-    query.mockResolvedValueOnce({ rows: [["expense"]] });
-    query.mockResolvedValueOnce({ rows: [txRow()] });
-    const result = await dispatch(transactionsRouter, {
-      method: "POST",
-      url: "/",
-      body: { ...validBody, amountMinor: -1000, categoryId },
-    });
-    expect(result.status).toBe(201);
+    expect((await post({ ...validBody, type, amountMinor, categoryId })).status).toBe(201);
   });
 });
 
 describe("PATCH /transactions/:transactionId — category rule", () => {
-  it("returns 400 when changing amount makes existing category mismatch", async () => {
-    // Transaction has expense category, we flip amount to positive
+  function patch(body: unknown) {
+    return dispatch(transactionsRouter, { method: "PATCH", url: `/${transactionId}`, body });
+  }
+
+  it("rejects an amount sign that contradicts the type, before any category lookup", async () => {
     query.mockResolvedValueOnce({ rows: [txRow({ categoryId, amountMinor: "-1000" })] });
-    query.mockResolvedValueOnce({ rows: [["expense"]] }); // findCategoryKind
-    const result = await dispatch(transactionsRouter, {
-      method: "PATCH",
-      url: `/${transactionId}`,
-      body: { amountMinor: 1000 },
+    expect(await patch({ amountMinor: 1000 })).toEqual({
+      status: 400,
+      body: { error: "amountMinor must be negative for an expense" },
     });
-    expect(result).toEqual({ status: 400, body: { error: "An income transaction requires an income category" } });
+    expect(query).toHaveBeenCalledTimes(1);
   });
 
-  it("returns 400 when new categoryId doesn't match amount sign", async () => {
-    query.mockResolvedValueOnce({ rows: [txRow({ amountMinor: "-1000" })] });
-    query.mockResolvedValueOnce({ rows: [["income"]] }); // income category for negative tx
-    const result = await dispatch(transactionsRouter, {
-      method: "PATCH",
-      url: `/${transactionId}`,
-      body: { categoryId },
+  it("allows flipping the sign together with the type when the category allows both", async () => {
+    query.mockResolvedValueOnce({ rows: [txRow({ categoryId, amountMinor: "-1000" })] });
+    query.mockResolvedValueOnce({ rows: [[["expense", "income"]]] }); // findCategoryTypes
+    query.mockResolvedValueOnce({ rows: [txRow({ type: "income", categoryId, amountMinor: "1000" })] });
+    expect((await patch({ type: "income", amountMinor: 1000 })).status).toBe(200);
+  });
+
+  it("returns 400 when changing the type leaves a category that does not allow it", async () => {
+    query.mockResolvedValueOnce({ rows: [txRow({ categoryId, amountMinor: "-1000" })] });
+    query.mockResolvedValueOnce({ rows: [[["expense"]]] });
+    expect(await patch({ type: "income", amountMinor: 1000 })).toEqual({
+      status: 400,
+      body: { error: "An income transaction requires a category that allows income" },
     });
-    expect(result).toEqual({ status: 400, body: { error: "An expense transaction requires an expense category" } });
+  });
+
+  it("returns 400 when the new categoryId does not allow the transaction's type", async () => {
+    query.mockResolvedValueOnce({ rows: [txRow({ amountMinor: "-1000" })] });
+    query.mockResolvedValueOnce({ rows: [[["income"]]] });
+    expect(await patch({ categoryId })).toEqual({
+      status: 400,
+      body: { error: "An expense transaction requires a category that allows expense" },
+    });
+  });
+
+  it("does not re-check the category on unrelated edits (a category may have dropped the type since)", async () => {
+    query.mockResolvedValueOnce({ rows: [txRow({ categoryId, amountMinor: "-1000" })] }); // findOwnedTransaction
+    query.mockResolvedValueOnce({ rows: [txRow({ categoryId, amountMinor: "-2000" })] }); // updateTransaction
+    expect((await patch({ amountMinor: -2000, description: "Edited" })).status).toBe(200);
+    expect(query).toHaveBeenCalledTimes(2); // no category lookup
   });
 
   it("skips category query when categoryId: null is sent", async () => {
     query.mockResolvedValueOnce({ rows: [txRow({ categoryId })] }); // findOwnedTransaction
     query.mockResolvedValueOnce({ rows: [txRow({ categoryId: null })] }); // updateTransaction
-    const result = await dispatch(transactionsRouter, {
-      method: "PATCH",
-      url: `/${transactionId}`,
-      body: { categoryId: null },
-    });
-    expect(result.status).toBe(200);
+    expect((await patch({ categoryId: null })).status).toBe(200);
     expect(query).toHaveBeenCalledTimes(2); // no category lookup
+  });
+});
+
+// ─── POST /transfers ─────────────────────────────────────────────────────────
+
+describe("POST /transactions/transfers", () => {
+  function post(body: unknown) {
+    return dispatch(transactionsRouter, { method: "POST", url: "/transfers", body });
+  }
+
+  const validBody = {
+    fromAccountId: accountId,
+    toAccountId: otherAccountId,
+    fromAmountMinor: 5000,
+    toAmountMinor: 5000,
+    description: "Savings",
+    bookedOn: "2025-01-15",
+  };
+
+  it.each([
+    [{ ...validBody, fromAccountId: "nope" }, "fromAccountId must be a valid UUID"],
+    [{ ...validBody, toAccountId: undefined }, "toAccountId must be a valid UUID"],
+    [{ ...validBody, toAccountId: accountId }, "fromAccountId and toAccountId must be different"],
+    [{ ...validBody, fromAmountMinor: 0 }, "fromAmountMinor must be a positive safe integer"],
+    [{ ...validBody, fromAmountMinor: -5000 }, "fromAmountMinor must be a positive safe integer"],
+    [{ ...validBody, fromAmountMinor: 1.5 }, "fromAmountMinor must be a positive safe integer"],
+    [{ ...validBody, toAmountMinor: "5000" }, "toAmountMinor must be a positive safe integer"],
+    [{ ...validBody, toAmountMinor: 2 ** 53 }, "toAmountMinor must be a positive safe integer"],
+    [{ ...validBody, description: " " }, "description must be between 1 and 500 characters"],
+    [{ ...validBody, bookedOn: "2025/01/15" }, "bookedOn must use YYYY-MM-DD format"],
+    [{ ...validBody, notes: 1 }, "notes must be a string"],
+    [{ ...validBody, occurredAt: "nope" }, "occurredAt must be a valid ISO 8601 timestamp or null"],
+  ])("returns 400 for invalid body %j", async (body, error) => {
+    expect(await post(body)).toEqual({ status: 400, body: { error } });
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  it("returns 404 when either account is missing or foreign", async () => {
+    query.mockResolvedValueOnce({ rows: [acctRow()] });
+    query.mockResolvedValueOnce({ rows: [] });
+    expect(await post(validBody)).toEqual({ status: 404, body: { error: "Account not found" } });
+    expect(query).toHaveBeenCalledTimes(2);
+  });
+
+  it("blocks a transfer from or to an archived account", async () => {
+    query.mockResolvedValueOnce({ rows: [acctRow()] });
+    query.mockResolvedValueOnce({ rows: [acctRow({ id: otherAccountId, isArchived: true })] });
+    expect(await post(validBody)).toEqual({
+      status: 409,
+      body: { error: "Account is archived. Restore it before making changes." },
+    });
+  });
+
+  it("requires equal amounts inside one currency", async () => {
+    query.mockResolvedValueOnce({ rows: [acctRow()] });
+    query.mockResolvedValueOnce({ rows: [acctRow({ id: otherAccountId })] });
+    expect(await post({ ...validBody, toAmountMinor: 4000 })).toEqual({
+      status: 400,
+      body: { error: "Amounts must be equal when both accounts use the same currency" },
+    });
+    expect(query).toHaveBeenCalledTimes(2); // nothing inserted
+  });
+
+  it("writes both legs in one statement: negative source, positive destination, shared group and system category", async () => {
+    query.mockResolvedValueOnce({ rows: [acctRow()] });
+    query.mockResolvedValueOnce({ rows: [acctRow({ id: otherAccountId })] });
+    const sourceLeg = txRow({ type: "transfer", transferGroupId, amountMinor: "-5000" });
+    const destinationLeg = txRow({ accountId: otherAccountId, type: "transfer", transferGroupId, amountMinor: "5000" });
+    query.mockResolvedValueOnce({ rows: [sourceLeg, destinationLeg] });
+
+    const result = await post({ ...validBody, description: "  Savings  ", notes: " Monthly " });
+
+    expect(result).toMatchObject({
+      status: 201,
+      body: { from: { accountId, amountMinor: -5000 }, to: { accountId: otherAccountId, amountMinor: 5000 } },
+    });
+    expect(query).toHaveBeenCalledTimes(3);
+    const insertSql: string = query.mock.calls[2]![0].text;
+    expect(insertSql.match(/insert into "transaction"/g)).toHaveLength(1);
+    const params: unknown[] = query.mock.calls[2]![1];
+    expect(params.filter((param) => param === TRANSFER_CATEGORY_ID)).toHaveLength(2);
+    expect(params.filter((param) => param === "transfer")).toHaveLength(2);
+    expect(params).toContain(-5000);
+    expect(params).toContain(5000);
+    expect(params).toContain("Savings");
+    expect(params).toContain("Monthly");
+    const knownIds = [accountId, otherAccountId, userId, TRANSFER_CATEGORY_ID];
+    const groupIds = params.filter((param) => isUuid(param) && !knownIds.includes(param));
+    expect(groupIds).toHaveLength(2);
+    expect(groupIds[0]).toBe(groupIds[1]);
+  });
+
+  it("allows different amounts across currencies", async () => {
+    query.mockResolvedValueOnce({ rows: [acctRow()] });
+    query.mockResolvedValueOnce({ rows: [acctRow({ id: otherAccountId, currencyCode: "USD" })] });
+    query.mockResolvedValueOnce({
+      rows: [
+        txRow({ type: "transfer", transferGroupId, amountMinor: "-5000" }),
+        txRow({ accountId: otherAccountId, type: "transfer", transferGroupId, amountMinor: "5400" }),
+      ],
+    });
+    const result = await post({ ...validBody, toAmountMinor: 5400 });
+    expect(result.status).toBe(201);
+    expect(query.mock.calls[2]![1]).toContain(5400);
+  });
+
+  it("forwards errors", async () => {
+    query.mockRejectedValueOnce(new Error("DB down"));
+    await expect(post(validBody)).rejects.toThrow();
   });
 });
 
@@ -758,6 +902,7 @@ describe("restored account writes", () => {
           url: "/",
           body: {
             accountId,
+            type: "expense",
             amountMinor: -1000,
             description: "Coffee",
             bookedOn: "2025-01-15",
@@ -790,10 +935,10 @@ describe("restored account writes", () => {
 
   it("keeps archived account summaries readable", async () => {
     query.mockResolvedValueOnce({ rows: [acctRow({ isArchived: true })] });
-    query.mockResolvedValueOnce({ rows: [[null, "-1000", "1"]] });
+    query.mockResolvedValueOnce({ rows: [[null, "expense", "-1000", "1"]] });
     expect(await summary({ accountId })).toEqual({
       status: 200,
-      body: [{ categoryId: null, totalMinor: -1000, count: 1 }],
+      body: [{ categoryId: null, type: "expense", totalMinor: -1000, count: 1 }],
     });
   });
 });

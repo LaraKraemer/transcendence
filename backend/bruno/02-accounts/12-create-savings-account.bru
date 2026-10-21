@@ -1,0 +1,30 @@
+meta {
+  name: 12 - Create savings account
+  type: http
+  seq: 12
+}
+
+post {
+  url: {{baseUrl}}/accounts
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "name": "Bruno savings account",
+    "type": "savings",
+    "openingBalanceMinor": 0
+  }
+}
+
+tests {
+  test("savings account is created", function () {
+    expect(res.getStatus()).to.equal(201);
+    bru.setVar("savingsAccountId", res.getBody().id);
+  });
+}

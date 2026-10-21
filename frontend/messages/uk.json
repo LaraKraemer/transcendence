@@ -163,7 +163,8 @@
     "filters": {
       "all": "Усі",
       "income": "Доходи",
-      "expense": "Витрати"
+      "expense": "Витрати",
+      "transfer": "Перекази"
     },
     "listTitle": "Транзакції",
     "heading": "Транзакції рахунку <name>{account}</name>",
@@ -177,12 +178,13 @@
     },
     "uncategorised": "Без категорії",
     "empty": "На цьому рахунку ще немає транзакцій.",
-    "emptyFiltered": "{filter, select, income {Немає доходів.} expense {Немає витрат.} other {Немає транзакцій.}}",
+    "emptyFiltered": "{filter, select, income {Немає доходів.} expense {Немає витрат.} transfer {Немає переказів.} other {Немає транзакцій.}}",
     "showing": "Показано {shown, number} з {total, plural, one {# транзакції} few {# транзакцій} many {# транзакцій} other {# транзакції}}",
     "delete": "Видалити «{description}»",
     "edit": "Редагувати «{description}»",
     "confirmTitle": "Видалити транзакцію?",
     "confirmBody": "«<name>{description}</name>» буде видалено назавжди. Цю дію не можна скасувати.",
+    "confirmBodyTransfer": "«<name>{description}</name>» буде видалено назавжди з обох рахунків. Цю дію не можна скасувати.",
     "cancel": "Скасувати",
     "confirm": "Видалити",
     "deleting": "Видалення…",
@@ -191,7 +193,7 @@
       "generic": "Щось пішло не так. Спробуйте ще раз.",
       "accountArchived": "Цей рахунок архівовано, тому до нього не можна додавати нові транзакції.",
       "notFound": "Цієї транзакції більше не існує. Можливо, її видалили деінде. Закрийте форму, щоб оновити список.",
-      "typeInvalid": "Виберіть витрату або дохід",
+      "typeInvalid": "Виберіть витрату, дохід або переказ",
       "amountRequired": "Введіть суму",
       "amountNotPositive": "Введіть суму, більшу за нуль; тип визначає витрату чи дохід",
       "amountInvalid": "Введіть суму у форматі {example}",
@@ -200,25 +202,33 @@
       "descriptionRequired": "Введіть опис",
       "descriptionTooLong": "Опис може містити щонайбільше {max, number} символів",
       "dateInvalid": "Виберіть коректну дату",
-      "categoryInvalid": "Ця категорія більше недоступна. Виберіть іншу."
+      "categoryInvalid": "Ця категорія більше недоступна. Виберіть іншу.",
+      "toAccountInvalid": "Виберіть інший рахунок для переказу"
     },
     "newTransaction": "Нова транзакція",
     "form": {
       "title": "Нова транзакція",
       "editTitle": "Редагування транзакції",
       "account": "Рахунок",
+      "fromAccount": "З рахунку",
+      "toAccount": "На рахунок",
+      "chooseAccount": "Виберіть рахунок",
       "type": "Тип",
       "types": {
         "expense": "Витрата",
-        "income": "Дохід"
+        "income": "Дохід",
+        "transfer": "Переказ"
       },
       "amount": "Сума ({currency})",
+      "amountSent": "Сума списання ({currency})",
+      "amountReceived": "Сума зарахування ({currency})",
       "description": "Опис",
       "descriptionPlaceholder": "Напр., продукти на тиждень",
       "merchant": "Продавець (необов’язково)",
       "date": "Дата",
       "category": "Категорія (необов’язково)",
       "noCategory": "Без категорії",
+      "transferNeedsTwoAccounts": "Для переказу потрібні принаймні два активні рахунки.",
       "noCategoriesHint": "{type, select, income {Ще немає категорій доходів. Ви можете додати її на сторінці «Категорії».} other {Ще немає категорій витрат. Ви можете додати її на сторінці «Категорії».}}",
       "notes": "Нотатки (необов’язково)",
       "notesPlaceholder": "Що варто запам’ятати",
@@ -250,7 +260,7 @@
       "transfer": "Перекази"
     },
     "groupCount": "{count, plural, one {# категорія} few {# категорії} many {# категорій} other {# категорії}}",
-    "kinds": {
+    "types": {
       "expense": "Витрата",
       "income": "Дохід",
       "transfer": "Переказ"
@@ -260,7 +270,7 @@
       "previewName": "Нова категорія",
       "name": "Назва",
       "namePlaceholder": "Напр., Сільпо",
-      "kind": "Тип",
+      "types": "Тип",
       "icon": "Іконка",
       "color": "Колір",
       "cancel": "Скасувати",
@@ -294,10 +304,10 @@
     "errors": {
       "nameRequired": "Введіть назву категорії",
       "nameTooLong": "Назва може мати щонайбільше {max, plural, one {# символ} few {# символи} many {# символів} other {# символу}}",
-      "nameTaken": "Категорія з такою назвою для цього типу вже існує",
+      "nameTaken": "Категорія з такою назвою вже існує",
       "iconInvalid": "Виберіть іконку",
       "colorInvalid": "Вкажіть колір у форматі #2563EB",
-      "kindInvalid": "Виберіть тип",
+      "typesInvalid": "Виберіть принаймні один тип",
       "network": "Не вдалося з’єднатися із сервером. Спробуйте пізніше.",
       "generic": "Щось пішло не так. Спробуйте ще раз."
     },

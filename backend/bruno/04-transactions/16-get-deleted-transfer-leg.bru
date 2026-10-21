@@ -1,0 +1,17 @@
+meta {
+  name: 16 - Get deleted transfer leg
+  type: http
+  seq: 16
+}
+
+get {
+  url: {{baseUrl}}/transactions/{{transferDestinationLegId}}
+  body: none
+  auth: none
+}
+
+tests {
+  test("the other leg is gone too", function () {
+    expect(res.getStatus()).to.equal(404);
+  });
+}
