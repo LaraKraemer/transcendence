@@ -140,21 +140,19 @@ export const categories = pgTable(
   "category",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    // Null only for the global system category (see isSystem).
-    userId: uuid("user_id").references(() => appUsers.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => appUsers.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     icon: text("icon").notNull(),
     color: text("color").notNull(),
-    // Transaction types the category can be used for: a non-empty subset of expense/income, or ["transfer"] for the system category.
+    // Transaction types the category can be used for: a non-empty subset of expense/income. Transfers have no category.
     types: text("types").array().notNull(),
-    // The global read-only "Transfer" category, shared by all users.
-    isSystem: boolean("is_system").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("category_user_id_idx").on(table.userId),
     uniqueIndex("category_user_name_unique").on(table.userId, table.name),
-    check("category_system_has_no_user", sql`${table.isSystem} = (${table.userId} IS NULL)`),
   ],
 );
 

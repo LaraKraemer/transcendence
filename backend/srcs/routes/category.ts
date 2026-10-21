@@ -2,23 +2,20 @@ import { Router } from "express";
 
 import { requireAuthenticatedUser } from "../auth.ts";
 import {
-  TRANSFER_CATEGORY_ID,
   deleteOwnedCategory,
   findCategoryByName,
   findOwnedCategory,
-  findVisibleCategory,
   insertCategory,
   listCategories,
   updateCategory,
 } from "../db/categories.ts";
 import { isHexColor, isUuid } from "../validation.ts";
 
-// Users choose from these; the system "Transfer" category is the only one with the "transfer" type.
+// Transfers have no category, so a category is only ever for expenses and/or income.
 const CATEGORY_TYPES = ["expense", "income"] as const;
 type CategoryType = (typeof CATEGORY_TYPES)[number];
 
 const TYPES_ERROR = "types must be a non-empty list of expense and/or income";
-const SYSTEM_CATEGORY_ERROR = "The Transfer category cannot be changed";
 
 /** Returns the valid, de-duplicated types in canonical order, or undefined when the value is not a valid non-empty list. */
 function parseCategoryTypes(value: unknown): CategoryType[] | undefined {
@@ -31,7 +28,7 @@ export const categoriesRouter = Router();
 
 categoriesRouter.use(requireAuthenticatedUser);
 
-/** Returns the authenticated user's categories plus the system Transfer category. */
+/** Returns the authenticated user's categories. */
 categoriesRouter.get("/", async (_req, res) => {
   const rows = await listCategories(res.locals.userId);
   res.json(rows);
@@ -79,14 +76,14 @@ categoriesRouter.post("/", async (req, res) => {
   res.status(201).json(category);
 });
 
-/** Returns one category owned by the authenticated user, or the system Transfer category. */
+/** Returns one category owned by the authenticated user. */
 categoriesRouter.get("/:categoryId", async (req, res) => {
   if (!isUuid(req.params.categoryId)) {
     res.status(400).json({ error: "categoryId must be a valid UUID" });
     return;
   }
 
-  const category = await findVisibleCategory(req.params.categoryId, res.locals.userId);
+  const category = await findOwnedCategory(req.params.categoryId, res.locals.userId);
   if (!category) {
     res.status(404).json({ error: "Category not found" });
     return;
@@ -99,12 +96,6 @@ categoriesRouter.get("/:categoryId", async (req, res) => {
 categoriesRouter.delete("/:categoryId", async (req, res, next) => {
   if (!isUuid(req.params.categoryId)) {
     res.status(400).json({ error: "categoryId must be a valid UUID" });
-    return;
-  }
-
-  // The system category is visible to everyone, so it answers 403 instead of the usual 404.
-  if (req.params.categoryId === TRANSFER_CATEGORY_ID) {
-    res.status(403).json({ error: SYSTEM_CATEGORY_ERROR });
     return;
   }
 
@@ -127,11 +118,6 @@ categoriesRouter.delete("/:categoryId", async (req, res, next) => {
 categoriesRouter.patch("/:categoryId", async (req, res) => {
   if (!isUuid(req.params.categoryId)) {
     res.status(400).json({ error: "categoryId must be a valid UUID" });
-    return;
-  }
-
-  if (req.params.categoryId === TRANSFER_CATEGORY_ID) {
-    res.status(403).json({ error: SYSTEM_CATEGORY_ERROR });
     return;
   }
 

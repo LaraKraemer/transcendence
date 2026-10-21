@@ -88,6 +88,32 @@
     "profile": "پروفایل",
     "back": "بازگشت"
   },
+  "profile": {
+    "subtitle": "اطلاعات شخصی و عکس پروفایل خود را مدیریت کنید",
+    "editProfile": "ویرایش پروفایل",
+    "edit": "ویرایش",
+    "personalInfo": "اطلاعات شخصی",
+    "name": "نام کامل",
+    "email": "نشانی ایمیل",
+    "changePhoto": "تغییر عکس پروفایل",
+    "removePhoto": "حذف عکس",
+    "photoAlt": "عکس پروفایل {name}",
+    "nameDialog": {
+      "title": "ویرایش پروفایل",
+      "save": "ذخیرهٔ تغییرات",
+      "saving": "در حال ذخیره…"
+    },
+    "announcements": {
+      "photoUpdated": "عکس پروفایل به‌روز شد",
+      "photoRemoved": "عکس پروفایل حذف شد",
+      "nameSaved": "نام ذخیره شد"
+    },
+    "errors": {
+      "photoType": "یک تصویر JPEG یا PNG انتخاب کنید",
+      "photoTooLarge": "حجم عکس باید حداکثر ۵ مگابایت باشد",
+      "network": "ارتباط با سرور برقرار نشد. لطفاً بعداً دوباره تلاش کنید."
+    }
+  },
   "accounts": {
     "title": "حساب‌ها",
     "subtitle": "نمای کلی حساب‌های مالی و موجودی‌های شما",
@@ -254,16 +280,9 @@
     "empty": "هنوز دسته‌بندی‌ای ندارید. نخستین دسته‌بندی را بسازید.",
     "newCategory": "دسته‌بندی جدید",
     "addCategory": "افزودن دسته‌بندی",
-    "groups": {
-      "expense": "هزینه‌ها",
-      "income": "درآمدها",
-      "transfer": "انتقال‌ها"
-    },
-    "groupCount": "{count, plural, other {# دسته‌بندی}}",
     "types": {
       "expense": "هزینه",
-      "income": "درآمد",
-      "transfer": "انتقال"
+      "income": "درآمد"
     },
     "form": {
       "title": "دسته‌بندی جدید",
@@ -289,6 +308,9 @@
       "plane": "سفر",
       "briefcase": "کار",
       "piggy-bank": "پس‌انداز",
+      "banknote": "حقوق",
+      "trending-up": "سرمایه‌گذاری",
+      "hand-coins": "بازپرداخت",
       "music": "سرگرمی",
       "tag": "برچسب"
     },

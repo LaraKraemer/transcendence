@@ -19,7 +19,7 @@ export default async function NotFound() {
   const user = await getCurrentUser();
   if (!user) return <NotFoundStatus standalone />;
   return (
-    <AppShell displayName={user.displayName} email={user.email}>
+    <AppShell displayName={user.displayName} email={user.email} avatarUrl={user.avatarUrl}>
       <NotFoundStatus standalone={false} />
     </AppShell>
   );

@@ -126,7 +126,5 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("profile deletion with PostgreSQ
     );
     expect(rows).toEqual([{ account_id: otherAccountId, created_by_id: otherUserId }]);
     expect((await pool.query("SELECT 1 FROM account WHERE id = $1", [otherAccountId])).rowCount).toBe(1);
-    // The global Transfer category has no owner, so deleting a user never touches it.
-    expect((await pool.query("SELECT 1 FROM category WHERE is_system")).rowCount).toBe(1);
   });
 });

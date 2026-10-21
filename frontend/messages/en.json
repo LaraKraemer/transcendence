@@ -88,6 +88,32 @@
     "profile": "Profile",
     "back": "Back"
   },
+  "profile": {
+    "subtitle": "Manage your personal information and profile photo",
+    "editProfile": "Edit Profile",
+    "edit": "Edit",
+    "personalInfo": "Personal Information",
+    "name": "Full name",
+    "email": "Email address",
+    "changePhoto": "Change profile photo",
+    "removePhoto": "Remove photo",
+    "photoAlt": "Profile photo of {name}",
+    "nameDialog": {
+      "title": "Edit profile",
+      "save": "Save changes",
+      "saving": "Saving…"
+    },
+    "announcements": {
+      "photoUpdated": "Profile photo updated",
+      "photoRemoved": "Profile photo removed",
+      "nameSaved": "Name saved"
+    },
+    "errors": {
+      "photoType": "Choose a JPEG or PNG image",
+      "photoTooLarge": "The photo must be 5 MB or smaller",
+      "network": "Could not reach the server. Please try again later."
+    }
+  },
   "accounts": {
     "title": "Accounts",
     "subtitle": "An overview of your financial accounts and balances",
@@ -254,16 +280,9 @@
     "empty": "No categories yet. Create your first one.",
     "newCategory": "New category",
     "addCategory": "Add category",
-    "groups": {
-      "expense": "Expenses",
-      "income": "Income",
-      "transfer": "Transfers"
-    },
-    "groupCount": "{count, plural, one {# category} other {# categories}}",
     "types": {
       "expense": "Expense",
-      "income": "Income",
-      "transfer": "Transfer"
+      "income": "Income"
     },
     "form": {
       "title": "New category",
@@ -289,6 +308,9 @@
       "plane": "Travel",
       "briefcase": "Work",
       "piggy-bank": "Savings",
+      "banknote": "Salary",
+      "trending-up": "Investments",
+      "hand-coins": "Refunds",
       "music": "Entertainment",
       "tag": "Tag"
     },

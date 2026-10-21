@@ -1,8 +1,9 @@
 import {
-  ArrowLeftRight,
+  Banknote,
   Briefcase,
   Car,
   Gift,
+  HandCoins,
   Heart,
   House,
   Music,
@@ -10,6 +11,7 @@ import {
   Plane,
   ShoppingCart,
   Tag,
+  TrendingUp,
   Utensils,
   Zap,
   type LucideIcon,
@@ -18,6 +20,8 @@ import {
 /**
  * The icons the category form offers, stored in the backend as their Lucide
  * key. A short fixed list keeps the bundle small (no import of all icons).
+ * The order is the picker's 5-column grid: two rows of expenses, then income.
+ * Keys are stored on existing categories, so never rename or remove one.
  */
 export const CATEGORY_ICONS = {
   "shopping-cart": ShoppingCart,
@@ -26,16 +30,16 @@ export const CATEGORY_ICONS = {
   car: Car,
   zap: Zap,
   heart: Heart,
-  gift: Gift,
   plane: Plane,
-  briefcase: Briefcase,
-  "piggy-bank": PiggyBank,
   music: Music,
+  gift: Gift,
   tag: Tag,
+  briefcase: Briefcase,
+  banknote: Banknote,
+  "trending-up": TrendingUp,
+  "hand-coins": HandCoins,
+  "piggy-bank": PiggyBank,
 } satisfies Record<string, LucideIcon>;
-
-// Drawn like the others but not offered by the form: only the system Transfer category uses it.
-const SYSTEM_ICONS = { "arrow-left-right": ArrowLeftRight } satisfies Record<string, LucideIcon>;
 
 export type CategoryIconKey = keyof typeof CATEGORY_ICONS;
 export const CATEGORY_ICON_KEYS = Object.keys(CATEGORY_ICONS) as CategoryIconKey[];
@@ -50,10 +54,6 @@ export function isCategoryIconKey(value: string): value is CategoryIconKey {
  * plain text instead.
  */
 export function CategoryIcon({ icon, size = 17 }: { icon: string; size?: number }) {
-  if (Object.hasOwn(SYSTEM_ICONS, icon)) {
-    const Icon = SYSTEM_ICONS[icon as keyof typeof SYSTEM_ICONS];
-    return <Icon size={size} aria-hidden />;
-  }
   if (!isCategoryIconKey(icon)) {
     return (
       // Inherits the tile's readable colour (see readableOn).
