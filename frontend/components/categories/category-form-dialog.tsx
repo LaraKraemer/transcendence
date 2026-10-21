@@ -230,7 +230,7 @@ function CategoryForm({
         </ChoiceGroup>
 
         <ChoiceGroup legend={t("form.icon")} error={errorText(fieldErrors.icon)} idPrefix={`${idPrefix}-icon`}>
-          <div className="grid grid-cols-6 gap-2">
+          <div className="grid grid-cols-5 gap-2">
             {CATEGORY_ICON_KEYS.map((icon, index) => (
               <label key={icon} title={t(`icons.${icon}`)}>
                 <input

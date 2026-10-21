@@ -282,6 +282,9 @@
       "plane": "Travel",
       "briefcase": "Work",
       "piggy-bank": "Savings",
+      "banknote": "Salary",
+      "trending-up": "Investments",
+      "hand-coins": "Refunds",
       "music": "Entertainment",
       "tag": "Tag"
     },
