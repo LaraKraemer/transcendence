@@ -16,7 +16,7 @@ import {
   notFoundOnMissingResource,
 } from "@/lib/dal";
 import { formatAmount } from "@/lib/format";
-import type { AccountBalance, Category, TransactionPage } from "@/lib/types";
+import type { AccountBalance, Transaction, TransactionPage } from "@/lib/types";
 
 const TRANSACTIONS_LIMIT = 200;
 
@@ -48,7 +48,6 @@ export default async function AccountTransactionsPage({
 
   const [
     t,
-    tCategories,
     format,
     locale,
     account,
@@ -59,7 +58,6 @@ export default async function AccountTransactionsPage({
     balanceMinor,
   ] = await Promise.all([
     getTranslations("transactions"),
-    getTranslations("categories"),
     getFormatter(),
     getLocale(),
     getAccount(accountId),
@@ -75,8 +73,8 @@ export default async function AccountTransactionsPage({
     ),
   ]).catch(notFoundOnMissingResource);
   const categories = new Map(activeCategories.map((c) => [c.id, c]));
-  // The system Transfer category is stored in English, so it is shown translated.
-  const categoryName = (category: Category) => (category.isSystem ? tCategories("types.transfer") : category.name);
+  // Transfer legs have no category, so they are labelled by their type instead of "Uncategorised".
+  const noCategoryLabel = (tx: Transaction) => (tx.type === "transfer" ? t("form.types.transfer") : t("uncategorised"));
   const switcherAccounts = activeAccounts.some((other) => other.id === account.id)
     ? activeAccounts
     : [account, ...activeAccounts];
@@ -233,7 +231,7 @@ export default async function AccountTransactionsPage({
                         </div>
                       )}
                       <div className="mt-0.5 text-xs text-muted-foreground sm:text-[13px] lg:hidden">
-                        {category ? <bdi>{categoryName(category)}</bdi> : t("uncategorised")}
+                        {category ? <bdi>{category.name}</bdi> : noCategoryLabel(tx)}
                         <span aria-hidden> · </span>
                         <time dateTime={tx.bookedOn}>{bookedOn(tx.bookedOn)}</time>
                       </div>
@@ -246,10 +244,10 @@ export default async function AccountTransactionsPage({
                             className="size-1.5 rounded-full"
                             style={{ backgroundColor: category.color }}
                           />
-                          <bdi>{categoryName(category)}</bdi>
+                          <bdi>{category.name}</bdi>
                         </span>
                       ) : (
-                        <span className="text-xs text-muted-foreground">{t("uncategorised")}</span>
+                        <span className="text-xs text-muted-foreground">{noCategoryLabel(tx)}</span>
                       )}
                     </td>
                     <td className="hidden px-3 py-3.5 whitespace-nowrap text-muted-foreground lg:table-cell">

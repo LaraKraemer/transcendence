@@ -15,6 +15,8 @@ type ConfirmDialogProps = {
   onConfirm: () => void;
   onCancel: () => void;
   pending?: boolean;
+  /** Disables only the confirm button, e.g. while the dialog's text is still loading. */
+  confirmDisabled?: boolean;
   error?: string | null;
 };
 
@@ -27,6 +29,7 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
   pending,
+  confirmDisabled,
   error,
 }: ConfirmDialogProps) {
   const t = useTranslations("common");
@@ -42,7 +45,7 @@ export function ConfirmDialog({
         <Button variant="outline" onClick={onCancel} disabled={pending} data-autofocus>
           {t("cancel")}
         </Button>
-        <Button variant="danger" onClick={onConfirm} disabled={pending}>
+        <Button variant="danger" onClick={onConfirm} disabled={pending || confirmDisabled}>
           {confirmLabel}
         </Button>
       </div>

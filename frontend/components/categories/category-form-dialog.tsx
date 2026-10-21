@@ -11,7 +11,8 @@ import { ChoiceGroup } from "@/components/ui/choice-group";
 import { useAnnounce } from "@/components/ui/live-status";
 import { Modal } from "@/components/ui/modal";
 import { TextField } from "@/components/ui/text-field";
-import { createCategory } from "@/lib/actions/categories";
+import { createCategory, updateCategory } from "@/lib/actions/categories";
+import type { Category } from "@/lib/types";
 import {
   CATEGORY_TYPES,
   HEX_COLOR_PATTERN,
@@ -53,15 +54,9 @@ const initialState: FormState = { fieldErrors: {}, error: null };
 
 /**
  * "New category" trigger plus its modal form. `variant="tile"` is the dashed
- * "Add category" tile at the end of a group, which preselects that group's type.
+ * "Add category" tile at the end of the list.
  */
-export function NewCategoryButton({
-  variant,
-  defaultType = "expense",
-}: {
-  variant: "header" | "tile";
-  defaultType?: CategoryType;
-}) {
+export function NewCategoryButton({ variant }: { variant: "header" | "tile" }) {
   const t = useTranslations("categories");
   const [open, setOpen] = useState(false);
   // While saving, the modal can't be closed: a failure would have nowhere to show, and save could run twice.
@@ -86,13 +81,10 @@ export function NewCategoryButton({
       >
         <Plus size={variant === "header" ? 16 : 15} aria-hidden />
         {variant === "header" ? t("newCategory") : t("addCategory")}
-        {/* Each group has its own tile, so screen readers also hear which group it adds to ("Add category (Expenses)"). */}
-        {variant === "tile" && <span className="sr-only"> ({t(`groups.${defaultType}`)})</span>}
       </button>
       <Modal open={open} title={t("form.title")} onClose={() => setOpen(false)} busy={saving}>
         <CategoryForm
           key={formKey}
-          defaultType={defaultType}
           onDone={() => setOpen(false)}
           onPendingChange={setSaving}
         />
@@ -101,24 +93,29 @@ export function NewCategoryButton({
   );
 }
 
-function CategoryForm({
-  defaultType,
+/**
+ * The category form: empty to create one, or prefilled from `category` to edit it,
+ * in which case only the changed fields are saved.
+ */
+export function CategoryForm({
+  category,
   onDone,
   onPendingChange,
 }: {
-  defaultType: CategoryType;
+  category?: Category;
   onDone: () => void;
   onPendingChange: (pending: boolean) => void;
 }) {
   const t = useTranslations("categories");
   const announce = useAnnounce();
   const idPrefix = useId();
-  const [values, setValues] = useState({
-    name: "",
-    types: [defaultType] as CategoryType[],
-    icon: CATEGORY_ICON_KEYS[0] as string,
-    color: DEFAULT_COLOR,
-  });
+  // The values the form opened with; when editing, updateCategory sends only what differs from them.
+  const [opened] = useState(() =>
+    category
+      ? { name: category.name, types: category.types, icon: category.icon, color: category.color.toUpperCase() }
+      : { name: "", types: ["expense"] as CategoryType[], icon: CATEGORY_ICON_KEYS[0] as string, color: DEFAULT_COLOR },
+  );
+  const [values, setValues] = useState(opened);
   const set = (field: "name" | "icon" | "color") => (value: string) =>
     setValues((prev) => ({ ...prev, [field]: value }));
   const toggleType = (type: CategoryType) =>
@@ -130,9 +127,11 @@ function CategoryForm({
   const [{ fieldErrors, error }, submitAction, isPending] = useActionState(
     async (_prev: FormState, submitted: typeof values): Promise<FormState> => {
       try {
-        const result = await createCategory(submitted);
+        const result = category
+          ? await updateCategory(category.id, opened, submitted)
+          : await createCategory(submitted);
         if (result.success) {
-          announce(t("announcements.created", { name: submitted.name.trim() }));
+          announce(t(category ? "announcements.saved" : "announcements.created", { name: submitted.name.trim() }));
           onDone();
           return initialState;
         }
@@ -230,7 +229,7 @@ function CategoryForm({
         </ChoiceGroup>
 
         <ChoiceGroup legend={t("form.icon")} error={errorText(fieldErrors.icon)} idPrefix={`${idPrefix}-icon`}>
-          <div className="grid grid-cols-6 gap-2">
+          <div className="grid grid-cols-5 gap-2">
             {CATEGORY_ICON_KEYS.map((icon, index) => (
               <label key={icon} title={t(`icons.${icon}`)}>
                 <input

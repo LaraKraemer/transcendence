@@ -14,7 +14,6 @@ vi.mock("../../srcs/auth.ts", () => ({
   },
 }));
 
-import { TRANSFER_CATEGORY_ID } from "../../srcs/db/categories.ts";
 import { transactionsRouter } from "../../srcs/routes/transaction.ts";
 import { isUuid } from "../../srcs/validation.ts";
 import { accountsRouter } from "../../srcs/routes/account.ts";
@@ -320,8 +319,8 @@ describe("GET /transactions", () => {
 // ─── GET /count/:categoryId ───────────────────────────────────────────────────
 
 describe("GET /transactions/count/:categoryId", () => {
-  // category row: id, userId, name, icon, color, types, isSystem, createdAt
-  const categoryRow = [categoryId, userId, "Food", "🍔", "#2563EB", ["expense"], false, new Date().toISOString()];
+  // category row: id, userId, name, icon, color, types, createdAt
+  const categoryRow = [categoryId, userId, "Food", "🍔", "#2563EB", ["expense"], new Date().toISOString()];
 
   function getCount(id: string) {
     return dispatch(transactionsRouter, { url: `/count/${id}` });
@@ -333,19 +332,19 @@ describe("GET /transactions/count/:categoryId", () => {
   });
 
   it("returns 404 for a missing or foreign category", async () => {
-    query.mockResolvedValueOnce({ rows: [] }); // findVisibleCategory → not found
+    query.mockResolvedValueOnce({ rows: [] }); // findOwnedCategory → not found
     expect(await getCount(categoryId)).toEqual({ status: 404, body: { error: "Category not found" } });
     expect(query).toHaveBeenCalledTimes(1);
   });
 
   it("returns { transactionCount: 0 } when no linked transactions", async () => {
-    query.mockResolvedValueOnce({ rows: [categoryRow] }); // findVisibleCategory
+    query.mockResolvedValueOnce({ rows: [categoryRow] }); // findOwnedCategory
     query.mockResolvedValueOnce({ rows: [[0]] }); // countTransactionsByCategory
     expect(await getCount(categoryId)).toEqual({ status: 200, body: { transactionCount: 0 } });
   });
 
   it("returns { transactionCount: 3 } when transactions exist", async () => {
-    query.mockResolvedValueOnce({ rows: [categoryRow] }); // findVisibleCategory
+    query.mockResolvedValueOnce({ rows: [categoryRow] }); // findOwnedCategory
     query.mockResolvedValueOnce({ rows: [[3]] }); // countTransactionsByCategory
     expect(await getCount(categoryId)).toEqual({ status: 200, body: { transactionCount: 3 } });
   });
@@ -660,11 +659,12 @@ describe("POST /transactions — category rule", () => {
     expect(await post({ ...validBody, categoryId })).toEqual({ status: 404, body: { error: "Category not found" } });
   });
 
-  it("looks up the user's own categories and the system category", async () => {
+  it("looks up only the user's own categories", async () => {
     query.mockResolvedValueOnce({ rows: [acctRow()] });
     query.mockResolvedValueOnce({ rows: [] });
     await post({ ...validBody, categoryId });
-    expect(query.mock.calls[1]![0].text).toContain('"user_id" = $2 or "category"."is_system" = $3');
+    expect(query.mock.calls[1]![0].text).toContain('"category"."user_id" = $2');
+    expect(query.mock.calls[1]![1]).toEqual([categoryId, userId, 1]);
   });
 
   it.each([
@@ -806,7 +806,7 @@ describe("POST /transactions/transfers", () => {
     expect(query).toHaveBeenCalledTimes(2); // nothing inserted
   });
 
-  it("writes both legs in one statement: negative source, positive destination, shared group and system category", async () => {
+  it("writes both legs in one statement: negative source, positive destination, shared group and no category", async () => {
     query.mockResolvedValueOnce({ rows: [acctRow()] });
     query.mockResolvedValueOnce({ rows: [acctRow({ id: otherAccountId })] });
     const sourceLeg = txRow({ type: "transfer", transferGroupId, amountMinor: "-5000" });
@@ -823,13 +823,13 @@ describe("POST /transactions/transfers", () => {
     const insertSql: string = query.mock.calls[2]![0].text;
     expect(insertSql.match(/insert into "transaction"/g)).toHaveLength(1);
     const params: unknown[] = query.mock.calls[2]![1];
-    expect(params.filter((param) => param === TRANSFER_CATEGORY_ID)).toHaveLength(2);
     expect(params.filter((param) => param === "transfer")).toHaveLength(2);
     expect(params).toContain(-5000);
     expect(params).toContain(5000);
     expect(params).toContain("Savings");
     expect(params).toContain("Monthly");
-    const knownIds = [accountId, otherAccountId, userId, TRANSFER_CATEGORY_ID];
+    // The only other ids are the shared group id: no category id is written.
+    const knownIds = [accountId, otherAccountId, userId];
     const groupIds = params.filter((param) => isUuid(param) && !knownIds.includes(param));
     expect(groupIds).toHaveLength(2);
     expect(groupIds[0]).toBe(groupIds[1]);
