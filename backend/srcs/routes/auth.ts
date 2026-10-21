@@ -210,7 +210,6 @@ authRouter.get("/me/avatar", requireAuthenticatedUser, async (req, res, next) =>
       return;
     }
     const contentType = user.avatarUrl.endsWith(".jpg") ? "image/jpeg" : "image/png";
-    // Always revalidate (cheap 304 via ETag) because the URL stays the same after a replacement.
     res.set("Cache-Control", "private, no-cache").type(contentType).send(buffer);
   } catch (error) {
     next(error);
