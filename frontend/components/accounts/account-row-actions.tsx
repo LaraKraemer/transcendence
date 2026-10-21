@@ -11,7 +11,8 @@ import { useAnnounce } from "@/components/ui/live-status";
 import { archiveAccount } from "@/lib/actions/accounts";
 import type { Account } from "@/lib/types";
 
-const iconButtonClasses =
+/** Small row action button; the transactions list uses it too, so both lists look alike. */
+export const iconButtonClasses =
   "flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-[9px] bg-muted text-muted-foreground transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none";
 
 /**
