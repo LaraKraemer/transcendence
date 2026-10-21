@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-/** A labelled group of choices (radios) with an inline error, like TextField's. */
+/** A labelled group of choices (radios or checkboxes) with an inline error, like TextField's. */
 export function ChoiceGroup({
   legend,
   error,

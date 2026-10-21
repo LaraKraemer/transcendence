@@ -33,7 +33,7 @@ export default async function TransactionsPage() {
           aria-disabled="true"
           className="flex cursor-not-allowed gap-1 rounded-[11px] border border-border bg-muted p-1 opacity-50 sm:inline-flex"
         >
-          {(["all", "income", "expense"] as const).map((option) => (
+          {(["all", "income", "expense", "transfer"] as const).map((option) => (
             <span
               key={option}
               className={`flex-1 rounded-[8px] px-3.5 py-1.5 text-center text-[13px] sm:flex-none font-medium text-muted-foreground ${option === "all" ? "bg-card shadow-sm" : ""}`}

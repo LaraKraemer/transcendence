@@ -284,7 +284,7 @@ modify another user's financial data.
 |---|---|
 | Accounts | `GET`, `POST` `/accounts`; `GET`, `PATCH`, `DELETE` `/accounts/:accountId` |
 | Categories | `GET`, `POST` `/categories`; `GET`, `PATCH`, `DELETE` `/categories/:categoryId` |
-| Transactions | `GET`, `POST` `/transactions`; `GET` `/transactions/count/:categoryId`; `GET`, `PATCH`, `DELETE` `/transactions/:transactionId` |
+| Transactions | `GET`, `POST` `/transactions`; `POST` `/transactions/transfers`; `GET` `/transactions/count/:categoryId`; `GET`, `PATCH`, `DELETE` `/transactions/:transactionId` |
 | Currencies | `GET` `/currencies` |
 
 `DELETE /auth/me` requires an active session and permanently deletes the authenticated user, all their accounts (including archived accounts), categories, transactions, and sessions. Transactions cascade when their account or creator is deleted,
@@ -311,6 +311,12 @@ Permanent account deletion is handled separately in #48.
 transaction deletion is permanent; deleting a category sets `categoryId = null` on its linked
 transactions. `GET /transactions/count/:categoryId` returns how many transactions use a category.
 
+Every transaction has a `type` (`expense`, `income` or `transfer`) and its signed `amountMinor` must
+match it. A category has `types` (one or both of `expense` and `income`) and can be edited at any
+time; changing or deleting it never changes existing transactions. Transfers between two of your
+accounts are created with `POST /transactions/transfers`: two linked transactions in the read-only
+system category `Transfer`, deleted together.
+
 `DELETE /accounts/:accountId` permanently removes the owned account and all its transactions.
 `DELETE /transactions/:transactionId` permanently removes one transaction.
 
@@ -319,8 +325,8 @@ transactions. `GET /transactions/count/:categoryId` returns how many transaction
 # Local API Testing
 
 The repository includes a Bruno collection for repeatable local API testing in
-`backend/bruno/`. It registers a disposable user, creates an account, category,
-and transaction, then updates and deletes that transaction and permanently deletes the account.
+`backend/bruno/`. It registers a disposable user, creates two accounts, a category,
+and a transaction, then updates and deletes that transaction, makes and deletes a transfer, and permanently deletes the account.
 It also checks the currency catalog populated by migrations.
 
 1. Start the services:
@@ -406,7 +412,7 @@ Test files live in `backend/tests/`, mirroring `backend/srcs/`:
 | `tests/routes/account.test.ts` | account CRUD + balance |
 | `tests/routes/category.test.ts` | category CRUD |
 | `tests/routes/currency.test.ts` | currency metadata, ordering, empty results, errors |
-| `tests/routes/transaction.test.ts` | transaction CRUD + category sign rule |
+| `tests/routes/transaction.test.ts` | transaction CRUD, type/sign and category rules, transfers |
 | `tests/validation.test.ts` | isUuid, isCurrencyCode, isIsoTimestamp, isDateOnly, isHexColor |
 | `tests/db/accounts.test.ts` | findOwnedAccount ownership filter |
 | `tests/db/client.test.ts` | DATABASE_URL guard, pool error handler |

@@ -22,6 +22,7 @@
   --success: #15803d;
   --success-bg: #dcfce7;
   --danger-bg: #fee2e2;
+  --danger-fg: #b91c1c;
   --navy: #152238;
   --field: #f6f8fb;
   /* Angles are tokens so RTL can mirror them: green always starts at inline-start. */
@@ -57,6 +58,7 @@
   --success: #22c55e;
   --success-bg: #0e2a1b;
   --danger-bg: #361619;
+  --danger-fg: #f05252;
   --navy: #0d1626;
   --field: #111c31;
   --grad: linear-gradient(var(--grad-angle), #125a2d 0%, #182b47 55%, #0d1626 100%);
@@ -86,6 +88,7 @@
   --color-success: var(--success);
   --color-success-bg: var(--success-bg);
   --color-danger-bg: var(--danger-bg);
+  --color-danger-fg: var(--danger-fg);
   --color-navy: var(--navy);
   --color-field: var(--field);
 

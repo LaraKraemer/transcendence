@@ -16,11 +16,11 @@ import {
   notFoundOnMissingResource,
 } from "@/lib/dal";
 import { formatAmount } from "@/lib/format";
-import type { AccountBalance, TransactionPage } from "@/lib/types";
+import type { AccountBalance, Category, TransactionPage } from "@/lib/types";
 
 const TRANSACTIONS_LIMIT = 200;
 
-const TYPE_FILTERS = ["all", "income", "expense"] as const;
+const TYPE_FILTERS = ["all", "income", "expense", "transfer"] as const;
 type TypeFilter = (typeof TYPE_FILTERS)[number];
 
 // The list heading takes focus after a delete removes the focused row's button.
@@ -44,26 +44,39 @@ export default async function AccountTransactionsPage({
   searchParams,
 }: RouteParams & { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
   const [{ accountId }, { type }] = await Promise.all([params, searchParams]);
-  const filter: TypeFilter = type === "income" || type === "expense" ? type : "all";
+  const filter: TypeFilter = type === "income" || type === "expense" || type === "transfer" ? type : "all";
 
-  const [t, format, locale, account, { items, total }, activeCategories, currencies, activeAccounts, balanceMinor] =
-    await Promise.all([
-      getTranslations("transactions"),
-      getFormatter(),
-      getLocale(),
-      getAccount(accountId),
-      fetchApiServer<TransactionPage>(
-        `/transactions?${new URLSearchParams({ accountId, limit: String(TRANSACTIONS_LIMIT) })}`,
-      ),
-      getCategories(),
-      getCurrencies(),
-      getAccounts(),
-      fetchApiServer<AccountBalance>(`/accounts/${encodeURIComponent(accountId)}/balance`).then(
-        (balance) => balance.balanceMinor,
-        () => null,
-      ),
-    ]).catch(notFoundOnMissingResource);
+  const [
+    t,
+    tCategories,
+    format,
+    locale,
+    account,
+    { items, total },
+    activeCategories,
+    currencies,
+    activeAccounts,
+    balanceMinor,
+  ] = await Promise.all([
+    getTranslations("transactions"),
+    getTranslations("categories"),
+    getFormatter(),
+    getLocale(),
+    getAccount(accountId),
+    fetchApiServer<TransactionPage>(
+      `/transactions?${new URLSearchParams({ accountId, limit: String(TRANSACTIONS_LIMIT) })}`,
+    ),
+    getCategories(),
+    getCurrencies(),
+    getAccounts(),
+    fetchApiServer<AccountBalance>(`/accounts/${encodeURIComponent(accountId)}/balance`).then(
+      (balance) => balance.balanceMinor,
+      () => null,
+    ),
+  ]).catch(notFoundOnMissingResource);
   const categories = new Map(activeCategories.map((c) => [c.id, c]));
+  // The system Transfer category is stored in English, so it is shown translated.
+  const categoryName = (category: Category) => (category.isSystem ? tCategories("types.transfer") : category.name);
   const switcherAccounts = activeAccounts.some((other) => other.id === account.id)
     ? activeAccounts
     : [account, ...activeAccounts];
@@ -78,8 +91,7 @@ export default async function AccountTransactionsPage({
   const moneyOutMinor = items.reduce((sum, tx) => (tx.amountMinor < 0 ? sum + tx.amountMinor : sum), 0);
   const statNote = total > items.length ? t("latestOnly", { count: items.length }) : undefined;
 
-  const visible =
-    filter === "all" ? items : items.filter((tx) => (filter === "income" ? tx.amountMinor > 0 : tx.amountMinor < 0));
+  const visible = filter === "all" ? items : items.filter((tx) => tx.type === filter);
 
   return (
     <div className="mx-auto w-full max-w-5xl pt-2">
@@ -106,7 +118,13 @@ export default async function AccountTransactionsPage({
             <NewTransactionButton
               variant="header"
               accounts={[{ id: account.id, name: account.name, currencyCode: account.currencyCode, minorUnit }]}
-              categories={activeCategories.map(({ id, name, kind }) => ({ id, name, kind }))}
+              allAccounts={activeAccounts.map(({ id, name, currencyCode }) => ({
+                id,
+                name,
+                currencyCode,
+                minorUnit: currencies.find((currency) => currency.code === currencyCode)?.minorUnit ?? 2,
+              }))}
+              categories={activeCategories.map(({ id, name, types }) => ({ id, name, types }))}
             />
           </LiveStatusProvider>
         )}
@@ -215,7 +233,7 @@ export default async function AccountTransactionsPage({
                         </div>
                       )}
                       <div className="mt-0.5 text-xs text-muted-foreground sm:text-[13px] lg:hidden">
-                        {category ? <bdi>{category.name}</bdi> : t("uncategorised")}
+                        {category ? <bdi>{categoryName(category)}</bdi> : t("uncategorised")}
                         <span aria-hidden> · </span>
                         <time dateTime={tx.bookedOn}>{bookedOn(tx.bookedOn)}</time>
                       </div>
@@ -228,7 +246,7 @@ export default async function AccountTransactionsPage({
                             className="size-1.5 rounded-full"
                             style={{ backgroundColor: category.color }}
                           />
-                          <bdi>{category.name}</bdi>
+                          <bdi>{categoryName(category)}</bdi>
                         </span>
                       ) : (
                         <span className="text-xs text-muted-foreground">{t("uncategorised")}</span>
@@ -248,6 +266,7 @@ export default async function AccountTransactionsPage({
                       <DeleteTransactionButton
                         transactionId={tx.id}
                         description={tx.description}
+                        isTransfer={tx.type === "transfer"}
                         focusAfterDeleteId={LIST_HEADING_ID}
                       />
                     </td>

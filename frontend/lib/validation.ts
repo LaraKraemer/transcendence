@@ -96,7 +96,7 @@ export function toMinorUnits(
 
 // Transactions. These mirror the backend's transaction rules (routes/transaction.ts).
 // The form asks for a positive amount plus a type; the type decides the sign.
-export const TRANSACTION_TYPES = ["expense", "income"] as const;
+export const TRANSACTION_TYPES = ["expense", "income", "transfer"] as const;
 export type TransactionType = (typeof TRANSACTION_TYPES)[number];
 export const MAX_TRANSACTION_DESCRIPTION_LENGTH = 500;
 
@@ -111,6 +111,7 @@ export const transactionErrorCodes = [
   "descriptionTooLong",
   "dateInvalid",
   "categoryInvalid",
+  "toAccountInvalid",
 ] as const;
 
 export type TransactionErrorCode = (typeof transactionErrorCodes)[number];
@@ -161,8 +162,10 @@ export function changedAccountFields(
 }
 
 // Categories. These mirror the backend's category rules (routes/category.ts).
-export const CATEGORY_KINDS = ["expense", "income", "transfer"] as const;
-export type CategoryKind = (typeof CATEGORY_KINDS)[number];
+// The types a user can give a category, which are also the types of a regular (non-transfer)
+// transaction. The system "Transfer" category is the only one with the "transfer" type.
+export const CATEGORY_TYPES = ["expense", "income"] as const;
+export type CategoryType = (typeof CATEGORY_TYPES)[number];
 export const MAX_CATEGORY_NAME_LENGTH = 80;
 export const HEX_COLOR_PATTERN = /^#[0-9A-Fa-f]{6}$/;
 
@@ -172,7 +175,7 @@ export const categoryErrorCodes = [
   "nameTaken",
   "iconInvalid",
   "colorInvalid",
-  "kindInvalid",
+  "typesInvalid",
 ] as const;
 
 export type CategoryErrorCode = (typeof categoryErrorCodes)[number];
