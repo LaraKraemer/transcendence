@@ -253,6 +253,7 @@
     },
     "form": {
       "title": "New category",
+      "editTitle": "Edit category",
       "previewName": "New category",
       "name": "Name",
       "namePlaceholder": "e.g. Rewe",
@@ -300,8 +301,22 @@
       "network": "Could not reach the server. Please try again later.",
       "generic": "Something went wrong. Please try again."
     },
+    "actions": {
+      "edit": "Edit {name}",
+      "delete": "Delete {name}"
+    },
+    "deleteDialog": {
+      "title": "Delete “{name}”?",
+      "counting": "Checking which transactions use this category…",
+      "description": "{count, plural, =0 {No transactions use this category.} one {# transaction uses this category. It will be kept, without a category.} other {# transactions use this category. They will be kept, without a category.}} This can’t be undone.",
+      "unknownCount": "Transactions that use this category will be kept, without a category. This can’t be undone.",
+      "confirm": "Delete",
+      "confirming": "Deleting…"
+    },
     "announcements": {
-      "created": "“{name}” created"
+      "created": "“{name}” created",
+      "saved": "“{name}” saved",
+      "deleted": "“{name}” deleted"
     }
   },
   "status": {

@@ -169,6 +169,32 @@ export type CategoryType = (typeof CATEGORY_TYPES)[number];
 export const MAX_CATEGORY_NAME_LENGTH = 80;
 export const HEX_COLOR_PATTERN = /^#[0-9A-Fa-f]{6}$/;
 
+export type EditableCategoryFields = {
+  name: string;
+  icon: string;
+  color: string;
+  types: CategoryType[];
+};
+
+/**
+ * Returns only the fields that differ from `original`: the body for
+ * `PATCH /categories/:id`. Colors compare case-insensitively and types as a set,
+ * since the backend stores both normalized.
+ */
+export function changedCategoryFields(
+  original: EditableCategoryFields,
+  next: EditableCategoryFields,
+): Partial<EditableCategoryFields> {
+  const sameTypes =
+    next.types.length === original.types.length && next.types.every((type) => original.types.includes(type));
+  return {
+    ...(next.name === original.name ? {} : { name: next.name }),
+    ...(next.icon === original.icon ? {} : { icon: next.icon }),
+    ...(next.color.toUpperCase() === original.color.toUpperCase() ? {} : { color: next.color }),
+    ...(sameTypes ? {} : { types: next.types }),
+  };
+}
+
 export const categoryErrorCodes = [
   "nameRequired",
   "nameTooLong",
