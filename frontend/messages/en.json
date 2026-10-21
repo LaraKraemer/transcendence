@@ -247,16 +247,9 @@
     "empty": "No categories yet. Create your first one.",
     "newCategory": "New category",
     "addCategory": "Add category",
-    "groups": {
-      "expense": "Expenses",
-      "income": "Income",
-      "transfer": "Transfers"
-    },
-    "groupCount": "{count, plural, one {# category} other {# categories}}",
     "types": {
       "expense": "Expense",
-      "income": "Income",
-      "transfer": "Transfer"
+      "income": "Income"
     },
     "form": {
       "title": "New category",

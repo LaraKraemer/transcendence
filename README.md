@@ -314,8 +314,8 @@ transactions. `GET /transactions/count/:categoryId` returns how many transaction
 Every transaction has a `type` (`expense`, `income` or `transfer`) and its signed `amountMinor` must
 match it. A category has `types` (one or both of `expense` and `income`) and can be edited at any
 time; changing or deleting it never changes existing transactions. Transfers between two of your
-accounts are created with `POST /transactions/transfers`: two linked transactions in the read-only
-system category `Transfer`, deleted together.
+accounts are created with `POST /transactions/transfers`: two linked transactions without a
+category, deleted together.
 
 `DELETE /accounts/:accountId` permanently removes the owned account and all its transactions.
 `DELETE /transactions/:transactionId` permanently removes one transaction.

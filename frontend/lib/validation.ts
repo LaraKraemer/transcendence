@@ -163,7 +163,7 @@ export function changedAccountFields(
 
 // Categories. These mirror the backend's category rules (routes/category.ts).
 // The types a user can give a category, which are also the types of a regular (non-transfer)
-// transaction. The system "Transfer" category is the only one with the "transfer" type.
+// transaction. Transfers have no category.
 export const CATEGORY_TYPES = ["expense", "income"] as const;
 export type CategoryType = (typeof CATEGORY_TYPES)[number];
 export const MAX_CATEGORY_NAME_LENGTH = 80;

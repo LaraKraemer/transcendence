@@ -247,16 +247,9 @@
     "empty": "Noch keine Kategorien. Lege deine erste an.",
     "newCategory": "Neue Kategorie",
     "addCategory": "Kategorie hinzufügen",
-    "groups": {
-      "expense": "Ausgaben",
-      "income": "Einnahmen",
-      "transfer": "Umbuchungen"
-    },
-    "groupCount": "{count, plural, one {# Kategorie} other {# Kategorien}}",
     "types": {
       "expense": "Ausgabe",
-      "income": "Einnahme",
-      "transfer": "Umbuchung"
+      "income": "Einnahme"
     },
     "form": {
       "title": "Neue Kategorie",

@@ -53,15 +53,9 @@ const initialState: FormState = { fieldErrors: {}, error: null };
 
 /**
  * "New category" trigger plus its modal form. `variant="tile"` is the dashed
- * "Add category" tile at the end of a group, which preselects that group's type.
+ * "Add category" tile at the end of the list.
  */
-export function NewCategoryButton({
-  variant,
-  defaultType = "expense",
-}: {
-  variant: "header" | "tile";
-  defaultType?: CategoryType;
-}) {
+export function NewCategoryButton({ variant }: { variant: "header" | "tile" }) {
   const t = useTranslations("categories");
   const [open, setOpen] = useState(false);
   // While saving, the modal can't be closed: a failure would have nowhere to show, and save could run twice.
@@ -86,13 +80,10 @@ export function NewCategoryButton({
       >
         <Plus size={variant === "header" ? 16 : 15} aria-hidden />
         {variant === "header" ? t("newCategory") : t("addCategory")}
-        {/* Each group has its own tile, so screen readers also hear which group it adds to ("Add category (Expenses)"). */}
-        {variant === "tile" && <span className="sr-only"> ({t(`groups.${defaultType}`)})</span>}
       </button>
       <Modal open={open} title={t("form.title")} onClose={() => setOpen(false)} busy={saving}>
         <CategoryForm
           key={formKey}
-          defaultType={defaultType}
           onDone={() => setOpen(false)}
           onPendingChange={setSaving}
         />
@@ -102,11 +93,9 @@ export function NewCategoryButton({
 }
 
 function CategoryForm({
-  defaultType,
   onDone,
   onPendingChange,
 }: {
-  defaultType: CategoryType;
   onDone: () => void;
   onPendingChange: (pending: boolean) => void;
 }) {
@@ -115,7 +104,7 @@ function CategoryForm({
   const idPrefix = useId();
   const [values, setValues] = useState({
     name: "",
-    types: [defaultType] as CategoryType[],
+    types: ["expense"] as CategoryType[],
     icon: CATEGORY_ICON_KEYS[0] as string,
     color: DEFAULT_COLOR,
   });

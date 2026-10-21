@@ -5,7 +5,7 @@
  * the auth server actions. Imported by the API client, the DAL, the server
  * actions, and the auth context.
  */
-import type { AccountType, TransactionType } from "@/lib/validation";
+import type { AccountType, CategoryType, TransactionType } from "@/lib/validation";
 
 /** The authenticated user, as exposed to the UI (a safe subset of the backend row). */
 export type User = {
@@ -81,16 +81,14 @@ export type TransactionPage = {
 
 /**
  * A category, as returned by the backend's /categories endpoints. `types` are the transaction types
- * it can be used for. `isSystem` marks the global read-only "Transfer" category (`types` is
- * `["transfer"]`); its stored name is English, so show it translated.
+ * it can be used for (transfers have no category).
  */
 export type Category = {
   id: string;
   name: string;
   icon: string;
   color: string;
-  types: TransactionType[];
-  isSystem: boolean;
+  types: CategoryType[];
   createdAt: string;
 };
 
