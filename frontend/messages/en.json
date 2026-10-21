@@ -150,9 +150,9 @@
       "nameTooLong": "The name is too long",
       "typeInvalid": "Choose an account type",
       "currencyInvalid": "Choose a currency",
-      "openingBalanceInvalid": "Enter an amount like {example}",
-      "openingBalanceDecimals": "{digits, plural, =0 {Enter a whole amount without decimals} one {Enter an amount with at most # decimal place} other {Enter an amount with at most # decimal places}}",
-      "openingBalanceTooLarge": "This amount is too large",
+      "amountInvalid": "Enter an amount like {example}",
+      "amountDecimals": "{digits, plural, =0 {Enter a whole amount without decimals} one {Enter an amount with at most # decimal place} other {Enter an amount with at most # decimal places}}",
+      "amountTooLarge": "This amount is too large",
       "network": "Could not reach the server. Please try again later.",
       "generic": "Something went wrong. Please try again."
     },
@@ -178,7 +178,8 @@
     "archived": "Archived",
     "moneyIn": "Money in",
     "moneyOut": "Money out",
-    "net": "Net",
+    "balance": "Balance",
+    "balanceUnavailable": "Balance unavailable",
     "latestOnly": "Latest {count, plural, one {# transaction} other {# transactions}}",
     "chooseAccount": "Choose account",
     "chooseAccountHint": "Choose an account to see its transactions.",
@@ -212,7 +213,48 @@
     "deleting": "Deleting…",
     "errors": {
       "network": "Could not reach the server. Please try again later.",
-      "generic": "Something went wrong. Please try again."
+      "generic": "Something went wrong. Please try again.",
+      "accountArchived": "This account is archived, so it can't receive new transactions.",
+      "typeInvalid": "Choose expense or income",
+      "amountRequired": "Enter an amount",
+      "amountNotPositive": "Enter an amount above zero; the type sets expense or income",
+      "amountInvalid": "Enter an amount like {example}",
+      "amountDecimals": "{digits, plural, =0 {Enter a whole amount without decimals} one {Enter an amount with at most # decimal place} other {Enter an amount with at most # decimal places}}",
+      "amountTooLarge": "This amount is too large",
+      "descriptionRequired": "Enter a description",
+      "descriptionTooLong": "The description can be at most {max, number} characters",
+      "dateInvalid": "Choose a valid date",
+      "categoryInvalid": "This category is no longer available. Choose another one."
+    },
+    "newTransaction": "New transaction",
+    "form": {
+      "title": "New transaction",
+      "account": "Account",
+      "type": "Type",
+      "types": {
+        "expense": "Expense",
+        "income": "Income"
+      },
+      "amount": "Amount ({currency})",
+      "description": "Description",
+      "descriptionPlaceholder": "e.g. Weekly groceries",
+      "merchant": "Merchant (optional)",
+      "date": "Date",
+      "category": "Category (optional)",
+      "noCategory": "No category",
+      "noCategoriesHint": "{type, select, income {No income categories yet. You can add one on the Categories page.} other {No expense categories yet. You can add one on the Categories page.}}",
+      "notes": "Notes (optional)",
+      "notesPlaceholder": "Anything worth remembering",
+      "cancel": "Cancel",
+      "submit": "Add transaction",
+      "submitting": "Adding…"
+    },
+    "announcements": {
+      "created": "“{description}” added"
+    },
+    "added": {
+      "message": "“<desc>{description}</desc>” added to <name>{account}</name>.",
+      "view": "View transactions"
     }
   },
   "categories": {
@@ -280,6 +322,20 @@
     },
     "announcements": {
       "created": "“{name}” created"
+    }
+  },
+  "status": {
+    "toAccounts": "Go to accounts",
+    "toSignIn": "Sign in",
+    "notFound": {
+      "title": "Page not found",
+      "description": "This page doesn't exist or isn't available."
+    },
+    "error": {
+      "title": "Something went wrong",
+      "description": "This page couldn't be loaded. Please try again.",
+      "retry": "Try again",
+      "reference": "Reference code: {code}"
     }
   }
 }

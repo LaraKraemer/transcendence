@@ -150,9 +150,9 @@
       "nameTooLong": "نام بیش از حد طولانی است",
       "typeInvalid": "نوع حساب را انتخاب کنید",
       "currencyInvalid": "یک ارز انتخاب کنید",
-      "openingBalanceInvalid": "مبلغی مانند {example} وارد کنید",
-      "openingBalanceDecimals": "{digits, plural, =0 {مبلغ را بدون اعشار وارد کنید} other {مبلغی با حداکثر # رقم اعشار وارد کنید}}",
-      "openingBalanceTooLarge": "این مبلغ بیش از حد بزرگ است",
+      "amountInvalid": "مبلغی مانند {example} وارد کنید",
+      "amountDecimals": "{digits, plural, =0 {مبلغ را بدون اعشار وارد کنید} other {مبلغی با حداکثر # رقم اعشار وارد کنید}}",
+      "amountTooLarge": "این مبلغ بیش از حد بزرگ است",
       "network": "ارتباط با سرور برقرار نشد. لطفاً بعداً دوباره تلاش کنید.",
       "generic": "مشکلی پیش آمد. لطفاً دوباره تلاش کنید."
     },
@@ -178,7 +178,8 @@
     "archived": "بایگانی‌شده",
     "moneyIn": "ورودی",
     "moneyOut": "خروجی",
-    "net": "خالص",
+    "balance": "موجودی",
+    "balanceUnavailable": "موجودی در دسترس نیست",
     "latestOnly": "{count, plural, other {# تراکنش اخیر}}",
     "chooseAccount": "انتخاب حساب",
     "chooseAccountHint": "برای دیدن تراکنش‌ها، یک حساب انتخاب کنید.",
@@ -212,7 +213,48 @@
     "deleting": "در حال حذف…",
     "errors": {
       "network": "ارتباط با سرور برقرار نشد. لطفاً بعداً دوباره تلاش کنید.",
-      "generic": "مشکلی پیش آمد. لطفاً دوباره تلاش کنید."
+      "generic": "مشکلی پیش آمد. لطفاً دوباره تلاش کنید.",
+      "accountArchived": "این حساب بایگانی شده است، بنابراین نمی‌توان تراکنش جدیدی به آن اضافه کرد.",
+      "typeInvalid": "هزینه یا درآمد را انتخاب کنید",
+      "amountRequired": "مبلغ را وارد کنید",
+      "amountNotPositive": "مبلغی بیشتر از صفر وارد کنید؛ نوع، هزینه یا درآمد بودن را تعیین می‌کند",
+      "amountInvalid": "مبلغی مانند {example} وارد کنید",
+      "amountDecimals": "{digits, plural, =0 {مبلغ را بدون اعشار وارد کنید} other {مبلغی با حداکثر # رقم اعشار وارد کنید}}",
+      "amountTooLarge": "این مبلغ بیش از حد بزرگ است",
+      "descriptionRequired": "شرح را وارد کنید",
+      "descriptionTooLong": "شرح حداکثر می‌تواند {max, number} نویسه باشد",
+      "dateInvalid": "تاریخ معتبری انتخاب کنید",
+      "categoryInvalid": "این دسته‌بندی دیگر در دسترس نیست. دسته‌بندی دیگری انتخاب کنید."
+    },
+    "newTransaction": "تراکنش جدید",
+    "form": {
+      "title": "تراکنش جدید",
+      "account": "حساب",
+      "type": "نوع",
+      "types": {
+        "expense": "هزینه",
+        "income": "درآمد"
+      },
+      "amount": "مبلغ ({currency})",
+      "description": "شرح",
+      "descriptionPlaceholder": "مثلاً خرید هفتگی",
+      "merchant": "فروشنده (اختیاری)",
+      "date": "تاریخ",
+      "category": "دسته‌بندی (اختیاری)",
+      "noCategory": "بدون دسته‌بندی",
+      "noCategoriesHint": "{type, select, income {هنوز دسته‌بندی درآمدی ندارید. می‌توانید در صفحهٔ «دسته‌بندی‌ها» یکی بسازید.} other {هنوز دسته‌بندی هزینه‌ای ندارید. می‌توانید در صفحهٔ «دسته‌بندی‌ها» یکی بسازید.}}",
+      "notes": "یادداشت (اختیاری)",
+      "notesPlaceholder": "هر چیزی که ارزش به خاطر سپردن دارد",
+      "cancel": "انصراف",
+      "submit": "افزودن تراکنش",
+      "submitting": "در حال افزودن…"
+    },
+    "announcements": {
+      "created": "«{description}» افزوده شد"
+    },
+    "added": {
+      "message": "«<desc>{description}</desc>» به <name>{account}</name> افزوده شد.",
+      "view": "مشاهدهٔ تراکنش‌ها"
     }
   },
   "categories": {
@@ -280,6 +322,20 @@
     },
     "announcements": {
       "created": "«{name}» ساخته شد"
+    }
+  },
+  "status": {
+    "toAccounts": "رفتن به حساب‌ها",
+    "toSignIn": "ورود",
+    "notFound": {
+      "title": "صفحه پیدا نشد",
+      "description": "این صفحه وجود ندارد یا در دسترس نیست."
+    },
+    "error": {
+      "title": "مشکلی پیش آمد",
+      "description": "این صفحه بارگیری نشد. لطفاً دوباره تلاش کنید.",
+      "retry": "تلاش دوباره",
+      "reference": "کد پیگیری: {code}"
     }
   }
 }

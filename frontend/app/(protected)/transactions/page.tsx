@@ -5,9 +5,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { AccountSwitcher } from "@/components/transactions/account-switcher";
-import { fetchApiServer } from "@/lib/dal";
+import { getAccounts } from "@/lib/dal";
 import { LAST_ACCOUNT_COOKIE } from "@/lib/last-account";
-import type { Account } from "@/lib/types";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("nav");
@@ -15,11 +14,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function TransactionsPage() {
-  const [t, accounts, cookieStore] = await Promise.all([
-    getTranslations(),
-    fetchApiServer<Account[]>("/accounts"),
-    cookies(),
-  ]);
+  const [t, accounts, cookieStore] = await Promise.all([getTranslations(), getAccounts(), cookies()]);
 
   const lastAccountId = cookieStore.get(LAST_ACCOUNT_COOKIE)?.value;
   if (accounts.some((account) => account.id === lastAccountId)) redirect(`/accounts/${lastAccountId}/transactions`);

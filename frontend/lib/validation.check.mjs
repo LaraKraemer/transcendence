@@ -1,8 +1,8 @@
-// Self-check for toMinorUnits (no test framework in the frontend):
+// Self-check for the pure helpers in validation.ts (no test framework in the frontend):
 //   node --experimental-strip-types lib/validation.check.mjs
 import assert from "node:assert/strict";
 
-import { changedAccountFields, contrastRatio, readableOn, toMinorUnits } from "./validation.ts";
+import { changedAccountFields, contrastRatio, readableOn, toMinorUnits, toPositiveMinorUnits } from "./validation.ts";
 
 assert.equal(toMinorUnits("100.50", 2), 10050);
 assert.equal(toMinorUnits("100.5", 2), 10050);
@@ -12,15 +12,28 @@ assert.equal(toMinorUnits("-.5", 2), -50);
 assert.equal(toMinorUnits("12.", 2), 1200); // trailing dot, as typed mid-edit
 assert.equal(toMinorUnits("1.005", 3), 1005); // KWD
 assert.equal(toMinorUnits("1500", 0), 1500); // JPY
-assert.equal(toMinorUnits("1.005", 2), "openingBalanceDecimals"); // more decimals than EUR has
-assert.equal(toMinorUnits("1.5", 0), "openingBalanceDecimals");
-assert.equal(toMinorUnits(".", 2), "openingBalanceInvalid");
-assert.equal(toMinorUnits("-", 2), "openingBalanceInvalid");
-assert.equal(toMinorUnits("1e3", 2), "openingBalanceInvalid");
-assert.equal(toMinorUnits("12,50", 2), "openingBalanceInvalid");
-assert.equal(toMinorUnits("abc", 2), "openingBalanceInvalid");
-assert.equal(toMinorUnits("99999999999999999", 2), "openingBalanceTooLarge"); // not a safe integer
+assert.equal(toMinorUnits("1.005", 2), "amountDecimals"); // more decimals than EUR has
+assert.equal(toMinorUnits("1.5", 0), "amountDecimals");
+assert.equal(toMinorUnits(".", 2), "amountInvalid");
+assert.equal(toMinorUnits("-", 2), "amountInvalid");
+assert.equal(toMinorUnits("1e3", 2), "amountInvalid");
+assert.equal(toMinorUnits("12,50", 2), "amountInvalid");
+assert.equal(toMinorUnits("abc", 2), "amountInvalid");
+assert.equal(toMinorUnits("99999999999999999", 2), "amountTooLarge"); // not a safe integer
 console.log("toMinorUnits: ok");
+
+// toPositiveMinorUnits: the transaction form's amount; the expense/income type adds the sign
+assert.equal(toPositiveMinorUnits("32.50", 2), 3250);
+assert.equal(toPositiveMinorUnits(" 1500 ", 0), 1500); // JPY
+assert.equal(toPositiveMinorUnits("", 2), "amountRequired");
+assert.equal(toPositiveMinorUnits("   ", 2), "amountRequired");
+assert.equal(toPositiveMinorUnits("0", 2), "amountNotPositive");
+assert.equal(toPositiveMinorUnits("0.00", 2), "amountNotPositive");
+assert.equal(toPositiveMinorUnits("-5", 2), "amountNotPositive");
+assert.equal(toPositiveMinorUnits("-0", 2), "amountNotPositive");
+assert.equal(toPositiveMinorUnits("1.005", 2), "amountDecimals");
+assert.equal(toPositiveMinorUnits("abc", 2), "amountInvalid");
+console.log("toPositiveMinorUnits: ok");
 
 // changedAccountFields: only what differs goes into the PATCH body
 const original = { name: "Main", type: "checking", institution: "DKB", accountRef: null };

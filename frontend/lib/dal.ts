@@ -10,12 +10,13 @@
 import "server-only";
 
 import { cookies } from "next/headers";
+import { notFound } from "next/navigation";
 import { cache } from "react";
 
 import { ApiError, fetchApi } from "@/lib/api";
 import { AVATAR_VERSION_COOKIE } from "@/lib/avatar-version";
 import { getSessionCookieHeader } from "@/lib/session";
-import type { Account, Currency, User } from "@/lib/types";
+import type { Account, Category, Currency, User } from "@/lib/types";
 
 /**
  * Server-side `fetchApi` that forwards the inbound session cookie to the
@@ -67,6 +68,15 @@ export const getCurrentUser = cache(async (): Promise<User | null> => {
 export const getCurrencies = cache((): Promise<Currency[]> => fetchApiServer<Currency[]>("/currencies"));
 
 /**
+ * Returns the user's active (non-archived) accounts from `GET /accounts`. Cached per
+ * request, so a page and the app shell's "new transaction" button share one request.
+ */
+export const getAccounts = cache((): Promise<Account[]> => fetchApiServer<Account[]>("/accounts"));
+
+/** Returns the user's categories from `GET /categories`, cached per request like getAccounts. */
+export const getCategories = cache((): Promise<Category[]> => fetchApiServer<Category[]>("/categories"));
+
+/**
  * Returns one of the user's accounts from `GET /accounts/:id` (archived ones too).
  * Throws `ApiError` 404 for a missing or foreign account and 400 for a malformed id.
  * Cached per request, so a page and its `generateMetadata` share one request.
@@ -74,3 +84,13 @@ export const getCurrencies = cache((): Promise<Currency[]> => fetchApiServer<Cur
 export const getAccount = cache(
   (accountId: string): Promise<Account> => fetchApiServer<Account>(`/accounts/${encodeURIComponent(accountId)}`),
 );
+
+/**
+ * For pages that load a resource by an id from the URL: `.catch(notFoundOnMissingResource)`
+ * shows the 404 page when the backend answers 404 (missing or someone else's) or 400 (malformed
+ * id). Any other error is rethrown for the error page.
+ */
+export function notFoundOnMissingResource(error: unknown): never {
+  if (error instanceof ApiError && (error.status === 404 || error.status === 400)) notFound();
+  throw error;
+}
