@@ -12,7 +12,7 @@ import { backendFailure } from "@/lib/action-errors";
 import { ApiError } from "@/lib/api";
 import { fetchApiServer } from "@/lib/dal";
 import type { ActionResponse, Category } from "@/lib/types";
-import { CATEGORY_KINDS, HEX_COLOR_PATTERN, MAX_CATEGORY_NAME_LENGTH, type CategoryErrorCode } from "@/lib/validation";
+import { CATEGORY_TYPES, HEX_COLOR_PATTERN, MAX_CATEGORY_NAME_LENGTH, type CategoryErrorCode } from "@/lib/validation";
 
 const CreateCategorySchema = z.object({
   name: z
@@ -26,11 +26,15 @@ const CreateCategorySchema = z.object({
     .string()
     .trim()
     .regex(HEX_COLOR_PATTERN, { error: "colorInvalid" satisfies CategoryErrorCode }),
-  kind: z.enum(CATEGORY_KINDS, { error: "kindInvalid" satisfies CategoryErrorCode }),
+  types: z
+    .array(z.enum(CATEGORY_TYPES, { error: "typesInvalid" satisfies CategoryErrorCode }), {
+      error: "typesInvalid" satisfies CategoryErrorCode,
+    })
+    .min(1, { error: "typesInvalid" satisfies CategoryErrorCode }),
 });
 
-// Raw form values: everything arrives as a string and is checked here.
-export type CreateCategoryInput = Record<keyof z.input<typeof CreateCategorySchema>, string>;
+// Raw form values: the text fields and the checked types arrive as plain strings and are checked here.
+export type CreateCategoryInput = Record<"name" | "icon" | "color", string> & { types: string[] };
 
 /** Validates input, creates the category with `POST /categories`, and refreshes the page. */
 export async function createCategory(data: CreateCategoryInput): Promise<ActionResponse> {
@@ -38,7 +42,7 @@ export async function createCategory(data: CreateCategoryInput): Promise<ActionR
     name: String(data.name),
     icon: String(data.icon),
     color: String(data.color),
-    kind: String(data.kind),
+    types: Array.isArray(data.types) ? data.types.map(String) : [],
   });
   if (!parsed.success) {
     return {
@@ -51,7 +55,7 @@ export async function createCategory(data: CreateCategoryInput): Promise<ActionR
   try {
     await fetchApiServer<Category>("/categories", { method: "POST", body: JSON.stringify(parsed.data) });
   } catch (error) {
-    // (user, name, kind) is unique: a duplicate belongs next to the name field.
+    // (user, name) is unique: a duplicate belongs next to the name field.
     if (error instanceof ApiError && error.status === 409) {
       return { success: false, message: error.message, status: 409, errors: { name: ["nameTaken"] } };
     }
