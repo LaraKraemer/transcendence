@@ -12,6 +12,8 @@ export type User = {
   id: string;
   email: string;
   displayName: string;
+  /** API path of the profile photo (`/auth/me/avatar?v=…`, the `v` changes with each new photo), or null when there is none. */
+  avatarUrl: string | null;
 };
 
 /**

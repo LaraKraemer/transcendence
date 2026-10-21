@@ -225,8 +225,9 @@ deleted at startup and every six hours.
 rejected with 415 and bodies over 5 MiB with 413. The upload is also validated
 by reading the file's format signature (the first bytes every JPEG/PNG file
 must start with), so a renamed non-image with the right header is still
-rejected. `GET /auth/me` returns `avatarUrl` as `/auth/me/avatar` when an image
-exists, otherwise `null`.
+rejected. `GET /auth/me`, login and register return `avatarUrl` as
+`/auth/me/avatar?v=<version>` when an image exists, otherwise `null`; the
+version changes with every upload, so browsers fetch a replaced image.
 
 ```bash
 curl -i -b cookies.txt -X PUT \
