@@ -9,10 +9,12 @@
  */
 import "server-only";
 
+import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 
 import { ApiError, fetchApi } from "@/lib/api";
+import { AVATAR_VERSION_COOKIE } from "@/lib/avatar-version";
 import { getSessionCookieHeader } from "@/lib/session";
 import type { Account, Category, Currency, User } from "@/lib/types";
 
@@ -47,7 +49,11 @@ export const getCurrentUser = cache(async (): Promise<User | null> => {
 
   try {
     const { user } = await fetchApiServer<{ user: User }>("/auth/me");
-    return user;
+    // The photo's URL never changes, so the browser would keep showing a replaced photo.
+    const avatarVersion = (await cookies()).get(AVATAR_VERSION_COOKIE)?.value;
+    return user.avatarUrl && avatarVersion
+      ? { ...user, avatarUrl: `${user.avatarUrl}?v=${encodeURIComponent(avatarVersion)}` }
+      : user;
   } catch (error) {
     if (error instanceof ApiError && error.status === 401) return null;
     console.error("getCurrentUser failed:", error);

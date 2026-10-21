@@ -88,6 +88,32 @@
     "profile": "Profil",
     "back": "Zurück"
   },
+  "profile": {
+    "subtitle": "Verwalte deine persönlichen Daten und dein Profilfoto",
+    "editProfile": "Profil bearbeiten",
+    "edit": "Bearbeiten",
+    "personalInfo": "Persönliche Daten",
+    "name": "Vollständiger Name",
+    "email": "E-Mail-Adresse",
+    "changePhoto": "Profilfoto ändern",
+    "removePhoto": "Foto entfernen",
+    "photoAlt": "Profilfoto von {name}",
+    "nameDialog": {
+      "title": "Profil bearbeiten",
+      "save": "Änderungen speichern",
+      "saving": "Wird gespeichert…"
+    },
+    "announcements": {
+      "photoUpdated": "Profilfoto aktualisiert",
+      "photoRemoved": "Profilfoto entfernt",
+      "nameSaved": "Name gespeichert"
+    },
+    "errors": {
+      "photoType": "Wähle ein JPEG- oder PNG-Bild",
+      "photoTooLarge": "Das Foto darf höchstens 5 MB groß sein",
+      "network": "Der Server ist nicht erreichbar. Bitte versuche es später erneut."
+    }
+  },
   "accounts": {
     "title": "Konten",
     "subtitle": "Überblick über deine Finanzkonten und Salden",
