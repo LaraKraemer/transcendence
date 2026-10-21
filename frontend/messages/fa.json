@@ -163,7 +163,8 @@
     "filters": {
       "all": "همه",
       "income": "درآمد",
-      "expense": "هزینه"
+      "expense": "هزینه",
+      "transfer": "انتقال"
     },
     "listTitle": "تراکنش‌ها",
     "heading": "تراکنش‌های <name>{account}</name>",
@@ -177,11 +178,12 @@
     },
     "uncategorised": "بدون دسته‌بندی",
     "empty": "هنوز تراکنشی در این حساب ثبت نشده است.",
-    "emptyFiltered": "{filter, select, income {درآمدی ثبت نشده است.} expense {هزینه‌ای ثبت نشده است.} other {تراکنشی ثبت نشده است.}}",
+    "emptyFiltered": "{filter, select, income {درآمدی ثبت نشده است.} expense {هزینه‌ای ثبت نشده است.} transfer {انتقالی ثبت نشده است.} other {تراکنشی ثبت نشده است.}}",
     "showing": "نمایش {shown, number} از {total, plural, other {# تراکنش}}",
     "delete": "حذف «{description}»",
     "confirmTitle": "تراکنش حذف شود؟",
     "confirmBody": "«<name>{description}</name>» برای همیشه حذف می‌شود. این کار برگشت‌پذیر نیست.",
+    "confirmBodyTransfer": "«<name>{description}</name>» برای همیشه از هر دو حساب حذف می‌شود. این کار برگشت‌پذیر نیست.",
     "cancel": "انصراف",
     "confirm": "حذف",
     "deleting": "در حال حذف…",
@@ -189,7 +191,7 @@
       "network": "ارتباط با سرور برقرار نشد. لطفاً بعداً دوباره تلاش کنید.",
       "generic": "مشکلی پیش آمد. لطفاً دوباره تلاش کنید.",
       "accountArchived": "این حساب بایگانی شده است، بنابراین نمی‌توان تراکنش جدیدی به آن اضافه کرد.",
-      "typeInvalid": "هزینه یا درآمد را انتخاب کنید",
+      "typeInvalid": "هزینه، درآمد یا انتقال را انتخاب کنید",
       "amountRequired": "مبلغ را وارد کنید",
       "amountNotPositive": "مبلغی بیشتر از صفر وارد کنید؛ نوع، هزینه یا درآمد بودن را تعیین می‌کند",
       "amountInvalid": "مبلغی مانند {example} وارد کنید",
@@ -198,24 +200,32 @@
       "descriptionRequired": "شرح را وارد کنید",
       "descriptionTooLong": "شرح حداکثر می‌تواند {max, number} نویسه باشد",
       "dateInvalid": "تاریخ معتبری انتخاب کنید",
-      "categoryInvalid": "این دسته‌بندی دیگر در دسترس نیست. دسته‌بندی دیگری انتخاب کنید."
+      "categoryInvalid": "این دسته‌بندی دیگر در دسترس نیست. دسته‌بندی دیگری انتخاب کنید.",
+      "toAccountInvalid": "حساب مقصد دیگری انتخاب کنید"
     },
     "newTransaction": "تراکنش جدید",
     "form": {
       "title": "تراکنش جدید",
       "account": "حساب",
+      "fromAccount": "از حساب",
+      "toAccount": "به حساب",
+      "chooseAccount": "انتخاب حساب",
       "type": "نوع",
       "types": {
         "expense": "هزینه",
-        "income": "درآمد"
+        "income": "درآمد",
+        "transfer": "انتقال"
       },
       "amount": "مبلغ ({currency})",
+      "amountSent": "مبلغ ارسالی ({currency})",
+      "amountReceived": "مبلغ دریافتی ({currency})",
       "description": "شرح",
       "descriptionPlaceholder": "مثلاً خرید هفتگی",
       "merchant": "فروشنده (اختیاری)",
       "date": "تاریخ",
       "category": "دسته‌بندی (اختیاری)",
       "noCategory": "بدون دسته‌بندی",
+      "transferNeedsTwoAccounts": "برای انتقال دست‌کم به دو حساب فعال نیاز دارید.",
       "noCategoriesHint": "{type, select, income {هنوز دسته‌بندی درآمدی ندارید. می‌توانید در صفحهٔ «دسته‌بندی‌ها» یکی بسازید.} other {هنوز دسته‌بندی هزینه‌ای ندارید. می‌توانید در صفحهٔ «دسته‌بندی‌ها» یکی بسازید.}}",
       "notes": "یادداشت (اختیاری)",
       "notesPlaceholder": "هر چیزی که ارزش به خاطر سپردن دارد",
@@ -243,7 +253,7 @@
       "transfer": "انتقال‌ها"
     },
     "groupCount": "{count, plural, other {# دسته‌بندی}}",
-    "kinds": {
+    "types": {
       "expense": "هزینه",
       "income": "درآمد",
       "transfer": "انتقال"
@@ -253,7 +263,7 @@
       "previewName": "دسته‌بندی جدید",
       "name": "نام",
       "namePlaceholder": "مثلاً سوپرمارکت",
-      "kind": "نوع",
+      "types": "نوع",
       "icon": "نماد",
       "color": "رنگ",
       "cancel": "انصراف",
@@ -287,10 +297,10 @@
     "errors": {
       "nameRequired": "نامی برای دسته‌بندی وارد کنید",
       "nameTooLong": "نام حداکثر می‌تواند {max, number} نویسه باشد",
-      "nameTaken": "برای این نوع، دسته‌بندی‌ای با این نام از قبل وجود دارد",
+      "nameTaken": "دسته‌بندی‌ای با این نام از قبل وجود دارد",
       "iconInvalid": "یک نماد انتخاب کنید",
       "colorInvalid": "رنگی مانند #2563EB وارد کنید",
-      "kindInvalid": "یک نوع انتخاب کنید",
+      "typesInvalid": "دست‌کم یک نوع انتخاب کنید",
       "network": "ارتباط با سرور برقرار نشد. لطفاً بعداً دوباره تلاش کنید.",
       "generic": "مشکلی پیش آمد. لطفاً دوباره تلاش کنید."
     },

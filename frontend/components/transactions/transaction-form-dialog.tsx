@@ -13,7 +13,7 @@ import { useAnnounce } from "@/components/ui/live-status";
 import { Modal } from "@/components/ui/modal";
 import { SelectField } from "@/components/ui/select-field";
 import { TextField } from "@/components/ui/text-field";
-import { createTransaction } from "@/lib/actions/transactions";
+import { createTransaction, createTransfer } from "@/lib/actions/transactions";
 import { LAST_ACCOUNT_COOKIE } from "@/lib/last-account";
 import type { Category } from "@/lib/types";
 import {
@@ -21,11 +21,21 @@ import {
   TRANSACTION_TYPES,
   isTransactionErrorCode,
   type TransactionErrorCode,
+  type TransactionType,
 } from "@/lib/validation";
 
-type TransactionFields = "accountId" | "type" | "amount" | "description" | "bookedOn" | "categoryId" | "notes";
+type TransactionFields =
+  "accountId" | "type" | "toAccountId" | "amount" | "toAmount" | "description" | "bookedOn" | "categoryId" | "notes";
 
-const FIELD_ORDER: TransactionFields[] = ["type", "amount", "description", "bookedOn", "categoryId"];
+const FIELD_ORDER: TransactionFields[] = [
+  "type",
+  "toAccountId",
+  "amount",
+  "toAmount",
+  "description",
+  "bookedOn",
+  "categoryId",
+];
 
 type FormState = {
   fieldErrors: Partial<Record<TransactionFields, TransactionErrorCode>>;
@@ -33,7 +43,7 @@ type FormState = {
 };
 const initialState: FormState = { fieldErrors: {}, error: null };
 
-type CategoryOption = Pick<Category, "id" | "name" | "kind">;
+type CategoryOption = Pick<Category, "id" | "name" | "types">;
 
 export type AccountOption = {
   id: string;
@@ -43,7 +53,10 @@ export type AccountOption = {
 };
 
 type FormProps = {
+  /** The accounts the transaction can be added to (just the page's account on an account page). */
   accounts: AccountOption[];
+  /** Every active account: a transfer can go to any of them, whichever account the form is fixed to. */
+  allAccounts: AccountOption[];
   categories: CategoryOption[];
 };
 
@@ -68,6 +81,7 @@ const variantClasses = {
 export function NewTransactionButton({
   variant,
   accounts,
+  allAccounts,
   categories,
 }: FormProps & { variant: keyof typeof variantClasses }) {
   const t = useTranslations("transactions");
@@ -109,6 +123,7 @@ export function NewTransactionButton({
           key={opening.key}
           fixedAccountId={fixedAccountId}
           accounts={accountOptions}
+          allAccounts={allAccounts}
           categories={categories}
           defaultAccountId={opening.accountId}
           today={opening.today}
@@ -157,6 +172,7 @@ export function NewTransactionButton({
 function TransactionForm({
   fixedAccountId,
   accounts,
+  allAccounts,
   categories,
   defaultAccountId,
   today,
@@ -181,7 +197,9 @@ function TransactionForm({
   const [values, setValues] = useState<Record<TransactionFields, string>>({
     accountId: defaultAccountId,
     type: "expense",
+    toAccountId: "",
     amount: "",
+    toAmount: "",
     description: "",
     bookedOn: today,
     categoryId: "",
@@ -192,11 +210,26 @@ function TransactionForm({
     value: values[name],
     onChange: (e: { target: { value: string } }) => setValues((prev) => ({ ...prev, [name]: e.target.value })),
   });
+  // The destination can't be the source account, so a source change may invalidate it.
+  const changeSourceAccount = (accountId: string) =>
+    setValues((prev) => ({ ...prev, accountId, toAccountId: prev.toAccountId === accountId ? "" : prev.toAccountId }));
+  // Keeps the chosen category only if it is also available for the new type. Transfers have none.
+  const changeType = (type: TransactionType) =>
+    setValues((prev) => ({
+      ...prev,
+      type,
+      categoryId: categories.find((category) => category.id === prev.categoryId)?.types.includes(type)
+        ? prev.categoryId
+        : "",
+    }));
 
   const [{ fieldErrors, error }, submitAction, isPending] = useActionState(
     async (_prev: FormState, { accountId, ...submitted }: Record<TransactionFields, string>): Promise<FormState> => {
       try {
-        const result = await createTransaction(accountId, submitted);
+        const result =
+          submitted.type === "transfer"
+            ? await createTransfer(accountId, submitted)
+            : await createTransaction(accountId, submitted);
         if (result.success) {
           announce(t("announcements.created", { description: submitted.description.trim() }));
           onCreated(accountId, submitted.description.trim());
@@ -233,17 +266,23 @@ function TransactionForm({
 
   const account = accounts.find((option) => option.id === values.accountId);
   const minorUnit = account?.minorUnit ?? 2;
-  const errorText = (code?: TransactionErrorCode) =>
+  const isTransfer = values.type === "transfer";
+  // A transfer needs a second account to go to.
+  const canTransfer = allAccounts.length >= 2;
+  const toAccount = allAccounts.find((option) => option.id === values.toAccountId);
+  // Across currencies the amount received is entered separately; within one it is the amount sent.
+  const needsReceivedAmount = isTransfer && toAccount !== undefined && toAccount.currencyCode !== account?.currencyCode;
+  const errorText = (code?: TransactionErrorCode, forMinorUnit = minorUnit) =>
     code &&
     t(`errors.${code}`, {
-      digits: minorUnit,
-      example: (12.5).toFixed(minorUnit),
+      digits: forMinorUnit,
+      example: (12.5).toFixed(forMinorUnit),
       max: MAX_TRANSACTION_DESCRIPTION_LENGTH,
     });
 
   const byName = new Intl.Collator(locale).compare;
   const typeCategories = categories
-    .filter((category) => category.kind === values.type || category.kind === "transfer")
+    .filter((category) => category.types.includes(values.type as TransactionType))
     .sort((a, b) => byName(a.name, b.name));
   const merchantHintId = `${fieldId("merchant")}-hint`;
 
@@ -253,7 +292,12 @@ function TransactionForm({
         <FormAlert message={error && t(`errors.${error}`)} />
 
         {accounts.length > 1 ? (
-          <SelectField id={fieldId("accountId")} {...field("accountId")} label={t("form.account")}>
+          <SelectField
+            id={fieldId("accountId")}
+            {...field("accountId")}
+            onChange={(e) => changeSourceAccount(e.target.value)}
+            label={isTransfer ? t("form.fromAccount") : t("form.account")}
+          >
             {accounts.map((option) => (
               <option key={option.id} value={option.id}>
                 {option.name}
@@ -262,7 +306,9 @@ function TransactionForm({
           </SelectField>
         ) : (
           <div id={fixedAccountId} className="mb-[18px]">
-            <div className="mb-[7px] text-[13px] font-semibold">{t("form.account")}</div>{" "}
+            <div className="mb-[7px] text-[13px] font-semibold">
+              {isTransfer ? t("form.fromAccount") : t("form.account")}
+            </div>{" "}
             <div className="flex items-center gap-2 text-sm font-semibold">
               <Wallet size={16} aria-hidden className="shrink-0 text-muted-foreground" />
               <bdi className="min-w-0 break-words">{account?.name}</bdi>
@@ -279,32 +325,45 @@ function TransactionForm({
                   name="type"
                   value={type}
                   checked={values.type === type}
-                  onChange={() =>
-                    setValues((prev) => ({
-                      ...prev,
-                      type,
-                      categoryId:
-                        categories.find((category) => category.id === prev.categoryId)?.kind === "transfer"
-                          ? prev.categoryId
-                          : "",
-                    }))
-                  }
+                  onChange={() => changeType(type)}
+                  disabled={type === "transfer" && !canTransfer}
                   id={index === 0 ? fieldId("type") : undefined}
                   className="peer sr-only"
                 />
-                <span className="block cursor-pointer rounded-[8px] px-2 py-1.5 text-center text-[13px] font-medium text-muted-foreground peer-checked:bg-card peer-checked:font-semibold peer-checked:text-foreground peer-checked:shadow-sm peer-focus-visible:ring-2 peer-focus-visible:ring-ring">
+                <span className="block cursor-pointer rounded-[8px] px-2 py-1.5 text-center text-[13px] font-medium text-muted-foreground peer-checked:bg-card peer-checked:font-semibold peer-checked:text-foreground peer-checked:shadow-sm peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-disabled:cursor-not-allowed peer-disabled:opacity-50">
                   {t(`form.types.${type}`)}
                 </span>
               </label>
             ))}
           </div>
         </ChoiceGroup>
+        {!canTransfer && (
+          <p className="-mt-3 mb-[18px] text-xs text-muted-foreground">{t("form.transferNeedsTwoAccounts")}</p>
+        )}
+
+        {isTransfer && (
+          <SelectField
+            id={fieldId("toAccountId")}
+            {...field("toAccountId")}
+            label={t("form.toAccount")}
+            error={errorText(fieldErrors.toAccountId)}
+          >
+            <option value="">{t("form.chooseAccount")}</option>
+            {allAccounts
+              .filter((option) => option.id !== values.accountId)
+              .map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.name}
+                </option>
+              ))}
+          </SelectField>
+        )}
 
         <TextField
           id={fieldId("amount")}
           {...field("amount")}
           data-autofocus
-          label={t("form.amount", { currency: account?.currencyCode ?? "" })}
+          label={t(isTransfer ? "form.amountSent" : "form.amount", { currency: account?.currencyCode ?? "" })}
           type="text"
           dir="ltr"
           inputMode={minorUnit === 0 ? "numeric" : "decimal"}
@@ -313,6 +372,21 @@ function TransactionForm({
           placeholder={(0).toFixed(minorUnit)}
           error={errorText(fieldErrors.amount)}
         />
+
+        {needsReceivedAmount && (
+          <TextField
+            id={fieldId("toAmount")}
+            {...field("toAmount")}
+            label={t("form.amountReceived", { currency: toAccount.currencyCode })}
+            type="text"
+            dir="ltr"
+            inputMode={toAccount.minorUnit === 0 ? "numeric" : "decimal"}
+            autoComplete="off"
+            required
+            placeholder={(0).toFixed(toAccount.minorUnit)}
+            error={errorText(fieldErrors.toAmount, toAccount.minorUnit)}
+          />
+        )}
 
         <TextField
           id={fieldId("description")}
@@ -337,7 +411,7 @@ function TransactionForm({
           </p>
         </TextField>
 
-        <div className="grid gap-x-4 sm:grid-cols-2">
+        <div className={`grid gap-x-4 ${isTransfer ? "" : "sm:grid-cols-2"}`}>
           <TextField
             id={fieldId("bookedOn")}
             {...field("bookedOn")}
@@ -346,21 +420,23 @@ function TransactionForm({
             required
             error={errorText(fieldErrors.bookedOn)}
           />
-          <SelectField
-            id={fieldId("categoryId")}
-            {...field("categoryId")}
-            label={t("form.category")}
-            required={false}
-            hint={typeCategories.length === 0 ? t("form.noCategoriesHint", { type: values.type }) : undefined}
-            error={errorText(fieldErrors.categoryId)}
-          >
-            <option value="">{t("form.noCategory")}</option>
-            {typeCategories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </SelectField>
+          {!isTransfer && (
+            <SelectField
+              id={fieldId("categoryId")}
+              {...field("categoryId")}
+              label={t("form.category")}
+              required={false}
+              hint={typeCategories.length === 0 ? t("form.noCategoriesHint", { type: values.type }) : undefined}
+              error={errorText(fieldErrors.categoryId)}
+            >
+              <option value="">{t("form.noCategory")}</option>
+              {typeCategories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </SelectField>
+          )}
         </div>
 
         <div className="mb-[18px]">

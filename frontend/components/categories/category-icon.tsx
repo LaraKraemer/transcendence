@@ -1,4 +1,5 @@
 import {
+  ArrowLeftRight,
   Briefcase,
   Car,
   Gift,
@@ -33,6 +34,9 @@ export const CATEGORY_ICONS = {
   tag: Tag,
 } satisfies Record<string, LucideIcon>;
 
+// Drawn like the others but not offered by the form: only the system Transfer category uses it.
+const SYSTEM_ICONS = { "arrow-left-right": ArrowLeftRight } satisfies Record<string, LucideIcon>;
+
 export type CategoryIconKey = keyof typeof CATEGORY_ICONS;
 export const CATEGORY_ICON_KEYS = Object.keys(CATEGORY_ICONS) as CategoryIconKey[];
 
@@ -46,6 +50,10 @@ export function isCategoryIconKey(value: string): value is CategoryIconKey {
  * plain text instead.
  */
 export function CategoryIcon({ icon, size = 17 }: { icon: string; size?: number }) {
+  if (Object.hasOwn(SYSTEM_ICONS, icon)) {
+    const Icon = SYSTEM_ICONS[icon as keyof typeof SYSTEM_ICONS];
+    return <Icon size={size} aria-hidden />;
+  }
   if (!isCategoryIconKey(icon)) {
     return (
       // Inherits the tile's readable colour (see readableOn).
