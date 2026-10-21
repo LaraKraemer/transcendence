@@ -5,7 +5,7 @@ import Link from "next/link";
 
 import { AccountSwitcher } from "@/components/transactions/account-switcher";
 import { DeleteTransactionButton } from "@/components/transactions/delete-transaction-button";
-import { NewTransactionButton } from "@/components/transactions/transaction-form-dialog";
+import { EditTransactionButton, NewTransactionButton } from "@/components/transactions/transaction-form-dialog";
 import { LiveStatusProvider } from "@/components/ui/live-status";
 import {
   fetchApiServer,
@@ -67,6 +67,9 @@ export default async function AccountTransactionsPage({
     : [account, ...activeAccounts];
 
   const minorUnit = currencies.find((currency) => currency.code === account.currencyCode)?.minorUnit ?? 2;
+  // Built once and passed to every row: the same object is sent to the client only once.
+  const accountOption = { id: account.id, name: account.name, currencyCode: account.currencyCode, minorUnit };
+  const categoryOptions = activeCategories.map(({ id, name, kind }) => ({ id, name, kind }));
   const money = (amountMinor: number) =>
     format.number(amountMinor / 10 ** minorUnit, {
       style: "currency",
@@ -105,11 +108,7 @@ export default async function AccountTransactionsPage({
         </div>
         {!account.isArchived && (
           <LiveStatusProvider>
-            <NewTransactionButton
-              variant="header"
-              accounts={[{ id: account.id, name: account.name, currencyCode: account.currencyCode, minorUnit }]}
-              categories={activeCategories.map(({ id, name, kind }) => ({ id, name, kind }))}
-            />
+            <NewTransactionButton variant="header" accounts={[accountOption]} categories={categoryOptions} />
           </LiveStatusProvider>
         )}
       </div>
@@ -167,106 +166,116 @@ export default async function AccountTransactionsPage({
         </nav>
       </div>
 
-      <section aria-labelledby={LIST_HEADING_ID} className="rounded-lg border border-border bg-card">
-        <h2
-          id={LIST_HEADING_ID}
-          tabIndex={-1}
-          className={`mx-4 mt-4 mb-2 w-fit rounded-sm text-[15px] font-semibold sm:mx-6 sm:mt-5 sm:mb-3 sm:text-base ${focusRing}`}
-        >
-          {t("listTitle")}
-        </h2>
+      <LiveStatusProvider>
+        <section aria-labelledby={LIST_HEADING_ID} className="rounded-lg border border-border bg-card">
+          <h2
+            id={LIST_HEADING_ID}
+            tabIndex={-1}
+            className={`mx-4 mt-4 mb-2 w-fit rounded-sm text-[15px] font-semibold sm:mx-6 sm:mt-5 sm:mb-3 sm:text-base ${focusRing}`}
+          >
+            {t("listTitle")}
+          </h2>
 
-        {visible.length === 0 ? (
-          <p className="px-4 py-8 text-center text-[13px] text-muted-foreground sm:px-6 sm:py-10 sm:text-sm">
-            {total === 0 ? t("empty") : t("emptyFiltered", { filter })}
-          </p>
-        ) : (
-          <table className="w-full text-[13px] sm:text-sm">
-            <caption className="sr-only">{t("caption", { account: account.name })}</caption>
-            <thead>
-              <tr className="bg-muted text-[11px] font-semibold tracking-[.06em] text-muted-foreground uppercase">
-                <th scope="col" className="py-2 ps-4 pe-3 text-start sm:py-3 sm:ps-6">
-                  {t("columns.description")}
-                </th>
-                <th scope="col" className="hidden px-3 py-3 text-start lg:table-cell">
-                  {t("columns.category")}
-                </th>
-                <th scope="col" className="hidden px-3 py-3 text-start lg:table-cell">
-                  {t("columns.date")}
-                </th>
-                <th scope="col" className="px-2 py-2 text-end sm:px-3 sm:py-3">
-                  {t("columns.amount")}
-                </th>
-                <th scope="col" className="py-2 ps-1 pe-2 sm:py-3 sm:pe-4">
-                  <span className="sr-only">{t("columns.actions")}</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {visible.map((tx) => {
-                const category = tx.categoryId === null ? undefined : categories.get(tx.categoryId);
-                return (
-                  <tr key={tx.id} className="border-t border-border">
-                    <td className="py-[11px] ps-4 pe-3 sm:py-3.5 sm:ps-6">
-                      <div className="font-semibold break-words">
-                        <bdi>{tx.description}</bdi>
-                      </div>
-                      {tx.notes && (
-                        <div className="text-xs break-words text-muted-foreground sm:text-[13px]">
-                          <bdi>{tx.notes}</bdi>
+          {visible.length === 0 ? (
+            <p className="px-4 py-8 text-center text-[13px] text-muted-foreground sm:px-6 sm:py-10 sm:text-sm">
+              {total === 0 ? t("empty") : t("emptyFiltered", { filter })}
+            </p>
+          ) : (
+            <table className="w-full text-[13px] sm:text-sm">
+              <caption className="sr-only">{t("caption", { account: account.name })}</caption>
+              <thead>
+                <tr className="bg-muted text-[11px] font-semibold tracking-[.06em] text-muted-foreground uppercase">
+                  <th scope="col" className="py-2 ps-4 pe-3 text-start sm:py-3 sm:ps-6">
+                    {t("columns.description")}
+                  </th>
+                  <th scope="col" className="hidden px-3 py-3 text-start lg:table-cell">
+                    {t("columns.category")}
+                  </th>
+                  <th scope="col" className="hidden px-3 py-3 text-start lg:table-cell">
+                    {t("columns.date")}
+                  </th>
+                  <th scope="col" className="px-2 py-2 text-end sm:px-3 sm:py-3">
+                    {t("columns.amount")}
+                  </th>
+                  <th scope="col" className="py-2 ps-1 pe-2 sm:py-3 sm:pe-4">
+                    <span className="sr-only">{t("columns.actions")}</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {visible.map((tx) => {
+                  const category = tx.categoryId === null ? undefined : categories.get(tx.categoryId);
+                  return (
+                    <tr key={tx.id} className="border-t border-border">
+                      <td className="py-[11px] ps-4 pe-3 sm:py-3.5 sm:ps-6">
+                        <div className="font-semibold break-words">
+                          <bdi>{tx.description}</bdi>
                         </div>
-                      )}
-                      <div className="mt-0.5 text-xs text-muted-foreground sm:text-[13px] lg:hidden">
-                        {category ? <bdi>{category.name}</bdi> : t("uncategorised")}
-                        <span aria-hidden> · </span>
+                        {tx.notes && (
+                          <div className="text-xs break-words text-muted-foreground sm:text-[13px]">
+                            <bdi>{tx.notes}</bdi>
+                          </div>
+                        )}
+                        <div className="mt-0.5 text-xs text-muted-foreground sm:text-[13px] lg:hidden">
+                          {category ? <bdi>{category.name}</bdi> : t("uncategorised")}
+                          <span aria-hidden> · </span>
+                          <time dateTime={tx.bookedOn}>{bookedOn(tx.bookedOn)}</time>
+                        </div>
+                      </td>
+                      <td className="hidden px-3 py-3.5 lg:table-cell">
+                        {category ? (
+                          <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium">
+                            <span
+                              aria-hidden
+                              className="size-1.5 rounded-full"
+                              style={{ backgroundColor: category.color }}
+                            />
+                            <bdi>{category.name}</bdi>
+                          </span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">{t("uncategorised")}</span>
+                        )}
+                      </td>
+                      <td className="hidden px-3 py-3.5 whitespace-nowrap text-muted-foreground lg:table-cell">
                         <time dateTime={tx.bookedOn}>{bookedOn(tx.bookedOn)}</time>
-                      </div>
-                    </td>
-                    <td className="hidden px-3 py-3.5 lg:table-cell">
-                      {category ? (
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium">
-                          <span
-                            aria-hidden
-                            className="size-1.5 rounded-full"
-                            style={{ backgroundColor: category.color }}
+                      </td>
+                      <td
+                        className={`px-2 py-[11px] text-end font-semibold sm:px-3 sm:py-3.5 whitespace-nowrap tabular-nums ${
+                          tx.amountMinor > 0 ? "text-success" : "text-destructive"
+                        }`}
+                      >
+                        {money(tx.amountMinor)}
+                      </td>
+                      <td className="py-[11px] ps-1 pe-2 sm:py-3.5 sm:pe-4">
+                        <div className="flex justify-end gap-1.5">
+                          <EditTransactionButton
+                            transaction={tx}
+                            account={accountOption}
+                            categories={categoryOptions}
+                            focusAfterDeleteId={LIST_HEADING_ID}
                           />
-                          <bdi>{category.name}</bdi>
-                        </span>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">{t("uncategorised")}</span>
-                      )}
-                    </td>
-                    <td className="hidden px-3 py-3.5 whitespace-nowrap text-muted-foreground lg:table-cell">
-                      <time dateTime={tx.bookedOn}>{bookedOn(tx.bookedOn)}</time>
-                    </td>
-                    <td
-                      className={`px-2 py-[11px] text-end font-semibold sm:px-3 sm:py-3.5 whitespace-nowrap tabular-nums ${
-                        tx.amountMinor > 0 ? "text-success" : "text-destructive"
-                      }`}
-                    >
-                      {money(tx.amountMinor)}
-                    </td>
-                    <td className="py-[11px] ps-1 pe-2 text-end sm:py-3.5 sm:pe-4">
-                      <DeleteTransactionButton
-                        transactionId={tx.id}
-                        description={tx.description}
-                        focusAfterDeleteId={LIST_HEADING_ID}
-                      />
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
+                          <DeleteTransactionButton
+                            transactionId={tx.id}
+                            description={tx.description}
+                            focusAfterDeleteId={LIST_HEADING_ID}
+                          />
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
 
-        <p
-          aria-live="polite"
-          className="border-t border-border px-4 py-3 text-xs text-muted-foreground sm:px-6 sm:py-4 sm:text-[13px]"
-        >
-          {t("showing", { shown: visible.length, total })}
-        </p>
-      </section>
+          <p
+            aria-live="polite"
+            className="border-t border-border px-4 py-3 text-xs text-muted-foreground sm:px-6 sm:py-4 sm:text-[13px]"
+          >
+            {t("showing", { shown: visible.length, total })}
+          </p>
+        </section>
+      </LiveStatusProvider>
     </div>
   );
 }
