@@ -10,7 +10,9 @@ import type { ActionResponse, Transaction } from "@/lib/types";
 import {
   CATEGORY_TYPES,
   MAX_TRANSACTION_DESCRIPTION_LENGTH,
+  changedFields,
   toPositiveMinorUnits,
+  type EditableTransactionFields,
   type TransactionErrorCode,
 } from "@/lib/validation";
 
@@ -73,19 +75,68 @@ export async function createTransaction(accountId: string, data: CreateTransacti
       }),
     });
   } catch (error) {
-    if (error instanceof ApiError && categoryId !== "" && /category/i.test(error.message)) {
-      return {
-        success: false,
-        message: error.message,
-        status: error.status,
-        errors: { categoryId: ["categoryInvalid"] },
-      };
-    }
-    return backendFailure(error, "createTransaction");
+    return transactionFailure(error, categoryId !== "", "createTransaction");
   }
 
   refresh();
   return { success: true, message: "Transaction created" };
+}
+
+const UpdateTransactionSchema = CreateTransactionSchema.pick({ description: true, bookedOn: true }).extend({
+  categoryId: CreateTransactionSchema.shape.categoryId.transform((value) => value || null),
+  notes: CreateTransactionSchema.shape.notes.transform((value) => value || null),
+});
+
+export type UpdateTransactionInput = Record<keyof z.input<typeof UpdateTransactionSchema>, string>;
+
+export async function updateTransaction(
+  transactionId: string,
+  opened: EditableTransactionFields,
+  data: UpdateTransactionInput,
+): Promise<ActionResponse> {
+  if (!z.uuid().safeParse(transactionId).success) {
+    return { success: false, message: "Transaction not found", status: 404 };
+  }
+  const parsed = UpdateTransactionSchema.safeParse({
+    description: String(data.description),
+    bookedOn: String(data.bookedOn),
+    categoryId: String(data.categoryId),
+    notes: String(data.notes),
+  });
+  if (!parsed.success) {
+    return {
+      success: false,
+      message: "Validation failed",
+      errors: z.flattenError(parsed.error).fieldErrors as Record<string, string[]>,
+    };
+  }
+
+  const updates = changedFields(opened, parsed.data);
+  if (Object.keys(updates).length === 0) return { success: true, message: "No changes" };
+
+  try {
+    await fetchApiServer<Transaction>(`/transactions/${transactionId}`, {
+      method: "PATCH",
+      body: JSON.stringify(updates),
+    });
+  } catch (error) {
+    return transactionFailure(error, typeof updates.categoryId === "string", "updateTransaction");
+  }
+
+  refresh();
+  return { success: true, message: "Transaction updated" };
+}
+
+function transactionFailure(error: unknown, sentCategory: boolean, action: string): ActionResponse {
+  if (error instanceof ApiError && sentCategory && /category/i.test(error.message)) {
+    return {
+      success: false,
+      message: error.message,
+      status: error.status,
+      errors: { categoryId: ["categoryInvalid"] },
+    };
+  }
+  return backendFailure(error, action);
 }
 
 const CreateTransferSchema = z.object({

@@ -144,21 +144,29 @@ export type EditableAccountFields = {
   accountRef: string | null;
 };
 
+/** The transaction fields the edit form can change (not the amount, type or account). */
+export type EditableTransactionFields = {
+  description: string;
+  bookedOn: string;
+  categoryId: string | null;
+  notes: string | null;
+};
+
 /**
- * Returns only the fields that differ from `original`: the body for
- * `PATCH /accounts/:id`. An empty optional text and `null` both mean "not set",
- * so switching between them is not a change.
+ * Returns only the fields that differ from `original`: the body for a PATCH
+ * (`/accounts/:id`, `/transactions/:id`). An empty optional text and `null`
+ * both mean "not set", so switching between them is not a change.
  */
-export function changedAccountFields(
-  original: EditableAccountFields,
-  next: EditableAccountFields,
-): Partial<EditableAccountFields> {
+export function changedFields<Fields extends Record<string, string | null>>(
+  original: Fields,
+  next: Fields,
+): Partial<Fields> {
   const notSetIsNull = (value: string | null) => (value === "" ? null : value);
   return Object.fromEntries(
-    (Object.keys(next) as (keyof EditableAccountFields)[])
+    (Object.keys(next) as (keyof Fields)[])
       .filter((field) => notSetIsNull(next[field]) !== notSetIsNull(original[field]))
       .map((field) => [field, next[field]]),
-  );
+  ) as Partial<Fields>;
 }
 
 // Categories. These mirror the backend's category rules (routes/category.ts).

@@ -14,7 +14,7 @@ import type { Account, ActionResponse } from "@/lib/types";
 import {
   ACCOUNT_TYPES,
   MAX_ACCOUNT_NAME_LENGTH,
-  changedAccountFields,
+  changedFields,
   toMinorUnits,
   type AccountErrorCode,
   type EditableAccountFields,
@@ -125,7 +125,7 @@ export async function updateAccount(
   }
 
   // `opened` only decides which fields to send; every value sent comes from the validated input.
-  const updates = changedAccountFields(opened, parsed.data);
+  const updates = changedFields(opened, parsed.data);
   // Nothing changed: the backend would reject an empty PATCH, and there is nothing to save or reload.
   if (Object.keys(updates).length === 0) return { success: true, message: "No changes" };
 
