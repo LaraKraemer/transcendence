@@ -1,4 +1,4 @@
-import { randomBytes, randomUUID } from "node:crypto";
+import { createHash, randomBytes, randomUUID } from "node:crypto";
 
 import express, { Router } from "express";
 
@@ -28,9 +28,13 @@ export const authRouter = Router();
 const avatarMaxBytes = 5 * 1024 * 1024;
 const avatarRoute = "/auth/me/avatar";
 
-/** Replaces the stored avatar key with the retrieval route so storage details never reach clients. */
+/**
+ * Replaces the stored avatar key with the retrieval route so storage details never reach clients.
+ * `v` is a hash of the key, which is new for every upload, so clients never show a stale cached photo.
+ */
 function toPublicUser<User extends { avatarUrl: string | null }>(user: User) {
-  return { ...user, avatarUrl: user.avatarUrl ? avatarRoute : null };
+  const version = user.avatarUrl && createHash("sha256").update(user.avatarUrl).digest("hex").slice(0, 16);
+  return { ...user, avatarUrl: user.avatarUrl ? `${avatarRoute}?v=${version}` : null };
 }
 
 // Unknown emails must do the same bcrypt work as a wrong password for an existing user.
@@ -63,7 +67,7 @@ authRouter.post("/register", async (req, res) => {
   const user = await createUser(normalizedEmail, await hashPassword(password), displayName.trim());
   if (!user) throw new Error("User creation did not return a user");
   await createSession(req, res, user.id);
-  res.status(201).json({ user });
+  res.status(201).json({ user: { ...user, avatarUrl: null } });
 });
 
 // Verifies local credentials and starts a new browser session.
@@ -88,7 +92,14 @@ authRouter.post("/login", async (req, res) => {
   }
 
   await createSession(req, res, user.id);
-  res.json({ user: { id: user.id, email: user.email, displayName: user.displayName } });
+  res.json({
+    user: toPublicUser({
+      id: user.id,
+      email: user.email,
+      displayName: user.displayName,
+      avatarUrl: user.avatarUrl,
+    }),
+  });
 });
 
 // Revokes the current server-side session and clears its browser cookie.
@@ -200,7 +211,7 @@ authRouter.get("/me/avatar", requireAuthenticatedUser, async (req, res, next) =>
     }
     const contentType = user.avatarUrl.endsWith(".jpg") ? "image/jpeg" : "image/png";
     // Always revalidate (cheap 304 via ETag) because the URL stays the same after a replacement.
-    res.set("Cache-Control", "no-cache").type(contentType).send(buffer);
+    res.set("Cache-Control", "private, no-cache").type(contentType).send(buffer);
   } catch (error) {
     next(error);
   }
