@@ -2,7 +2,7 @@
 //   node --experimental-strip-types lib/validation.check.mjs
 import assert from "node:assert/strict";
 
-import { changedAccountFields, contrastRatio, readableOn, toMinorUnits, toPositiveMinorUnits } from "./validation.ts";
+import { changedFields, contrastRatio, readableOn, toMinorUnits, toPositiveMinorUnits } from "./validation.ts";
 
 assert.equal(toMinorUnits("100.50", 2), 10050);
 assert.equal(toMinorUnits("100.5", 2), 10050);
@@ -35,17 +35,23 @@ assert.equal(toPositiveMinorUnits("1.005", 2), "amountDecimals");
 assert.equal(toPositiveMinorUnits("abc", 2), "amountInvalid");
 console.log("toPositiveMinorUnits: ok");
 
-// changedAccountFields: only what differs goes into the PATCH body
+// changedFields: only what differs goes into the PATCH body
 const original = { name: "Main", type: "checking", institution: "DKB", accountRef: null };
-assert.deepEqual(changedAccountFields(original, { ...original }), {});
-assert.deepEqual(changedAccountFields(original, { ...original, name: "Main EUR" }), { name: "Main EUR" });
-assert.deepEqual(changedAccountFields(original, { ...original, type: "savings", accountRef: "1234" }), {
+assert.deepEqual(changedFields(original, { ...original }), {});
+assert.deepEqual(changedFields(original, { ...original, name: "Main EUR" }), { name: "Main EUR" });
+assert.deepEqual(changedFields(original, { ...original, type: "savings", accountRef: "1234" }), {
   type: "savings",
   accountRef: "1234",
 });
-assert.deepEqual(changedAccountFields(original, { ...original, institution: null }), { institution: null }); // clearing is a change
-assert.deepEqual(changedAccountFields({ ...original, institution: "" }, { ...original, institution: null }), {}); // "" and null both mean unset
-console.log("changedAccountFields: ok");
+assert.deepEqual(changedFields(original, { ...original, institution: null }), { institution: null }); // clearing is a change
+assert.deepEqual(changedFields({ ...original, institution: "" }, { ...original, institution: null }), {}); // "" and null both mean unset
+const transaction = { description: "Groceries", bookedOn: "2026-10-01", categoryId: null, notes: "Weekly" };
+assert.deepEqual(changedFields(transaction, { ...transaction, categoryId: "" }), {}); // the form's "No category"
+assert.deepEqual(changedFields(transaction, { ...transaction, bookedOn: "2026-10-02", notes: null }), {
+  bookedOn: "2026-10-02",
+  notes: null,
+});
+console.log("changedFields: ok");
 
 // readableOn: the icon colour on a category tile always contrasts enough
 assert.equal(readableOn("#1E3352"), "#FFFFFF"); // navy → white
