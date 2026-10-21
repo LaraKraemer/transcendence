@@ -60,13 +60,13 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("profile deletion with PostgreSQ
         "checking",
       ]);
     }
-    await pool.query("INSERT INTO category (id, user_id, name, icon, color, kind) VALUES ($1, $2, $3, $4, $5, $6)", [
+    await pool.query("INSERT INTO category (id, user_id, name, icon, color, types) VALUES ($1, $2, $3, $4, $5, $6)", [
       categoryId,
       userId,
       "Expense",
       "cart",
       "#000000",
-      "expense",
+      ["expense"],
     ]);
     // Exercise both cascade paths, including a creator reference outside the owned account.
     for (const [ledgerId, creatorId, assignedCategoryId] of [
@@ -75,7 +75,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("profile deletion with PostgreSQ
       [otherAccountId, otherUserId, null],
     ]) {
       await pool.query(
-        'INSERT INTO "transaction" (account_id, created_by_id, category_id, amount_minor, description, booked_on) VALUES ($1, $2, $3, -100, $4, CURRENT_DATE)',
+        `INSERT INTO "transaction" (account_id, created_by_id, category_id, type, amount_minor, description, booked_on) VALUES ($1, $2, $3, 'expense', -100, $4, CURRENT_DATE)`,
         [ledgerId, creatorId, assignedCategoryId, "Deletion check"],
       );
     }
@@ -126,5 +126,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("profile deletion with PostgreSQ
     );
     expect(rows).toEqual([{ account_id: otherAccountId, created_by_id: otherUserId }]);
     expect((await pool.query("SELECT 1 FROM account WHERE id = $1", [otherAccountId])).rowCount).toBe(1);
+    // The global Transfer category has no owner, so deleting a user never touches it.
+    expect((await pool.query("SELECT 1 FROM category WHERE is_system")).rowCount).toBe(1);
   });
 });
