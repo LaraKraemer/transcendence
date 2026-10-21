@@ -1,25 +1,30 @@
 "use client";
 
-import { Check, Plus, Wallet, X } from "lucide-react";
-import { useLocale, useTranslations } from "next-intl";
+import { Check, Pencil, Plus, Wallet, X } from "lucide-react";
+import { useFormatter, useLocale, useTranslations } from "next-intl";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { startTransition, useActionState, useEffect, useId, useState, type FormEvent } from "react";
+import { flushSync } from "react-dom";
 
+import { iconButtonClasses } from "@/components/accounts/account-row-actions";
 import { FormAlert, formErrorFor } from "@/components/auth/form-parts";
+import { DeleteTransactionButton } from "@/components/transactions/delete-transaction-button";
 import { Button } from "@/components/ui/button";
 import { ChoiceGroup } from "@/components/ui/choice-group";
 import { useAnnounce } from "@/components/ui/live-status";
 import { Modal } from "@/components/ui/modal";
 import { SelectField } from "@/components/ui/select-field";
 import { TextField } from "@/components/ui/text-field";
-import { createTransaction, createTransfer } from "@/lib/actions/transactions";
+import { createTransaction, createTransfer, updateTransaction } from "@/lib/actions/transactions";
 import { LAST_ACCOUNT_COOKIE } from "@/lib/last-account";
-import type { Category } from "@/lib/types";
+import type { Category, Transaction } from "@/lib/types";
 import {
   MAX_TRANSACTION_DESCRIPTION_LENGTH,
   TRANSACTION_TYPES,
+  changedFields,
   isTransactionErrorCode,
+  type EditableTransactionFields,
   type TransactionErrorCode,
   type TransactionType,
 } from "@/lib/validation";
@@ -39,7 +44,7 @@ const FIELD_ORDER: TransactionFields[] = [
 
 type FormState = {
   fieldErrors: Partial<Record<TransactionFields, TransactionErrorCode>>;
-  error: "network" | "generic" | "accountArchived" | null;
+  error: "network" | "generic" | "accountArchived" | "notFound" | null;
 };
 const initialState: FormState = { fieldErrors: {}, error: null };
 
@@ -121,7 +126,8 @@ export function NewTransactionButton({
       >
         <TransactionForm
           key={opening.key}
-          fixedAccountId={fixedAccountId}
+          mode="create"
+          summaryId={fixedAccountId}
           accounts={accountOptions}
           allAccounts={allAccounts}
           categories={categories}
@@ -169,42 +175,127 @@ export function NewTransactionButton({
   );
 }
 
-function TransactionForm({
-  fixedAccountId,
-  accounts,
-  allAccounts,
+export function EditTransactionButton({
+  transaction,
+  account,
   categories,
-  defaultAccountId,
-  today,
-  onCreated,
-  onDone,
-  onPendingChange,
-}: FormProps & {
-  fixedAccountId: string;
-  defaultAccountId: string;
-  today: string;
-  onCreated: (accountId: string, description: string) => void;
+  focusAfterDeleteId,
+}: {
+  transaction: Transaction;
+  account: AccountOption;
+  categories: CategoryOption[];
+  focusAfterDeleteId: string;
+}) {
+  const t = useTranslations("transactions");
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  // Set when saving finds the transaction deleted elsewhere: closing then reloads the list without it.
+  const [gone, setGone] = useState(false);
+  const summaryId = useId();
+
+  const close = () => {
+    if (!gone) return setOpen(false);
+    flushSync(() => setOpen(false));
+    document.getElementById(focusAfterDeleteId)?.focus();
+    router.refresh();
+  };
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-label={t("edit", { description: transaction.description })}
+        title={t("edit", { description: transaction.description })}
+        className={`${iconButtonClasses} hover:text-foreground`}
+      >
+        <Pencil size={15} aria-hidden />
+      </button>
+      <Modal open={open} title={t("form.editTitle")} onClose={close} busy={saving} describedBy={summaryId}>
+        {open && (
+          <TransactionForm
+            mode="edit"
+            transaction={transaction}
+            summaryId={summaryId}
+            accounts={[account]}
+            // The type can't change on edit, and transfers can't be edited, so no transfer target is needed.
+            allAccounts={[account]}
+            categories={categories}
+            focusAfterDeleteId={focusAfterDeleteId}
+            onDeleted={() => flushSync(() => setOpen(false))}
+            onGone={() => setGone(true)}
+            onDone={close}
+            onPendingChange={setSaving}
+          />
+        )}
+      </Modal>
+    </>
+  );
+}
+
+const editableFields = (transaction: Transaction): EditableTransactionFields => ({
+  description: transaction.description,
+  bookedOn: transaction.bookedOn,
+  categoryId: transaction.categoryId,
+  notes: transaction.notes,
+});
+
+type TransactionFormProps = FormProps & {
+  summaryId: string;
   onDone: () => void;
   onPendingChange: (pending: boolean) => void;
-}) {
+} & (
+    | {
+        mode: "create";
+        defaultAccountId: string;
+        today: string;
+        onCreated: (accountId: string, description: string) => void;
+      }
+    | {
+        mode: "edit";
+        transaction: Transaction;
+        focusAfterDeleteId: string;
+        onDeleted: () => void;
+        onGone: () => void;
+      }
+  );
+
+function TransactionForm(props: TransactionFormProps) {
+  const { summaryId, accounts, allAccounts, categories, onDone, onPendingChange } = props;
   const t = useTranslations("transactions");
   const tCommon = useTranslations("common");
   const locale = useLocale();
+  const format = useFormatter();
   const announce = useAnnounce();
   const idPrefix = useId();
   const fieldId = (name: TransactionFields | "merchant") => `${idPrefix}-${name}`;
 
-  const [values, setValues] = useState<Record<TransactionFields, string>>({
-    accountId: defaultAccountId,
-    type: "expense",
-    toAccountId: "",
-    amount: "",
-    toAmount: "",
-    description: "",
-    bookedOn: today,
-    categoryId: "",
-    notes: "",
-  });
+  const [values, setValues] = useState<Record<TransactionFields, string>>(() =>
+    props.mode === "create"
+      ? {
+          accountId: props.defaultAccountId,
+          type: "expense",
+          toAccountId: "",
+          amount: "",
+          toAmount: "",
+          description: "",
+          bookedOn: props.today,
+          categoryId: "",
+          notes: "",
+        }
+      : {
+          accountId: props.transaction.accountId,
+          type: props.transaction.type,
+          toAccountId: "",
+          amount: "",
+          toAmount: "",
+          description: props.transaction.description,
+          bookedOn: props.transaction.bookedOn,
+          categoryId: props.transaction.categoryId ?? "",
+          notes: props.transaction.notes ?? "",
+        },
+  );
   const field = (name: TransactionFields) => ({
     name,
     value: values[name],
@@ -227,12 +318,19 @@ function TransactionForm({
     async (_prev: FormState, { accountId, ...submitted }: Record<TransactionFields, string>): Promise<FormState> => {
       try {
         const result =
-          submitted.type === "transfer"
-            ? await createTransfer(accountId, submitted)
-            : await createTransaction(accountId, submitted);
+          props.mode === "edit"
+            ? await updateTransaction(props.transaction.id, editableFields(props.transaction), submitted)
+            : submitted.type === "transfer"
+              ? await createTransfer(accountId, submitted)
+              : await createTransaction(accountId, submitted);
         if (result.success) {
-          announce(t("announcements.created", { description: submitted.description.trim() }));
-          onCreated(accountId, submitted.description.trim());
+          const description = submitted.description.trim();
+          if (props.mode === "create") {
+            announce(t("announcements.created", { description }));
+            props.onCreated(accountId, description);
+          } else {
+            announce(t("announcements.saved", { description }));
+          }
           onDone();
           return initialState;
         }
@@ -244,6 +342,11 @@ function TransactionForm({
         if (Object.keys(fieldErrors).length > 0) return { fieldErrors, error: null };
         // 409: the account was archived since the page loaded.
         if (result.status === 409) return { fieldErrors: {}, error: "accountArchived" };
+        // 404 on edit: the transaction was deleted elsewhere (e.g. another tab).
+        if (props.mode === "edit" && result.status === 404) {
+          props.onGone();
+          return { fieldErrors: {}, error: "notFound" };
+        }
         return { fieldErrors: {}, error: formErrorFor(result) === "network" ? "network" : "generic" };
       } catch {
         return { fieldErrors: {}, error: "network" };
@@ -254,10 +357,27 @@ function TransactionForm({
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (
+      props.mode === "edit" &&
+      Object.keys(
+        changedFields(editableFields(props.transaction), {
+          description: values.description.trim(),
+          bookedOn: values.bookedOn,
+          categoryId: values.categoryId,
+          notes: values.notes.trim(),
+        }),
+      ).length === 0
+    ) {
+      onDone();
+      return;
+    }
     startTransition(() => submitAction(values));
   }
 
-  useEffect(() => onPendingChange(isPending), [isPending, onPendingChange]);
+  useEffect(() => {
+    onPendingChange(isPending);
+    return () => onPendingChange(false);
+  }, [isPending, onPendingChange]);
 
   useEffect(() => {
     const firstInvalid = FIELD_ORDER.find((name) => fieldErrors[name]);
@@ -305,73 +425,100 @@ function TransactionForm({
             ))}
           </SelectField>
         ) : (
-          <div id={fixedAccountId} className="mb-[18px]">
-            <div className="mb-[7px] text-[13px] font-semibold">
-              {isTransfer ? t("form.fromAccount") : t("form.account")}
-            </div>{" "}
-            <div className="flex items-center gap-2 text-sm font-semibold">
-              <Wallet size={16} aria-hidden className="shrink-0 text-muted-foreground" />
-              <bdi className="min-w-0 break-words">{account?.name}</bdi>
+          <dl id={summaryId} className={props.mode === "edit" ? "grid gap-x-4 sm:grid-cols-2" : undefined}>
+            <div className="mb-[18px]">
+              <dt className="mb-[7px] text-[13px] font-semibold">
+                {isTransfer ? t("form.fromAccount") : t("form.account")}
+              </dt>{" "}
+              <dd className="flex items-center gap-2 text-sm font-semibold">
+                <Wallet size={16} aria-hidden className="shrink-0 text-muted-foreground" />
+                <bdi className="min-w-0 break-words">{account?.name}</bdi>
+              </dd>
             </div>
-          </div>
+            {/* The amount can't be edited: changing it can flip the sign, which the category must match. */}
+            {props.mode === "edit" && account && (
+              <div className="mb-[18px]">
+                <dt className="mb-[7px] text-[13px] font-semibold">{t("columns.amount")}</dt>{" "}
+                <dd className="text-sm font-semibold">
+                  <span
+                    className={`tabular-nums ${props.transaction.amountMinor > 0 ? "text-success" : "text-destructive"}`}
+                  >
+                    {format.number(props.transaction.amountMinor / 10 ** minorUnit, {
+                      style: "currency",
+                      currency: account.currencyCode,
+                      signDisplay: "exceptZero",
+                    })}
+                  </span>
+                  <span aria-hidden> · </span>
+                  <span className="font-normal text-muted-foreground">
+                    {t(props.transaction.amountMinor > 0 ? "form.types.income" : "form.types.expense")}
+                  </span>
+                </dd>
+              </div>
+            )}
+          </dl>
         )}
 
-        <ChoiceGroup legend={t("form.type")} error={errorText(fieldErrors.type)} idPrefix={fieldId("type")}>
-          <div className="flex gap-1 rounded-[11px] border border-border bg-muted p-1">
-            {TRANSACTION_TYPES.map((type, index) => (
-              <label key={type} className="flex-1">
-                <input
-                  type="radio"
-                  name="type"
-                  value={type}
-                  checked={values.type === type}
-                  onChange={() => changeType(type)}
-                  disabled={type === "transfer" && !canTransfer}
-                  id={index === 0 ? fieldId("type") : undefined}
-                  className="peer sr-only"
-                />
-                <span className="block cursor-pointer rounded-[8px] px-2 py-1.5 text-center text-[13px] font-medium text-muted-foreground peer-checked:bg-card peer-checked:font-semibold peer-checked:text-foreground peer-checked:shadow-sm peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-disabled:cursor-not-allowed peer-disabled:opacity-50">
-                  {t(`form.types.${type}`)}
-                </span>
-              </label>
-            ))}
-          </div>
-        </ChoiceGroup>
-        {!canTransfer && (
-          <p className="-mt-3 mb-[18px] text-xs text-muted-foreground">{t("form.transferNeedsTwoAccounts")}</p>
-        )}
+        {props.mode === "create" && (
+          <>
+            <ChoiceGroup legend={t("form.type")} error={errorText(fieldErrors.type)} idPrefix={fieldId("type")}>
+              <div className="flex gap-1 rounded-[11px] border border-border bg-muted p-1">
+                {TRANSACTION_TYPES.map((type, index) => (
+                  <label key={type} className="flex-1">
+                    <input
+                      type="radio"
+                      name="type"
+                      value={type}
+                      checked={values.type === type}
+                      onChange={() => changeType(type)}
+                      disabled={type === "transfer" && !canTransfer}
+                      id={index === 0 ? fieldId("type") : undefined}
+                      className="peer sr-only"
+                    />
+                    <span className="block cursor-pointer rounded-[8px] px-2 py-1.5 text-center text-[13px] font-medium text-muted-foreground peer-checked:bg-card peer-checked:font-semibold peer-checked:text-foreground peer-checked:shadow-sm peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-disabled:cursor-not-allowed peer-disabled:opacity-50">
+                      {t(`form.types.${type}`)}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </ChoiceGroup>
+            {!canTransfer && (
+              <p className="-mt-3 mb-[18px] text-xs text-muted-foreground">{t("form.transferNeedsTwoAccounts")}</p>
+            )}
 
-        {isTransfer && (
-          <SelectField
-            id={fieldId("toAccountId")}
-            {...field("toAccountId")}
-            label={t("form.toAccount")}
-            error={errorText(fieldErrors.toAccountId)}
-          >
-            <option value="">{t("form.chooseAccount")}</option>
-            {allAccounts
-              .filter((option) => option.id !== values.accountId)
-              .map((option) => (
-                <option key={option.id} value={option.id}>
-                  {option.name}
-                </option>
-              ))}
-          </SelectField>
-        )}
+            {isTransfer && (
+              <SelectField
+                id={fieldId("toAccountId")}
+                {...field("toAccountId")}
+                label={t("form.toAccount")}
+                error={errorText(fieldErrors.toAccountId)}
+              >
+                <option value="">{t("form.chooseAccount")}</option>
+                {allAccounts
+                  .filter((option) => option.id !== values.accountId)
+                  .map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.name}
+                    </option>
+                  ))}
+              </SelectField>
+            )}
 
-        <TextField
-          id={fieldId("amount")}
-          {...field("amount")}
-          data-autofocus
-          label={t(isTransfer ? "form.amountSent" : "form.amount", { currency: account?.currencyCode ?? "" })}
-          type="text"
-          dir="ltr"
-          inputMode={minorUnit === 0 ? "numeric" : "decimal"}
-          autoComplete="off"
-          required
-          placeholder={(0).toFixed(minorUnit)}
-          error={errorText(fieldErrors.amount)}
-        />
+            <TextField
+              id={fieldId("amount")}
+              {...field("amount")}
+              data-autofocus
+              label={t(isTransfer ? "form.amountSent" : "form.amount", { currency: account?.currencyCode ?? "" })}
+              type="text"
+              dir="ltr"
+              inputMode={minorUnit === 0 ? "numeric" : "decimal"}
+              autoComplete="off"
+              required
+              placeholder={(0).toFixed(minorUnit)}
+              error={errorText(fieldErrors.amount)}
+            />
+          </>
+        )}
 
         {needsReceivedAmount && (
           <TextField
@@ -391,6 +538,7 @@ function TransactionForm({
         <TextField
           id={fieldId("description")}
           {...field("description")}
+          data-autofocus={props.mode === "edit" || undefined}
           label={t("form.description")}
           type="text"
           required
@@ -399,17 +547,19 @@ function TransactionForm({
           error={errorText(fieldErrors.description)}
         />
 
-        <TextField
-          id={fieldId("merchant")}
-          label={t("form.merchant")}
-          type="text"
-          disabled
-          aria-describedby={merchantHintId}
-        >
-          <p id={merchantHintId} className="mt-1.5 text-xs text-muted-foreground">
-            {tCommon("comingSoon")}
-          </p>
-        </TextField>
+        {props.mode === "create" && (
+          <TextField
+            id={fieldId("merchant")}
+            label={t("form.merchant")}
+            type="text"
+            disabled
+            aria-describedby={merchantHintId}
+          >
+            <p id={merchantHintId} className="mt-1.5 text-xs text-muted-foreground">
+              {tCommon("comingSoon")}
+            </p>
+          </TextField>
+        )}
 
         <div className={`grid gap-x-4 ${isTransfer ? "" : "sm:grid-cols-2"}`}>
           <TextField
@@ -458,9 +608,28 @@ function TransactionForm({
           </Button>
           <Button type="submit" variant="success">
             <Check size={16} aria-hidden />
-            {isPending ? t("form.submitting") : t("form.submit")}
+            {props.mode === "create"
+              ? isPending
+                ? t("form.submitting")
+                : t("form.submit")
+              : isPending
+                ? t("form.saving")
+                : t("form.save")}
           </Button>
         </div>
+
+        {props.mode === "edit" && (
+          <div className="mt-4 border-t border-border pt-4">
+            <DeleteTransactionButton
+              variant="text"
+              transactionId={props.transaction.id}
+              description={props.transaction.description}
+              isTransfer={props.transaction.type === "transfer"}
+              focusAfterDeleteId={props.focusAfterDeleteId}
+              onDeleted={props.onDeleted}
+            />
+          </div>
+        )}
       </fieldset>
     </form>
   );
