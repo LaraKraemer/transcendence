@@ -13,7 +13,6 @@ vi.mock("../../srcs/auth.ts", () => ({
   },
 }));
 
-import { TRANSFER_CATEGORY_ID } from "../../srcs/db/categories.ts";
 import { categoriesRouter } from "../../srcs/routes/category.ts";
 import { dispatch } from "../helpers/dispatch.ts";
 
@@ -21,7 +20,7 @@ const categoryId = "550e8400-e29b-41d4-a716-446655440002";
 const userId = "550e8400-e29b-41d4-a716-446655440001";
 
 // Category row in schema column order:
-// id, userId, name, icon, color, types, isSystem, createdAt
+// id, userId, name, icon, color, types, createdAt
 function categoryRow(overrides: Record<string, unknown> = {}) {
   return [
     overrides.id ?? categoryId,
@@ -30,7 +29,6 @@ function categoryRow(overrides: Record<string, unknown> = {}) {
     overrides.icon ?? "🍔",
     overrides.color ?? "#2563EB",
     overrides.types ?? ["expense"],
-    overrides.isSystem ?? false,
     overrides.createdAt ?? new Date().toISOString(),
   ];
 }
@@ -53,13 +51,13 @@ describe("GET /categories", () => {
     expect(result).toEqual({ status: 200, body: [] });
   });
 
-  it("includes the user's categories and the system category, ordered by name", async () => {
+  it("lists only the user's categories, ordered by name", async () => {
     query.mockResolvedValueOnce({ rows: [] });
     await dispatch(categoriesRouter, { url: "/" });
     const sql: string = query.mock.calls[0]![0].text;
-    expect(sql).toContain('"user_id" = $1 or "category"."is_system" = $2');
+    expect(sql).toContain('where "category"."user_id" = $1');
     expect(sql).toContain('order by "category"."name"');
-    expect(query.mock.calls[0]![1]).toEqual([userId, true]);
+    expect(query.mock.calls[0]![1]).toEqual([userId]);
   });
 
   it("forwards errors", async () => {
@@ -180,14 +178,6 @@ describe("GET /categories/:categoryId", () => {
     });
   });
 
-  it("returns the system category to any user", async () => {
-    const systemRow = categoryRow({ id: TRANSFER_CATEGORY_ID, userId: null, types: ["transfer"], isSystem: true });
-    query.mockResolvedValueOnce({ rows: [systemRow] });
-    const result = await dispatch(categoriesRouter, { url: `/${TRANSFER_CATEGORY_ID}` });
-    expect(result.status).toBe(200);
-    expect(result.body).toMatchObject({ id: TRANSFER_CATEGORY_ID, isSystem: true, types: ["transfer"] });
-  });
-
   it("forwards errors", async () => {
     query.mockRejectedValueOnce(new Error("DB down"));
     await expect(dispatch(categoriesRouter, { url: `/${categoryId}` })).rejects.toThrow();
@@ -217,14 +207,6 @@ describe("DELETE /categories/:categoryId", () => {
     expect(query.mock.calls[0]![1]).toEqual([categoryId, userId]);
   });
 
-  it("refuses to delete the system category without touching the database", async () => {
-    expect(await del(TRANSFER_CATEGORY_ID)).toEqual({
-      status: 403,
-      body: { error: "The Transfer category cannot be changed" },
-    });
-    expect(query).not.toHaveBeenCalled();
-  });
-
   it("returns 404 for a missing or foreign category", async () => {
     query.mockResolvedValueOnce({ rows: [] });
     expect(await del(categoryId)).toEqual({ status: 404, body: { error: "Category not found" } });
@@ -246,14 +228,6 @@ describe("PATCH /categories/:categoryId", () => {
 
   it("rejects an invalid UUID", async () => {
     expect((await patch("not-a-uuid", { name: "New" })).status).toBe(400);
-    expect(query).not.toHaveBeenCalled();
-  });
-
-  it("refuses to change the system category without touching the database", async () => {
-    expect(await patch(TRANSFER_CATEGORY_ID, { name: "Moves" })).toEqual({
-      status: 403,
-      body: { error: "The Transfer category cannot be changed" },
-    });
     expect(query).not.toHaveBeenCalled();
   });
 

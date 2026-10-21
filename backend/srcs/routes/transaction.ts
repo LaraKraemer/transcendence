@@ -4,7 +4,7 @@ import { Router } from "express";
 
 import { requireAuthenticatedUser } from "../auth.ts";
 import { findOwnedAccount } from "../db/accounts.ts";
-import { TRANSFER_CATEGORY_ID, findVisibleCategory } from "../db/categories.ts";
+import { findOwnedCategory } from "../db/categories.ts";
 import {
   countTransactionsByCategory,
   findCategoryTypes,
@@ -40,7 +40,7 @@ function signError(type: string, amountMinor: number): string | undefined {
 }
 
 /**
- * Ensures a selected category is the user's own (or the system category) and allows the transaction
+ * Ensures a selected category is the user's own and allows the transaction
  * type. Only run when a transaction is created or its type or category is changed, never because a
  * category changed.
  */
@@ -177,7 +177,7 @@ transactionsRouter.get("/count/:categoryId", async (req, res, next) => {
     return;
   }
   try {
-    const category = await findVisibleCategory(req.params.categoryId, res.locals.userId);
+    const category = await findOwnedCategory(req.params.categoryId, res.locals.userId);
     if (!category) {
       res.status(404).json({ error: "Category not found" });
       return;
@@ -355,7 +355,7 @@ transactionsRouter.delete("/:transactionId", async (req, res) => {
 
 /**
  * Creates two linked transfer transactions: money leaves one owned account and arrives in another.
- * Amounts are positive; the source leg is stored negative. Both legs use the system Transfer category.
+ * Amounts are positive; the source leg is stored negative. Transfer legs have no category.
  */
 transactionsRouter.post("/transfers", async (req, res) => {
   const { fromAccountId, toAccountId, fromAmountMinor, toAmountMinor, description, notes, bookedOn, occurredAt } =
@@ -407,7 +407,6 @@ transactionsRouter.post("/transfers", async (req, res) => {
 
   const sharedFields = {
     createdById: res.locals.userId,
-    categoryId: TRANSFER_CATEGORY_ID,
     type: "transfer",
     transferGroupId: randomUUID(),
     description: description.trim(),

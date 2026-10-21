@@ -273,16 +273,9 @@
     "empty": "Категорій ще немає. Створіть першу.",
     "newCategory": "Нова категорія",
     "addCategory": "Додати категорію",
-    "groups": {
-      "expense": "Витрати",
-      "income": "Доходи",
-      "transfer": "Перекази"
-    },
-    "groupCount": "{count, plural, one {# категорія} few {# категорії} many {# категорій} other {# категорії}}",
     "types": {
       "expense": "Витрата",
-      "income": "Дохід",
-      "transfer": "Переказ"
+      "income": "Дохід"
     },
     "form": {
       "title": "Нова категорія",

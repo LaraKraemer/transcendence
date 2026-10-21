@@ -45,8 +45,7 @@ erDiagram
         text        name                    "NOT NULL"
         text        icon                    "NOT NULL — icon key, not an image"
         text        color                   "NOT NULL — #RRGGBB"
-        text[]      types                   "NOT NULL, non-empty — expense|income (user categories), transfer (system category only)"
-        boolean     is_system               "NOT NULL DEFAULT false — the global read-only Transfer category; true <=> user_id IS NULL"
+        text[]      types                   "NOT NULL, non-empty — expense|income; transfers have no category"
         boolean     is_archived             "NOT NULL DEFAULT false"
         timestamptz created_at              "NOT NULL DEFAULT now()"
     }

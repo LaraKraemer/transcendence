@@ -218,7 +218,7 @@ function TransactionForm({
     setValues((prev) => ({
       ...prev,
       type,
-      categoryId: categories.find((category) => category.id === prev.categoryId)?.types.includes(type)
+      categoryId: categories.find((category) => category.id === prev.categoryId)?.types.some((allowed) => allowed === type)
         ? prev.categoryId
         : "",
     }));
@@ -282,7 +282,7 @@ function TransactionForm({
 
   const byName = new Intl.Collator(locale).compare;
   const typeCategories = categories
-    .filter((category) => category.types.includes(values.type as TransactionType))
+    .filter((category) => category.types.some((allowed) => allowed === values.type))
     .sort((a, b) => byName(a.name, b.name));
   const merchantHintId = `${fieldId("merchant")}-hint`;
 

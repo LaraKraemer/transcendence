@@ -273,16 +273,9 @@
     "empty": "هنوز دسته‌بندی‌ای ندارید. نخستین دسته‌بندی را بسازید.",
     "newCategory": "دسته‌بندی جدید",
     "addCategory": "افزودن دسته‌بندی",
-    "groups": {
-      "expense": "هزینه‌ها",
-      "income": "درآمدها",
-      "transfer": "انتقال‌ها"
-    },
-    "groupCount": "{count, plural, other {# دسته‌بندی}}",
     "types": {
       "expense": "هزینه",
-      "income": "درآمد",
-      "transfer": "انتقال"
+      "income": "درآمد"
     },
     "form": {
       "title": "دسته‌بندی جدید",

@@ -1,7 +1,6 @@
 import { and, count, desc, eq, getTableColumns, gte, lte, sql } from "drizzle-orm";
 
 import { db } from "./client.ts";
-import { visibleTo } from "./categories.ts";
 import { accounts, categories, transactions } from "./schema.ts";
 import type { NewTransaction, Transaction } from "./schema.ts";
 
@@ -17,12 +16,12 @@ export async function findOwnedTransaction(transactionId: string, userId: string
   return transaction;
 }
 
-/** Finds the types of a category the user can use: their own or the system category. */
+/** Finds the types of a category owned by the user. */
 export async function findCategoryTypes(categoryId: string, userId: string) {
   const [category] = await db
     .select({ types: categories.types })
     .from(categories)
-    .where(and(eq(categories.id, categoryId), visibleTo(userId)))
+    .where(and(eq(categories.id, categoryId), eq(categories.userId, userId)))
     .limit(1);
 
   return category;
