@@ -3,7 +3,6 @@
 import { Camera, ChevronLeft, Mail, Pencil, UserRound, type LucideIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   startTransition,
   useActionState,
@@ -15,41 +14,39 @@ import {
   type ReactNode,
 } from "react";
 
-import { FormAlert, useAuthErrorText } from "@/components/auth/form-parts";
+import { FormAlert, formErrorFor, serverFieldErrors, useAuthErrorText } from "@/components/auth/form-parts";
 import { Button } from "@/components/ui/button";
 import { useAnnounce } from "@/components/ui/live-status";
 import { Modal } from "@/components/ui/modal";
 import { TextField } from "@/components/ui/text-field";
 import { UserAvatar } from "@/components/user-avatar";
-import { ApiError, fetchApi } from "@/lib/api";
-import { AVATAR_VERSION_COOKIE } from "@/lib/avatar-version";
-import type { User } from "@/lib/types";
-import { MAX_DISPLAY_NAME_LENGTH } from "@/lib/validation";
+import { deleteAvatar, updateDisplayName, uploadAvatar } from "@/lib/actions/profile";
+import type { ActionResponse, User } from "@/lib/types";
+import { MAX_DISPLAY_NAME_LENGTH, type ValidationErrorCode } from "@/lib/validation";
 
 // The backend's avatar rules (PUT /auth/me/avatar), checked before uploading.
+// next.config.ts lets server action bodies through up to this size.
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
 const AVATAR_TYPES = ["image/jpeg", "image/png"];
-const avatarVersionMaxAgeSeconds = 60 * 60 * 24 * 365;
 
 // Codes re-translate if the language changes; other backend rejections keep the backend's message.
 type PhotoError = { code: "photoType" | "photoTooLarge" | "network" } | { message: string };
 
-function photoErrorFor(error: unknown): PhotoError {
-  if (!(error instanceof ApiError)) return { code: "network" };
-  if (error.status === 413) return { code: "photoTooLarge" };
-  if (error.status === 415) return { code: "photoType" };
-  return { message: error.message };
+function photoErrorFor(result: ActionResponse): PhotoError {
+  if (result.status === 413) return { code: "photoTooLarge" };
+  if (result.status === 415) return { code: "photoType" };
+  if (formErrorFor(result) === "network") return { code: "network" };
+  return { message: result.message };
 }
 
 /**
  * The profile page body after docs/design/desktop/profile.html: the header card
  * (cover, photo, name, email) and the Personal Information card. Photo changes
- * and the name form call the backend from the browser, then refresh the route,
+ * and the name form go through lib/actions/profile.ts, which refreshes the route,
  * so the header and the app shell re-render with the new user.
  */
 export function ProfileDetails({ user }: { user: User }) {
   const t = useTranslations();
-  const router = useRouter();
   const announce = useAnnounce();
   const [isEditingName, setIsEditingName] = useState(false);
   const [isSavingName, setIsSavingName] = useState(false);
@@ -58,19 +55,20 @@ export function ProfileDetails({ user }: { user: User }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraButtonRef = useRef<HTMLButtonElement>(null);
 
-  function runPhotoRequest(request: () => Promise<unknown>, doneMessage: string) {
+  function runPhotoAction(action: () => Promise<ActionResponse>, doneMessage: string) {
     setPhotoError(null);
     startPhotoTransition(async () => {
+      let result: ActionResponse;
       try {
-        await request();
-      } catch (error) {
-        setPhotoError(photoErrorFor(error));
+        result = await action();
+      } catch {
+        // The action call itself failed (offline, Next server down).
+        result = { success: false, message: "" };
+      }
+      if (!result.success) {
+        setPhotoError(photoErrorFor(result));
         return;
       }
-      // ponytail: only this browser learns about the new photo; another device keeps the
-      // old one until its cache revalidates. Upgrade: a version in the backend's avatarUrl.
-      document.cookie = `${AVATAR_VERSION_COOKIE}=${Date.now()}; path=/; max-age=${avatarVersionMaxAgeSeconds}; samesite=lax`;
-      startPhotoTransition(() => router.refresh());
       announce(doneMessage);
       // "Remove photo" disappears with the photo, so focus needs a new home.
       cameraButtonRef.current?.focus();
@@ -80,11 +78,9 @@ export function ProfileDetails({ user }: { user: User }) {
   function uploadPhoto(file: File) {
     if (!AVATAR_TYPES.includes(file.type)) return setPhotoError({ code: "photoType" });
     if (file.size > MAX_AVATAR_BYTES) return setPhotoError({ code: "photoTooLarge" });
-    // The backend takes the raw image; fetch sends the file's type as its Content-Type.
-    runPhotoRequest(
-      () => fetchApi("/auth/me/avatar", { method: "PUT", body: file }),
-      t("profile.announcements.photoUpdated"),
-    );
+    const formData = new FormData();
+    formData.set("photo", file);
+    runPhotoAction(() => uploadAvatar(formData), t("profile.announcements.photoUpdated"));
   }
 
   return (
@@ -158,13 +154,7 @@ export function ProfileDetails({ user }: { user: User }) {
               <button
                 type="button"
                 aria-disabled={isPhotoPending}
-                onClick={() =>
-                  !isPhotoPending &&
-                  runPhotoRequest(
-                    () => fetchApi("/auth/me/avatar", { method: "DELETE" }),
-                    t("profile.announcements.photoRemoved"),
-                  )
-                }
+                onClick={() => !isPhotoPending && runPhotoAction(deleteAvatar, t("profile.announcements.photoRemoved"))}
                 className="mt-3 cursor-pointer rounded-[6px] text-[13px] font-semibold text-destructive hover:opacity-80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none aria-disabled:cursor-wait aria-disabled:opacity-60"
               >
                 {t("profile.removePhoto")}
@@ -243,13 +233,13 @@ function InfoRow({ icon: Icon, label, children }: { icon: LucideIcon; label: str
 
 type NameFormState = {
   // A backend 400 carries its own validation message.
-  fieldError: "displayNameRequired" | "displayNameTooLong" | { message: string } | null;
+  fieldError: ValidationErrorCode | { message: string } | null;
   error: "network" | "generic" | null;
 };
 
 const initialNameState: NameFormState = { fieldError: null, error: null };
 
-/** Display-name form in the edit dialog: saves with `PATCH /auth/me`. */
+/** Display-name form in the edit dialog: saves with the updateDisplayName action. */
 function NameForm({
   displayName,
   onDone,
@@ -261,33 +251,38 @@ function NameForm({
 }) {
   const t = useTranslations();
   const errorText = useAuthErrorText();
-  const router = useRouter();
   const announce = useAnnounce();
   const fieldId = useId();
   const [value, setValue] = useState(displayName);
 
   const [{ fieldError, error }, submitAction, isPending] = useActionState(
     async (_prev: NameFormState, submitted: string): Promise<NameFormState> => {
-      const nextName = submitted.trim();
-      if (!nextName) return { fieldError: "displayNameRequired", error: null };
-      if (nextName.length > MAX_DISPLAY_NAME_LENGTH) return { fieldError: "displayNameTooLong", error: null };
+      let result: ActionResponse;
       try {
-        await fetchApi("/auth/me", { method: "PATCH", body: JSON.stringify({ displayName: nextName }) });
-      } catch (error) {
-        if (!(error instanceof ApiError)) return { fieldError: null, error: "network" };
-        return error.status === 400
-          ? { fieldError: { message: error.message }, error: null }
-          : { fieldError: null, error: "generic" };
+        result = await updateDisplayName(submitted);
+      } catch {
+        // The action call itself failed (offline, Next server down).
+        return { fieldError: null, error: "network" };
       }
-      router.refresh();
-      announce(t("profile.announcements.nameSaved"));
-      onDone();
-      return initialNameState;
+      if (result.success) {
+        announce(t("profile.announcements.nameSaved"));
+        onDone();
+        return initialNameState;
+      }
+      const code = serverFieldErrors(result.errors).displayName;
+      if (code) return { fieldError: code, error: null };
+      if (result.status === 400) return { fieldError: { message: result.message }, error: null };
+      return { fieldError: null, error: formErrorFor(result) === "network" ? "network" : "generic" };
     },
     initialNameState,
   );
 
-  useEffect(() => onPendingChange(isPending), [isPending, onPendingChange]);
+  // The cleanup clears the parent's flag when a successful save unmounts the form
+  // before isPending turns false, so the dialog doesn't stay busy.
+  useEffect(() => {
+    onPendingChange(isPending);
+    return () => onPendingChange(false);
+  }, [isPending, onPendingChange]);
 
   // After a rejected name, put keyboard focus back on the field.
   useEffect(() => {
