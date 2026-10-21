@@ -3,6 +3,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 
 import { CategoryIcon } from "@/components/categories/category-icon";
 import { NewCategoryButton } from "@/components/categories/category-form-dialog";
+import { CategoryTileActions } from "@/components/categories/category-tile-actions";
 import { LiveStatusProvider } from "@/components/ui/live-status";
 import { getCategories } from "@/lib/dal";
 import { HEX_COLOR_PATTERN, readableOn, type CategoryType } from "@/lib/validation";
@@ -12,6 +13,8 @@ const TYPE_BADGE: Record<CategoryType, string> = {
   expense: "bg-danger-bg text-red-700 dark:text-destructive",
   income: "bg-success-bg text-success",
 };
+
+const CATEGORIES_HEADING_ID = "categories-heading";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("nav");
@@ -30,12 +33,19 @@ export default async function CategoriesPage() {
   const sortedCategories = categories.toSorted((a, b) => byName(a.name, b.name));
 
   return (
-    // The live region announces "created" to screen readers.
+    // The live region announces "created", "saved" and "deleted" to screen readers.
     <LiveStatusProvider>
       <div className="mx-auto w-full max-w-6xl pt-2">
         <div className="mb-6 flex flex-wrap items-start gap-4">
           <div className="min-w-0">
-            <h1 className="text-[26px] font-bold tracking-[-0.02em]">{t("title")}</h1>
+            {/* tabIndex -1: focus lands here after a deleted tile disappears. */}
+            <h1
+              id={CATEGORIES_HEADING_ID}
+              tabIndex={-1}
+              className="text-[26px] font-bold tracking-[-0.02em] outline-none"
+            >
+              {t("title")}
+            </h1>
             <p className="mt-1 text-sm text-muted-foreground">{t("subtitle", { count: categories.length })}</p>
           </div>
           <div className="ms-auto">
@@ -82,6 +92,7 @@ export default async function CategoriesPage() {
                         ))}
                       </div>
                     </div>
+                    <CategoryTileActions category={category} headingId={CATEGORIES_HEADING_ID} />
                   </li>
                 );
               })}

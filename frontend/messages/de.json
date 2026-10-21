@@ -286,6 +286,7 @@
     },
     "form": {
       "title": "Neue Kategorie",
+      "editTitle": "Kategorie bearbeiten",
       "previewName": "Neue Kategorie",
       "name": "Name",
       "namePlaceholder": "z. B. Rewe",
@@ -333,8 +334,22 @@
       "network": "Der Server ist nicht erreichbar. Bitte versuche es später erneut.",
       "generic": "Etwas ist schiefgelaufen. Bitte versuche es erneut."
     },
+    "actions": {
+      "edit": "{name} bearbeiten",
+      "delete": "{name} löschen"
+    },
+    "deleteDialog": {
+      "title": "„{name}“ löschen?",
+      "counting": "Prüfe, welche Transaktionen diese Kategorie nutzen…",
+      "description": "{count, plural, =0 {Keine Transaktion nutzt diese Kategorie.} one {# Transaktion nutzt diese Kategorie. Sie bleibt erhalten, aber ohne Kategorie.} other {# Transaktionen nutzen diese Kategorie. Sie bleiben erhalten, aber ohne Kategorie.}} Das kann nicht rückgängig gemacht werden.",
+      "unknownCount": "Transaktionen mit dieser Kategorie bleiben erhalten, aber ohne Kategorie. Das kann nicht rückgängig gemacht werden.",
+      "confirm": "Löschen",
+      "confirming": "Wird gelöscht…"
+    },
     "announcements": {
-      "created": "„{name}“ angelegt"
+      "created": "„{name}“ angelegt",
+      "saved": "„{name}“ gespeichert",
+      "deleted": "„{name}“ gelöscht"
     }
   },
   "status": {
