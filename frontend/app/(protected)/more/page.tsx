@@ -56,7 +56,7 @@ export default async function MorePage() {
         </span>
         <span className="min-w-0">
           <span className="block truncate text-[15px] font-bold">{user.displayName}</span>
-          <span className="block truncate text-xs opacity-75">{user.email}</span>
+          <span className="block truncate text-xs">{user.email}</span>
         </span>
         <ChevronRight size={18} aria-hidden className="ms-auto shrink-0 opacity-80 rtl:-scale-x-100" />
       </Link>
