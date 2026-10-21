@@ -163,7 +163,8 @@
     "filters": {
       "all": "All",
       "income": "Income",
-      "expense": "Expense"
+      "expense": "Expense",
+      "transfer": "Transfer"
     },
     "listTitle": "Transactions",
     "heading": "<name>{account}</name> transactions",
@@ -177,11 +178,12 @@
     },
     "uncategorised": "Uncategorised",
     "empty": "No transactions in this account yet.",
-    "emptyFiltered": "{filter, select, income {No income transactions.} expense {No expense transactions.} other {No transactions.}}",
+    "emptyFiltered": "{filter, select, income {No income transactions.} expense {No expense transactions.} transfer {No transfers.} other {No transactions.}}",
     "showing": "Showing {shown, number} of {total, plural, one {# transaction} other {# transactions}}",
     "delete": "Delete {description}",
     "confirmTitle": "Delete transaction?",
     "confirmBody": "“<name>{description}</name>” will be permanently deleted. This can’t be undone.",
+    "confirmBodyTransfer": "“<name>{description}</name>” will be permanently deleted from both accounts. This can’t be undone.",
     "cancel": "Cancel",
     "confirm": "Delete",
     "deleting": "Deleting…",
@@ -189,7 +191,7 @@
       "network": "Could not reach the server. Please try again later.",
       "generic": "Something went wrong. Please try again.",
       "accountArchived": "This account is archived, so it can't receive new transactions.",
-      "typeInvalid": "Choose expense or income",
+      "typeInvalid": "Choose expense, income or transfer",
       "amountRequired": "Enter an amount",
       "amountNotPositive": "Enter an amount above zero; the type sets expense or income",
       "amountInvalid": "Enter an amount like {example}",
@@ -198,24 +200,32 @@
       "descriptionRequired": "Enter a description",
       "descriptionTooLong": "The description can be at most {max, number} characters",
       "dateInvalid": "Choose a valid date",
-      "categoryInvalid": "This category is no longer available. Choose another one."
+      "categoryInvalid": "This category is no longer available. Choose another one.",
+      "toAccountInvalid": "Choose a different account to transfer to"
     },
     "newTransaction": "New transaction",
     "form": {
       "title": "New transaction",
       "account": "Account",
+      "fromAccount": "From account",
+      "toAccount": "To account",
+      "chooseAccount": "Choose account",
       "type": "Type",
       "types": {
         "expense": "Expense",
-        "income": "Income"
+        "income": "Income",
+        "transfer": "Transfer"
       },
       "amount": "Amount ({currency})",
+      "amountSent": "Amount sent ({currency})",
+      "amountReceived": "Amount received ({currency})",
       "description": "Description",
       "descriptionPlaceholder": "e.g. Weekly groceries",
       "merchant": "Merchant (optional)",
       "date": "Date",
       "category": "Category (optional)",
       "noCategory": "No category",
+      "transferNeedsTwoAccounts": "A transfer needs at least two active accounts.",
       "noCategoriesHint": "{type, select, income {No income categories yet. You can add one on the Categories page.} other {No expense categories yet. You can add one on the Categories page.}}",
       "notes": "Notes (optional)",
       "notesPlaceholder": "Anything worth remembering",
@@ -243,7 +253,7 @@
       "transfer": "Transfers"
     },
     "groupCount": "{count, plural, one {# category} other {# categories}}",
-    "kinds": {
+    "types": {
       "expense": "Expense",
       "income": "Income",
       "transfer": "Transfer"
@@ -253,7 +263,7 @@
       "previewName": "New category",
       "name": "Name",
       "namePlaceholder": "e.g. Rewe",
-      "kind": "Type",
+      "types": "Type",
       "icon": "Icon",
       "color": "Colour",
       "cancel": "Cancel",
@@ -287,10 +297,10 @@
     "errors": {
       "nameRequired": "Enter a name for the category",
       "nameTooLong": "The name can be at most {max, number} characters",
-      "nameTaken": "A category with this name already exists for this type",
+      "nameTaken": "A category with this name already exists",
       "iconInvalid": "Choose an icon",
       "colorInvalid": "Use a colour like #2563EB",
-      "kindInvalid": "Choose a type",
+      "typesInvalid": "Choose at least one type",
       "network": "Could not reach the server. Please try again later.",
       "generic": "Something went wrong. Please try again."
     },

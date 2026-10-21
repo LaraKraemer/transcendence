@@ -11,10 +11,13 @@ import { deleteTransaction } from "@/lib/actions/transactions";
 export function DeleteTransactionButton({
   transactionId,
   description,
+  isTransfer,
   focusAfterDeleteId,
 }: {
   transactionId: string;
   description: string;
+  /** Deleting one leg of a transfer deletes the other leg too, which the dialog says. */
+  isTransfer: boolean;
   focusAfterDeleteId: string;
 }) {
   const t = useTranslations("transactions");
@@ -69,7 +72,10 @@ export function DeleteTransactionButton({
           {t("confirmTitle")}
         </h2>
         <p id={bodyId} className="mt-2 mb-5 text-sm break-words text-muted-foreground">
-          {t.rich("confirmBody", { description, name: (chunks) => <bdi>{chunks}</bdi> })}
+          {t.rich(isTransfer ? "confirmBodyTransfer" : "confirmBody", {
+            description,
+            name: (chunks) => <bdi>{chunks}</bdi>,
+          })}
         </p>
         <FormAlert message={error && t(`errors.${error}`)} />
         <div className="flex gap-3">

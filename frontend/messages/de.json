@@ -163,7 +163,8 @@
     "filters": {
       "all": "Alle",
       "income": "Einnahmen",
-      "expense": "Ausgaben"
+      "expense": "Ausgaben",
+      "transfer": "Umbuchungen"
     },
     "listTitle": "Transaktionen",
     "heading": "Transaktionen für <name>{account}</name>",
@@ -177,11 +178,12 @@
     },
     "uncategorised": "Ohne Kategorie",
     "empty": "Auf diesem Konto gibt es noch keine Transaktionen.",
-    "emptyFiltered": "{filter, select, income {Keine Einnahmen.} expense {Keine Ausgaben.} other {Keine Transaktionen.}}",
+    "emptyFiltered": "{filter, select, income {Keine Einnahmen.} expense {Keine Ausgaben.} transfer {Keine Umbuchungen.} other {Keine Transaktionen.}}",
     "showing": "{shown, number} von {total, plural, one {# Transaktion} other {# Transaktionen}}",
     "delete": "{description} löschen",
     "confirmTitle": "Transaktion löschen?",
     "confirmBody": "„<name>{description}</name>“ wird endgültig gelöscht. Das kann nicht rückgängig gemacht werden.",
+    "confirmBodyTransfer": "„<name>{description}</name>“ wird auf beiden Konten endgültig gelöscht. Das kann nicht rückgängig gemacht werden.",
     "cancel": "Abbrechen",
     "confirm": "Löschen",
     "deleting": "Wird gelöscht…",
@@ -189,7 +191,7 @@
       "network": "Der Server ist nicht erreichbar. Bitte versuche es später erneut.",
       "generic": "Etwas ist schiefgelaufen. Bitte versuche es erneut.",
       "accountArchived": "Dieses Konto ist archiviert und kann keine neuen Transaktionen erhalten.",
-      "typeInvalid": "Wähle Ausgabe oder Einnahme",
+      "typeInvalid": "Wähle Ausgabe, Einnahme oder Umbuchung",
       "amountRequired": "Gib einen Betrag ein",
       "amountNotPositive": "Gib einen Betrag über null ein; die Art legt Ausgabe oder Einnahme fest",
       "amountInvalid": "Gib einen Betrag wie {example} ein",
@@ -198,24 +200,32 @@
       "descriptionRequired": "Gib eine Beschreibung ein",
       "descriptionTooLong": "Die Beschreibung darf höchstens {max, number} Zeichen lang sein",
       "dateInvalid": "Wähle ein gültiges Datum",
-      "categoryInvalid": "Diese Kategorie ist nicht mehr verfügbar. Wähle eine andere."
+      "categoryInvalid": "Diese Kategorie ist nicht mehr verfügbar. Wähle eine andere.",
+      "toAccountInvalid": "Wähle ein anderes Zielkonto"
     },
     "newTransaction": "Neue Transaktion",
     "form": {
       "title": "Neue Transaktion",
       "account": "Konto",
+      "fromAccount": "Von Konto",
+      "toAccount": "Auf Konto",
+      "chooseAccount": "Konto wählen",
       "type": "Art",
       "types": {
         "expense": "Ausgabe",
-        "income": "Einnahme"
+        "income": "Einnahme",
+        "transfer": "Umbuchung"
       },
       "amount": "Betrag ({currency})",
+      "amountSent": "Gesendeter Betrag ({currency})",
+      "amountReceived": "Erhaltener Betrag ({currency})",
       "description": "Beschreibung",
       "descriptionPlaceholder": "z. B. Wocheneinkauf",
       "merchant": "Händler (optional)",
       "date": "Datum",
       "category": "Kategorie (optional)",
       "noCategory": "Keine Kategorie",
+      "transferNeedsTwoAccounts": "Für eine Umbuchung brauchst du mindestens zwei aktive Konten.",
       "noCategoriesHint": "{type, select, income {Noch keine Einnahmen-Kategorien. Du kannst eine auf der Seite „Kategorien“ anlegen.} other {Noch keine Ausgaben-Kategorien. Du kannst eine auf der Seite „Kategorien“ anlegen.}}",
       "notes": "Notizen (optional)",
       "notesPlaceholder": "Was du dir merken möchtest",
@@ -243,7 +253,7 @@
       "transfer": "Umbuchungen"
     },
     "groupCount": "{count, plural, one {# Kategorie} other {# Kategorien}}",
-    "kinds": {
+    "types": {
       "expense": "Ausgabe",
       "income": "Einnahme",
       "transfer": "Umbuchung"
@@ -253,7 +263,7 @@
       "previewName": "Neue Kategorie",
       "name": "Name",
       "namePlaceholder": "z. B. Rewe",
-      "kind": "Typ",
+      "types": "Typ",
       "icon": "Symbol",
       "color": "Farbe",
       "cancel": "Abbrechen",
@@ -287,10 +297,10 @@
     "errors": {
       "nameRequired": "Gib einen Namen für die Kategorie ein",
       "nameTooLong": "Der Name darf höchstens {max, number} Zeichen lang sein",
-      "nameTaken": "Für diesen Typ gibt es bereits eine Kategorie mit diesem Namen",
+      "nameTaken": "Eine Kategorie mit diesem Namen gibt es bereits",
       "iconInvalid": "Wähle ein Symbol",
       "colorInvalid": "Verwende eine Farbe wie #2563EB",
-      "kindInvalid": "Wähle einen Typ",
+      "typesInvalid": "Wähle mindestens einen Typ",
       "network": "Der Server ist nicht erreichbar. Bitte versuche es später erneut.",
       "generic": "Etwas ist schiefgelaufen. Bitte versuche es erneut."
     },
