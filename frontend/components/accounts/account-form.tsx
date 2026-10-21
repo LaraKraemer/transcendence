@@ -51,7 +51,7 @@ export function CreateAccountForm({ currencies }: { currencies: Currency[] }) {
           }
         }}
         onClick={() => setIsOpen(true)}
-        className="ms-auto flex cursor-pointer items-center gap-1.5 rounded-[8px] bg-success-bg px-3 py-1.75 text-[13px] font-semibold text-success hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+        className="ms-auto flex cursor-pointer items-center gap-1.5 rounded-[8px] bg-success-bg px-3 py-1.75 text-[13px] font-semibold text-success transition-colors hover:bg-success hover:text-white dark:hover:text-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
       >
         <Plus size={14} aria-hidden />
         {t("newAccount")}

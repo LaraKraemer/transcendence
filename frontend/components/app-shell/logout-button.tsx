@@ -22,7 +22,7 @@ export function LogoutButton({ variant = "icon" }: { variant?: keyof typeof vari
       onClick={() => startTransition(logout)}
       disabled={isPending}
       title={variant === "icon" ? t("logout") : undefined}
-      className={`flex cursor-pointer items-center justify-center border border-border bg-card text-destructive transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-wait disabled:opacity-60 ${variantClasses[variant]}`}
+      className={`flex cursor-pointer items-center justify-center border border-border bg-card text-destructive transition-colors hover:bg-danger-bg hover:text-danger-fg focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-wait disabled:opacity-60 ${variantClasses[variant]}`}
     >
       <LogOut size={variant === "icon" ? 18 : 16} aria-hidden className="rtl:-scale-x-100" />
       <span className={variant === "icon" ? "sr-only" : undefined}>{t("logout")}</span>
