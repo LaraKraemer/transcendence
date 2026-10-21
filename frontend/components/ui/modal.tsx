@@ -52,6 +52,8 @@ export function Modal({ open, title, onClose, busy, describedBy, children }: Mod
       aria-describedby={describedBy}
       // Esc fires "cancel"; route it through onClose so React state stays the source of truth.
       onCancel={(event) => {
+        // React bubbles "cancel" up the tree, so ignore a dialog opened from inside this one.
+        if (event.target !== event.currentTarget) return;
         event.preventDefault();
         if (!busy) onClose();
       }}
