@@ -65,9 +65,9 @@ export const accountErrorCodes = [
   "nameTooLong",
   "typeInvalid",
   "currencyInvalid",
-  "openingBalanceInvalid",
-  "openingBalanceDecimals",
-  "openingBalanceTooLarge",
+  "amountInvalid",
+  "amountDecimals",
+  "amountTooLarge",
 ] as const;
 
 export type AccountErrorCode = (typeof accountErrorCodes)[number];
@@ -85,13 +85,55 @@ export function isAccountErrorCode(value: unknown): value is AccountErrorCode {
 export function toMinorUnits(
   amount: string,
   minorUnit: number,
-): number | "openingBalanceInvalid" | "openingBalanceDecimals" | "openingBalanceTooLarge" {
+): number | "amountInvalid" | "amountDecimals" | "amountTooLarge" {
   const match = /^(-?)(\d*)(?:\.(\d*))?$/.exec(amount.trim());
   const [, sign = "", whole = "", fraction = ""] = match ?? [];
-  if (!match || whole.length + fraction.length === 0) return "openingBalanceInvalid";
-  if (fraction.length > minorUnit) return "openingBalanceDecimals";
+  if (!match || whole.length + fraction.length === 0) return "amountInvalid";
+  if (fraction.length > minorUnit) return "amountDecimals";
   const minor = Number(`${sign}${whole || "0"}${fraction.padEnd(minorUnit, "0")}`);
-  return Number.isSafeInteger(minor) ? minor : "openingBalanceTooLarge";
+  return Number.isSafeInteger(minor) ? minor : "amountTooLarge";
+}
+
+// Transactions. These mirror the backend's transaction rules (routes/transaction.ts).
+// The form asks for a positive amount plus a type; the type decides the sign.
+export const TRANSACTION_TYPES = ["expense", "income", "transfer"] as const;
+export type TransactionType = (typeof TRANSACTION_TYPES)[number];
+export const MAX_TRANSACTION_DESCRIPTION_LENGTH = 500;
+
+export const transactionErrorCodes = [
+  "typeInvalid",
+  "amountRequired",
+  "amountNotPositive",
+  "amountInvalid",
+  "amountDecimals",
+  "amountTooLarge",
+  "descriptionRequired",
+  "descriptionTooLong",
+  "dateInvalid",
+  "categoryInvalid",
+  "toAccountInvalid",
+] as const;
+
+export type TransactionErrorCode = (typeof transactionErrorCodes)[number];
+
+export function isTransactionErrorCode(value: unknown): value is TransactionErrorCode {
+  return typeof value === "string" && (transactionErrorCodes as readonly string[]).includes(value);
+}
+
+/**
+ * Converts a typed amount to positive minor units. The backend rejects 0, and
+ * the sign comes from the expense/income type, so zero and a typed minus are errors.
+ */
+export function toPositiveMinorUnits(
+  amount: string,
+  minorUnit: number,
+): number | "amountRequired" | "amountNotPositive" | "amountInvalid" | "amountDecimals" | "amountTooLarge" {
+  const trimmed = amount.trim();
+  if (trimmed === "") return "amountRequired";
+  if (trimmed.startsWith("-")) return "amountNotPositive";
+  const minor = toMinorUnits(trimmed, minorUnit);
+  if (typeof minor === "string") return minor;
+  return minor === 0 ? "amountNotPositive" : minor;
 }
 
 /** The account fields the edit form can change. */
@@ -102,28 +144,64 @@ export type EditableAccountFields = {
   accountRef: string | null;
 };
 
+/** The transaction fields the edit form can change (not the amount, type or account). */
+export type EditableTransactionFields = {
+  description: string;
+  bookedOn: string;
+  categoryId: string | null;
+  notes: string | null;
+};
+
 /**
- * Returns only the fields that differ from `original`: the body for
- * `PATCH /accounts/:id`. An empty optional text and `null` both mean "not set",
- * so switching between them is not a change.
+ * Returns only the fields that differ from `original`: the body for a PATCH
+ * (`/accounts/:id`, `/transactions/:id`). An empty optional text and `null`
+ * both mean "not set", so switching between them is not a change.
  */
-export function changedAccountFields(
-  original: EditableAccountFields,
-  next: EditableAccountFields,
-): Partial<EditableAccountFields> {
+export function changedFields<Fields extends Record<string, string | null>>(
+  original: Fields,
+  next: Fields,
+): Partial<Fields> {
   const notSetIsNull = (value: string | null) => (value === "" ? null : value);
   return Object.fromEntries(
-    (Object.keys(next) as (keyof EditableAccountFields)[])
+    (Object.keys(next) as (keyof Fields)[])
       .filter((field) => notSetIsNull(next[field]) !== notSetIsNull(original[field]))
       .map((field) => [field, next[field]]),
-  );
+  ) as Partial<Fields>;
 }
 
 // Categories. These mirror the backend's category rules (routes/category.ts).
-export const CATEGORY_KINDS = ["expense", "income", "transfer"] as const;
-export type CategoryKind = (typeof CATEGORY_KINDS)[number];
+// The types a user can give a category, which are also the types of a regular (non-transfer)
+// transaction. Transfers have no category.
+export const CATEGORY_TYPES = ["expense", "income"] as const;
+export type CategoryType = (typeof CATEGORY_TYPES)[number];
 export const MAX_CATEGORY_NAME_LENGTH = 80;
 export const HEX_COLOR_PATTERN = /^#[0-9A-Fa-f]{6}$/;
+
+export type EditableCategoryFields = {
+  name: string;
+  icon: string;
+  color: string;
+  types: CategoryType[];
+};
+
+/**
+ * Returns only the fields that differ from `original`: the body for
+ * `PATCH /categories/:id`. Colors compare case-insensitively and types as a set,
+ * since the backend stores both normalized.
+ */
+export function changedCategoryFields(
+  original: EditableCategoryFields,
+  next: EditableCategoryFields,
+): Partial<EditableCategoryFields> {
+  const sameTypes =
+    next.types.length === original.types.length && next.types.every((type) => original.types.includes(type));
+  return {
+    ...(next.name === original.name ? {} : { name: next.name }),
+    ...(next.icon === original.icon ? {} : { icon: next.icon }),
+    ...(next.color.toUpperCase() === original.color.toUpperCase() ? {} : { color: next.color }),
+    ...(sameTypes ? {} : { types: next.types }),
+  };
+}
 
 export const categoryErrorCodes = [
   "nameRequired",
@@ -131,7 +209,7 @@ export const categoryErrorCodes = [
   "nameTaken",
   "iconInvalid",
   "colorInvalid",
-  "kindInvalid",
+  "typesInvalid",
 ] as const;
 
 export type CategoryErrorCode = (typeof categoryErrorCodes)[number];

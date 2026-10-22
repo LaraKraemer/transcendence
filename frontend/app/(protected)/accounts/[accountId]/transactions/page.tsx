@@ -2,17 +2,24 @@ import { ArrowDownLeft, ArrowUpRight, Wallet, type LucideIcon } from "lucide-rea
 import type { Metadata } from "next";
 import { getFormatter, getTranslations } from "next-intl/server";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 
 import { AccountSwitcher } from "@/components/transactions/account-switcher";
 import { DeleteTransactionButton } from "@/components/transactions/delete-transaction-button";
-import { ApiError } from "@/lib/api";
-import { fetchApiServer, getAccount, getCurrencies } from "@/lib/dal";
-import type { Account, Category, TransactionPage } from "@/lib/types";
+import { EditTransactionButton, NewTransactionButton } from "@/components/transactions/transaction-form-dialog";
+import { LiveStatusProvider } from "@/components/ui/live-status";
+import {
+  fetchApiServer,
+  getAccount,
+  getAccounts,
+  getCategories,
+  getCurrencies,
+  notFoundOnMissingResource,
+} from "@/lib/dal";
+import type { AccountBalance, Transaction, TransactionPage } from "@/lib/types";
 
 const TRANSACTIONS_LIMIT = 200;
 
-const TYPE_FILTERS = ["all", "income", "expense"] as const;
+const TYPE_FILTERS = ["all", "income", "expense", "transfer"] as const;
 type TypeFilter = (typeof TYPE_FILTERS)[number];
 
 // The list heading takes focus after a delete removes the focused row's button.
@@ -26,15 +33,9 @@ type RouteParams = { params: Promise<{ accountId: string }> };
 
 export async function generateMetadata({ params }: RouteParams): Promise<Metadata> {
   const [{ accountId }, t] = await Promise.all([params, getTranslations()]);
-  const account = await getAccount(accountId).catch(() => null);
-  return {
-    title: account ? t("metadata.accountTransactionsTitle", { account: account.name }) : t("nav.transactions"),
-  };
-}
-
-function notFoundOnMissingAccount(error: unknown): never {
-  if (error instanceof ApiError && (error.status === 404 || error.status === 400)) notFound();
-  throw error;
+  // A missing account shows the 404 page, with its title instead of "Transactions".
+  const account = await getAccount(accountId).catch(notFoundOnMissingResource);
+  return { title: t("metadata.accountTransactionsTitle", { account: account.name }) };
 }
 
 export default async function AccountTransactionsPage({
@@ -42,25 +43,43 @@ export default async function AccountTransactionsPage({
   searchParams,
 }: RouteParams & { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
   const [{ accountId }, { type }] = await Promise.all([params, searchParams]);
-  const filter: TypeFilter = type === "income" || type === "expense" ? type : "all";
+  const filter: TypeFilter = type === "income" || type === "expense" || type === "transfer" ? type : "all";
 
-  const [t, format, account, { items, total }, activeCategories, currencies, activeAccounts] = await Promise.all([
+  const [
+    t,
+    format,
+    account,
+    { items, total },
+    activeCategories,
+    currencies,
+    activeAccounts,
+    balanceMinor,
+  ] = await Promise.all([
     getTranslations("transactions"),
     getFormatter(),
     getAccount(accountId),
     fetchApiServer<TransactionPage>(
       `/transactions?${new URLSearchParams({ accountId, limit: String(TRANSACTIONS_LIMIT) })}`,
     ),
-    fetchApiServer<Category[]>("/categories"),
+    getCategories(),
     getCurrencies(),
-    fetchApiServer<Account[]>("/accounts"),
-  ]).catch(notFoundOnMissingAccount);
+    getAccounts(),
+    fetchApiServer<AccountBalance>(`/accounts/${encodeURIComponent(accountId)}/balance`).then(
+      (balance) => balance.balanceMinor,
+      () => null,
+    ),
+  ]).catch(notFoundOnMissingResource);
   const categories = new Map(activeCategories.map((c) => [c.id, c]));
+  // Transfer legs have no category, so they are labelled by their type instead of "Uncategorised".
+  const noCategoryLabel = (tx: Transaction) => (tx.type === "transfer" ? t("form.types.transfer") : t("uncategorised"));
   const switcherAccounts = activeAccounts.some((other) => other.id === account.id)
     ? activeAccounts
     : [account, ...activeAccounts];
 
   const minorUnit = currencies.find((currency) => currency.code === account.currencyCode)?.minorUnit ?? 2;
+  // Built once and passed to every row: the same object is sent to the client only once.
+  const accountOption = { id: account.id, name: account.name, currencyCode: account.currencyCode, minorUnit };
+  const categoryOptions = activeCategories.map(({ id, name, types }) => ({ id, name, types }));
   const money = (amountMinor: number) =>
     format.number(amountMinor / 10 ** minorUnit, {
       style: "currency",
@@ -74,27 +93,43 @@ export default async function AccountTransactionsPage({
   const moneyOutMinor = items.reduce((sum, tx) => (tx.amountMinor < 0 ? sum + tx.amountMinor : sum), 0);
   const statNote = total > items.length ? t("latestOnly", { count: items.length }) : undefined;
 
-  const visible =
-    filter === "all" ? items : items.filter((tx) => (filter === "income" ? tx.amountMinor > 0 : tx.amountMinor < 0));
+  const visible = filter === "all" ? items : items.filter((tx) => tx.type === filter);
 
   return (
     <div className="mx-auto w-full max-w-5xl pt-2">
       {/* User-entered text (names, descriptions, notes) is wrapped in <bdi>, so Latin text in an RTL
           page (or the reverse) keeps its punctuation in place without changing the alignment. */}
-      <div className="mb-[18px] sm:mb-6">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <h1 className="text-[26px] font-bold tracking-[-0.02em] break-words">
-            {t.rich("heading", { account: account.name, name: (chunks) => <bdi>{chunks}</bdi> })}
-          </h1>
-          {account.isArchived && (
-            <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
-              {t("archived")}
-            </span>
-          )}
+      <div className="mb-[18px] flex items-start gap-4 sm:mb-6">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <h1 className="text-[26px] font-bold tracking-[-0.02em] break-words">
+              {t.rich("heading", { account: account.name, name: (chunks) => <bdi>{chunks}</bdi> })}
+            </h1>
+            {account.isArchived && (
+              <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
+                {t("archived")}
+              </span>
+            )}
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
+            {t("subtitle", { count: total, currency: account.currencyCode })}
+          </p>
         </div>
-        <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
-          {t("subtitle", { count: total, currency: account.currencyCode })}
-        </p>
+        {!account.isArchived && (
+          <LiveStatusProvider>
+            <NewTransactionButton
+              variant="header"
+              accounts={[accountOption]}
+              allAccounts={activeAccounts.map(({ id, name, currencyCode }) => ({
+                id,
+                name,
+                currencyCode,
+                minorUnit: currencies.find((currency) => currency.code === currencyCode)?.minorUnit ?? 2,
+              }))}
+              categories={categoryOptions}
+            />
+          </LiveStatusProvider>
+        )}
       </div>
 
       <div className="mb-3 grid grid-cols-2 gap-2.5 sm:mb-5 sm:grid-cols-3 sm:gap-5">
@@ -117,9 +152,15 @@ export default async function AccountTransactionsPage({
         <StatCard
           icon={Wallet}
           iconClassName="bg-muted text-muted-foreground"
-          label={t("net")}
-          value={money(moneyInMinor + moneyOutMinor)}
-          note={statNote}
+          label={t("balance")}
+          // Not money(): its signDisplay adds a "+" that suits in/out amounts but not a balance.
+          value={
+            balanceMinor === null
+              ? "—"
+              : format.number(balanceMinor / 10 ** minorUnit, { style: "currency", currency: account.currencyCode })
+          }
+          valueClassName={balanceMinor !== null && balanceMinor < 0 ? "text-destructive" : ""}
+          note={balanceMinor === null ? t("balanceUnavailable") : undefined}
           className="max-sm:col-span-2"
         />
       </div>
@@ -144,106 +185,120 @@ export default async function AccountTransactionsPage({
         </nav>
       </div>
 
-      <section aria-labelledby={LIST_HEADING_ID} className="rounded-lg border border-border bg-card">
-        <h2
-          id={LIST_HEADING_ID}
-          tabIndex={-1}
-          className={`mx-4 mt-4 mb-2 w-fit rounded-sm text-[15px] font-semibold sm:mx-6 sm:mt-5 sm:mb-3 sm:text-base ${focusRing}`}
-        >
-          {t("listTitle")}
-        </h2>
+      <LiveStatusProvider>
+        <section aria-labelledby={LIST_HEADING_ID} className="rounded-lg border border-border bg-card">
+          <h2
+            id={LIST_HEADING_ID}
+            tabIndex={-1}
+            className={`mx-4 mt-4 mb-2 w-fit rounded-sm text-[15px] font-semibold sm:mx-6 sm:mt-5 sm:mb-3 sm:text-base ${focusRing}`}
+          >
+            {t("listTitle")}
+          </h2>
 
-        {visible.length === 0 ? (
-          <p className="px-4 py-8 text-center text-[13px] text-muted-foreground sm:px-6 sm:py-10 sm:text-sm">
-            {total === 0 ? t("empty") : t("emptyFiltered", { filter })}
-          </p>
-        ) : (
-          <table className="w-full text-[13px] sm:text-sm">
-            <caption className="sr-only">{t("caption", { account: account.name })}</caption>
-            <thead>
-              <tr className="bg-muted text-[11px] font-semibold tracking-[.06em] text-muted-foreground uppercase">
-                <th scope="col" className="py-2 ps-4 pe-3 text-start sm:py-3 sm:ps-6">
-                  {t("columns.description")}
-                </th>
-                <th scope="col" className="hidden px-3 py-3 text-start lg:table-cell">
-                  {t("columns.category")}
-                </th>
-                <th scope="col" className="hidden px-3 py-3 text-start lg:table-cell">
-                  {t("columns.date")}
-                </th>
-                <th scope="col" className="px-2 py-2 text-end sm:px-3 sm:py-3">
-                  {t("columns.amount")}
-                </th>
-                <th scope="col" className="py-2 ps-1 pe-2 sm:py-3 sm:pe-4">
-                  <span className="sr-only">{t("columns.actions")}</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {visible.map((tx) => {
-                const category = tx.categoryId === null ? undefined : categories.get(tx.categoryId);
-                return (
-                  <tr key={tx.id} className="border-t border-border">
-                    <td className="py-[11px] ps-4 pe-3 sm:py-3.5 sm:ps-6">
-                      <div className="font-semibold break-words">
-                        <bdi>{tx.description}</bdi>
-                      </div>
-                      {tx.notes && (
-                        <div className="text-xs break-words text-muted-foreground sm:text-[13px]">
-                          <bdi>{tx.notes}</bdi>
+          {visible.length === 0 ? (
+            <p className="px-4 py-8 text-center text-[13px] text-muted-foreground sm:px-6 sm:py-10 sm:text-sm">
+              {total === 0 ? t("empty") : t("emptyFiltered", { filter })}
+            </p>
+          ) : (
+            <table className="w-full text-[13px] sm:text-sm">
+              <caption className="sr-only">{t("caption", { account: account.name })}</caption>
+              <thead>
+                <tr className="bg-muted text-[11px] font-semibold tracking-[.06em] text-muted-foreground uppercase">
+                  <th scope="col" className="py-2 ps-4 pe-3 text-start sm:py-3 sm:ps-6">
+                    {t("columns.description")}
+                  </th>
+                  <th scope="col" className="hidden px-3 py-3 text-start lg:table-cell">
+                    {t("columns.category")}
+                  </th>
+                  <th scope="col" className="hidden px-3 py-3 text-start lg:table-cell">
+                    {t("columns.date")}
+                  </th>
+                  <th scope="col" className="px-2 py-2 text-end sm:px-3 sm:py-3">
+                    {t("columns.amount")}
+                  </th>
+                  <th scope="col" className="py-2 ps-1 pe-2 sm:py-3 sm:pe-4">
+                    <span className="sr-only">{t("columns.actions")}</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {visible.map((tx) => {
+                  const category = tx.categoryId === null ? undefined : categories.get(tx.categoryId);
+                  return (
+                    <tr key={tx.id} className="border-t border-border">
+                      <td className="py-[11px] ps-4 pe-3 sm:py-3.5 sm:ps-6">
+                        <div className="font-semibold break-words">
+                          <bdi>{tx.description}</bdi>
                         </div>
-                      )}
-                      <div className="mt-0.5 text-xs text-muted-foreground sm:text-[13px] lg:hidden">
-                        {category ? <bdi>{category.name}</bdi> : t("uncategorised")}
-                        <span aria-hidden> · </span>
+                        {tx.notes && (
+                          <div className="text-xs break-words text-muted-foreground sm:text-[13px]">
+                            <bdi>{tx.notes}</bdi>
+                          </div>
+                        )}
+                        <div className="mt-0.5 text-xs text-muted-foreground sm:text-[13px] lg:hidden">
+                          {category ? <bdi>{category.name}</bdi> : noCategoryLabel(tx)}
+                          <span aria-hidden> · </span>
+                          <time dateTime={tx.bookedOn}>{bookedOn(tx.bookedOn)}</time>
+                        </div>
+                      </td>
+                      <td className="hidden px-3 py-3.5 lg:table-cell">
+                        {category ? (
+                          <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium">
+                            <span
+                              aria-hidden
+                              className="size-1.5 rounded-full"
+                              style={{ backgroundColor: category.color }}
+                            />
+                            <bdi>{category.name}</bdi>
+                          </span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">{noCategoryLabel(tx)}</span>
+                        )}
+                      </td>
+                      <td className="hidden px-3 py-3.5 whitespace-nowrap text-muted-foreground lg:table-cell">
                         <time dateTime={tx.bookedOn}>{bookedOn(tx.bookedOn)}</time>
-                      </div>
-                    </td>
-                    <td className="hidden px-3 py-3.5 lg:table-cell">
-                      {category ? (
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium">
-                          <span
-                            aria-hidden
-                            className="size-1.5 rounded-full"
-                            style={{ backgroundColor: category.color }}
+                      </td>
+                      <td
+                        className={`px-2 py-[11px] text-end font-semibold sm:px-3 sm:py-3.5 whitespace-nowrap tabular-nums ${
+                          tx.amountMinor > 0 ? "text-success" : "text-destructive"
+                        }`}
+                      >
+                        {money(tx.amountMinor)}
+                      </td>
+                      <td className="py-[11px] ps-1 pe-2 sm:py-3.5 sm:pe-4">
+                        <div className="flex justify-end gap-1.5">
+                          {/* The backend can't edit transfers; they are deleted and created again. */}
+                          {tx.type !== "transfer" && (
+                            <EditTransactionButton
+                              transaction={tx}
+                              account={accountOption}
+                              categories={categoryOptions}
+                              focusAfterDeleteId={LIST_HEADING_ID}
+                            />
+                          )}
+                          <DeleteTransactionButton
+                            transactionId={tx.id}
+                            description={tx.description}
+                            isTransfer={tx.type === "transfer"}
+                            focusAfterDeleteId={LIST_HEADING_ID}
                           />
-                          <bdi>{category.name}</bdi>
-                        </span>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">{t("uncategorised")}</span>
-                      )}
-                    </td>
-                    <td className="hidden px-3 py-3.5 whitespace-nowrap text-muted-foreground lg:table-cell">
-                      <time dateTime={tx.bookedOn}>{bookedOn(tx.bookedOn)}</time>
-                    </td>
-                    <td
-                      className={`px-2 py-[11px] text-end font-semibold sm:px-3 sm:py-3.5 whitespace-nowrap tabular-nums ${
-                        tx.amountMinor > 0 ? "text-success" : "text-destructive"
-                      }`}
-                    >
-                      {money(tx.amountMinor)}
-                    </td>
-                    <td className="py-[11px] ps-1 pe-2 text-end sm:py-3.5 sm:pe-4">
-                      <DeleteTransactionButton
-                        transactionId={tx.id}
-                        description={tx.description}
-                        focusAfterDeleteId={LIST_HEADING_ID}
-                      />
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
 
-        <p
-          aria-live="polite"
-          className="border-t border-border px-4 py-3 text-xs text-muted-foreground sm:px-6 sm:py-4 sm:text-[13px]"
-        >
-          {t("showing", { shown: visible.length, total })}
-        </p>
-      </section>
+          <p
+            aria-live="polite"
+            className="border-t border-border px-4 py-3 text-xs text-muted-foreground sm:px-6 sm:py-4 sm:text-[13px]"
+          >
+            {t("showing", { shown: visible.length, total })}
+          </p>
+        </section>
+      </LiveStatusProvider>
     </div>
   );
 }

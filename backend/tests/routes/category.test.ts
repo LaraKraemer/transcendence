@@ -20,7 +20,7 @@ const categoryId = "550e8400-e29b-41d4-a716-446655440002";
 const userId = "550e8400-e29b-41d4-a716-446655440001";
 
 // Category row in schema column order:
-// id, userId, name, icon, color, kind, createdAt
+// id, userId, name, icon, color, types, createdAt
 function categoryRow(overrides: Record<string, unknown> = {}) {
   return [
     overrides.id ?? categoryId,
@@ -28,7 +28,7 @@ function categoryRow(overrides: Record<string, unknown> = {}) {
     overrides.name ?? "Food",
     overrides.icon ?? "🍔",
     overrides.color ?? "#2563EB",
-    overrides.kind ?? "expense",
+    overrides.types ?? ["expense"],
     overrides.createdAt ?? new Date().toISOString(),
   ];
 }
@@ -51,13 +51,13 @@ describe("GET /categories", () => {
     expect(result).toEqual({ status: 200, body: [] });
   });
 
-  it("filters on user_id, orders by kind, name", async () => {
+  it("lists only the user's categories, ordered by name", async () => {
     query.mockResolvedValueOnce({ rows: [] });
     await dispatch(categoriesRouter, { url: "/" });
     const sql: string = query.mock.calls[0]![0].text;
-    expect(sql).toContain('"user_id"');
-    expect(sql).toContain('"kind"');
-    expect(sql).toContain('"name"');
+    expect(sql).toContain('where "category"."user_id" = $1');
+    expect(sql).toContain('order by "category"."name"');
+    expect(query.mock.calls[0]![1]).toEqual([userId]);
   });
 
   it("forwards errors", async () => {
@@ -73,7 +73,7 @@ describe("POST /categories", () => {
     return dispatch(categoriesRouter, { method: "POST", url: "/", body });
   }
 
-  const validBody = { name: "Food", icon: "🍔", color: "#2563EB", kind: "expense" };
+  const validBody = { name: "Food", icon: "🍔", color: "#2563EB", types: ["expense"] };
 
   it.each([
     [{ ...validBody, name: undefined }, "name must be between 1 and 80 characters"],
@@ -103,25 +103,28 @@ describe("POST /categories", () => {
     expect(query).not.toHaveBeenCalled();
   });
 
-  it.each([
-    [{ ...validBody, kind: undefined }, "kind must be expense, income, or transfer"],
-    [{ ...validBody, kind: "savings" }, "kind must be expense, income, or transfer"],
-  ])("rejects invalid kind", async (body, error) => {
-    expect(await post(body)).toEqual({ status: 400, body: { error } });
-    expect(query).not.toHaveBeenCalled();
-  });
+  it.each([[undefined], ["expense"], [[]], [["savings"]], [["transfer"]], [["expense", "transfer"]], [[1]]])(
+    "rejects invalid types %j",
+    async (types) => {
+      expect(await post({ ...validBody, types })).toEqual({
+        status: 400,
+        body: { error: "types must be a non-empty list of expense and/or income" },
+      });
+      expect(query).not.toHaveBeenCalled();
+    },
+  );
 
   it("returns 400 with no request body", async () => {
     expect((await post(undefined)).status).toBe(400);
     expect(query).not.toHaveBeenCalled();
   });
 
-  it("returns 409 when a duplicate name+kind exists", async () => {
-    query.mockResolvedValueOnce({ rows: [[categoryId]] }); // findCategoryByNameAndKind → found
+  it("returns 409 when the name is already used", async () => {
+    query.mockResolvedValueOnce({ rows: [[categoryId]] }); // findCategoryByName → found
     const result = await post(validBody);
     expect(result).toEqual({
       status: 409,
-      body: { error: "A category with this name and kind already exists" },
+      body: { error: "A category with this name already exists" },
     });
     expect(query).toHaveBeenCalledTimes(1);
   });
@@ -138,10 +141,17 @@ describe("POST /categories", () => {
     expect(insertParams).toContain(userId);
   });
 
-  it.each(["expense", "income", "transfer"])("accepts kind %s", async (kind) => {
+  it.each([[["expense"]], [["income"]], [["expense", "income"]]])("accepts types %j", async (types) => {
     query.mockResolvedValueOnce({ rows: [] });
-    query.mockResolvedValueOnce({ rows: [categoryRow({ kind })] });
-    expect((await post({ ...validBody, kind })).status).toBe(201);
+    query.mockResolvedValueOnce({ rows: [categoryRow({ types })] });
+    expect((await post({ ...validBody, types })).status).toBe(201);
+  });
+
+  it("stores duplicate types once, in canonical order", async () => {
+    query.mockResolvedValueOnce({ rows: [] });
+    query.mockResolvedValueOnce({ rows: [categoryRow({ types: ["expense", "income"] })] });
+    await post({ ...validBody, types: ["income", "expense", "income"] });
+    expect(query.mock.calls[1]![1]).toContain('{"expense","income"}');
   });
 
   it("forwards errors", async () => {
@@ -221,10 +231,22 @@ describe("PATCH /categories/:categoryId", () => {
     expect(query).not.toHaveBeenCalled();
   });
 
-  it("rejects a body containing kind (even with valid value)", async () => {
-    const result = await patch(categoryId, { kind: "expense" });
-    expect(result).toEqual({ status: 400, body: { error: "A category kind cannot be changed" } });
+  it.each([[[]], [["transfer"]], ["expense"]])("rejects invalid types %j", async (types) => {
+    expect(await patch(categoryId, { types })).toEqual({
+      status: 400,
+      body: { error: "types must be a non-empty list of expense and/or income" },
+    });
     expect(query).not.toHaveBeenCalled();
+  });
+
+  it("changes types without querying transactions", async () => {
+    query.mockResolvedValueOnce({ rows: [categoryRow()] }); // findOwnedCategory
+    query.mockResolvedValueOnce({ rows: [categoryRow({ types: ["expense", "income"] })] }); // updateCategory
+    const result = await patch(categoryId, { types: ["income", "expense"] });
+    expect(result.status).toBe(200);
+    expect(query).toHaveBeenCalledTimes(2);
+    expect(query.mock.calls[1]![0].text).toContain('update "category"');
+    expect(query.mock.calls[1]![1]).toContain('{"expense","income"}');
   });
 
   it.each([
@@ -251,18 +273,18 @@ describe("PATCH /categories/:categoryId", () => {
   it("returns 409 when rename conflicts with existing category", async () => {
     const otherId = "550e8400-e29b-41d4-a716-446655440099";
     query.mockResolvedValueOnce({ rows: [categoryRow()] }); // findOwnedCategory
-    query.mockResolvedValueOnce({ rows: [[otherId]] }); // findCategoryByNameAndKind → conflict
+    query.mockResolvedValueOnce({ rows: [[otherId]] }); // findCategoryByName → conflict
 
     const result = await patch(categoryId, { name: "Conflict" });
     expect(result).toEqual({
       status: 409,
-      body: { error: "A category with this name and kind already exists" },
+      body: { error: "A category with this name already exists" },
     });
   });
 
   it("returns 200 when renaming to the same name (no conflict)", async () => {
     query.mockResolvedValueOnce({ rows: [categoryRow({ name: "Food" })] }); // findOwnedCategory
-    query.mockResolvedValueOnce({ rows: [[categoryId]] }); // findCategoryByNameAndKind → same id
+    query.mockResolvedValueOnce({ rows: [[categoryId]] }); // findCategoryByName → same id
     query.mockResolvedValueOnce({ rows: [categoryRow({ name: "Food" })] }); // updateCategory
 
     const result = await patch(categoryId, { name: "Food" });

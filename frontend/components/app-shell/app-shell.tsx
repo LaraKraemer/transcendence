@@ -1,29 +1,26 @@
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 
 import { LogoutButton } from "@/components/app-shell/logout-button";
 import { NavLinks } from "@/components/app-shell/nav-links";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { NewTransactionFab } from "@/components/transactions/new-transaction-fab";
+import { UserAvatar } from "@/components/user-avatar";
 
-export function initialsOf(displayName: string): string {
-  return displayName
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((word) => Array.from(word)[0] ?? "")
-    .join("")
-    .toUpperCase();
-}
-
-function Avatar({ displayName, label }: { displayName: string; label: string }) {
+function Avatar({ displayName, avatarUrl, label }: { displayName: string; avatarUrl: string | null; label: string }) {
   return (
     <Link
       href="/profile"
-      className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-[13px] font-semibold text-primary-foreground transition-opacity hover:opacity-85 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card focus-visible:outline-none"
+      className="shrink-0 rounded-full transition-opacity hover:opacity-85 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card focus-visible:outline-none"
     >
-      <span>{initialsOf(displayName)}</span>
+      <UserAvatar
+        displayName={displayName}
+        avatarUrl={avatarUrl}
+        alt={displayName}
+        className="size-9 bg-primary text-[13px] font-semibold text-primary-foreground"
+      />
       <span className="sr-only">, {label}</span>
     </Link>
   );
@@ -32,10 +29,12 @@ function Avatar({ displayName, label }: { displayName: string; label: string }) 
 export async function AppShell({
   displayName,
   email,
+  avatarUrl,
   children,
 }: {
   displayName: string;
   email: string;
+  avatarUrl: string | null;
   children: ReactNode;
 }) {
   const t = await getTranslations("nav");
@@ -65,7 +64,7 @@ export async function AppShell({
         </div>
 
         <div className="mt-auto flex items-center gap-2.5 rounded-xl bg-muted px-3 py-2.5">
-          <Avatar displayName={displayName} label={t("profile")} />
+          <Avatar displayName={displayName} avatarUrl={avatarUrl} label={t("profile")} />
           <div className="min-w-0 flex-1 leading-[1.3]">
             <div className="truncate text-[13px] font-semibold">{displayName}</div>
             <div className="truncate text-xs text-muted-foreground">{email}</div>
@@ -80,12 +79,22 @@ export async function AppShell({
           <ThemeToggle variant="app" />
         </header>
 
-        <main id="main" className="flex flex-1 flex-col px-4 pt-4 pb-24 lg:px-8 lg:pt-0 lg:pb-12">
+        {/* tabIndex -1: the error page hands focus back here after Try again recovers. */}
+        <main
+          id="main"
+          tabIndex={-1}
+          className="flex flex-1 flex-col px-4 pt-4 pb-40 outline-none sm:pb-24 lg:px-8 lg:pt-0 lg:pb-12"
+        >
           {children}
         </main>
       </div>
 
       <div className="fixed inset-x-0 bottom-0 z-10 border-t border-border bg-card lg:hidden">
+        <div className="absolute end-4 bottom-full mb-4">
+          <Suspense fallback={null}>
+            <NewTransactionFab />
+          </Suspense>
+        </div>
         <NavLinks variant="tabs" />
       </div>
     </div>

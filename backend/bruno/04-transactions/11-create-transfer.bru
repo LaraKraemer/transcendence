@@ -1,0 +1,41 @@
+meta {
+  name: 11 - Create transfer
+  type: http
+  seq: 12
+}
+
+post {
+  url: {{baseUrl}}/transactions/transfers
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "fromAccountId": "{{accountId}}",
+    "toAccountId": "{{savingsAccountId}}",
+    "fromAmountMinor": 2500,
+    "toAmountMinor": 2500,
+    "description": "Move to savings",
+    "bookedOn": "2026-08-25"
+  }
+}
+
+tests {
+  test("transfer creates two linked legs without a category", function () {
+    expect(res.getStatus()).to.equal(201);
+    const { from, to } = res.getBody();
+    expect(from.amountMinor).to.equal(-2500);
+    expect(to.amountMinor).to.equal(2500);
+    expect(from.type).to.equal("transfer");
+    expect(from.transferGroupId).to.equal(to.transferGroupId);
+    expect(from.categoryId).to.equal(null);
+    expect(to.categoryId).to.equal(null);
+    bru.setVar("transferSourceLegId", from.id);
+    bru.setVar("transferDestinationLegId", to.id);
+  });
+}

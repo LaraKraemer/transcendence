@@ -88,6 +88,32 @@
     "profile": "Profil",
     "back": "Zurück"
   },
+  "profile": {
+    "subtitle": "Verwalte deine persönlichen Daten und dein Profilfoto",
+    "editProfile": "Profil bearbeiten",
+    "edit": "Bearbeiten",
+    "personalInfo": "Persönliche Daten",
+    "name": "Vollständiger Name",
+    "email": "E-Mail-Adresse",
+    "changePhoto": "Profilfoto ändern",
+    "removePhoto": "Foto entfernen",
+    "photoAlt": "Profilfoto von {name}",
+    "nameDialog": {
+      "title": "Profil bearbeiten",
+      "save": "Änderungen speichern",
+      "saving": "Wird gespeichert…"
+    },
+    "announcements": {
+      "photoUpdated": "Profilfoto aktualisiert",
+      "photoRemoved": "Profilfoto entfernt",
+      "nameSaved": "Name gespeichert"
+    },
+    "errors": {
+      "photoType": "Wähle ein JPEG- oder PNG-Bild",
+      "photoTooLarge": "Das Foto darf höchstens 5 MB groß sein",
+      "network": "Der Server ist nicht erreichbar. Bitte versuche es später erneut."
+    }
+  },
   "accounts": {
     "title": "Konten",
     "subtitle": "Überblick über deine Finanzkonten und Salden",
@@ -124,9 +150,9 @@
       "nameTooLong": "Der Name ist zu lang",
       "typeInvalid": "Wähle eine Kontoart",
       "currencyInvalid": "Wähle eine Währung",
-      "openingBalanceInvalid": "Gib einen Betrag wie {example} ein",
-      "openingBalanceDecimals": "{digits, plural, =0 {Gib einen ganzen Betrag ohne Nachkommastellen ein} one {Gib einen Betrag mit höchstens # Nachkommastelle ein} other {Gib einen Betrag mit höchstens # Nachkommastellen ein}}",
-      "openingBalanceTooLarge": "Dieser Betrag ist zu groß",
+      "amountInvalid": "Gib einen Betrag wie {example} ein",
+      "amountDecimals": "{digits, plural, =0 {Gib einen ganzen Betrag ohne Nachkommastellen ein} one {Gib einen Betrag mit höchstens # Nachkommastelle ein} other {Gib einen Betrag mit höchstens # Nachkommastellen ein}}",
+      "amountTooLarge": "Dieser Betrag ist zu groß",
       "network": "Der Server ist nicht erreichbar. Bitte versuche es später erneut.",
       "generic": "Etwas ist schiefgelaufen. Bitte versuche es erneut."
     },
@@ -152,7 +178,8 @@
     "archived": "Archiviert",
     "moneyIn": "Einnahmen",
     "moneyOut": "Ausgaben",
-    "net": "Saldo",
+    "balance": "Kontostand",
+    "balanceUnavailable": "Kontostand nicht verfügbar",
     "latestOnly": "{count, plural, one {Letzte # Transaktion} other {Letzte # Transaktionen}}",
     "chooseAccount": "Konto auswählen",
     "chooseAccountHint": "Wähle ein Konto, um seine Transaktionen zu sehen.",
@@ -162,7 +189,8 @@
     "filters": {
       "all": "Alle",
       "income": "Einnahmen",
-      "expense": "Ausgaben"
+      "expense": "Ausgaben",
+      "transfer": "Umbuchungen"
     },
     "listTitle": "Transaktionen",
     "heading": "Transaktionen für <name>{account}</name>",
@@ -176,17 +204,74 @@
     },
     "uncategorised": "Ohne Kategorie",
     "empty": "Auf diesem Konto gibt es noch keine Transaktionen.",
-    "emptyFiltered": "{filter, select, income {Keine Einnahmen.} expense {Keine Ausgaben.} other {Keine Transaktionen.}}",
+    "emptyFiltered": "{filter, select, income {Keine Einnahmen.} expense {Keine Ausgaben.} transfer {Keine Umbuchungen.} other {Keine Transaktionen.}}",
     "showing": "{shown, number} von {total, plural, one {# Transaktion} other {# Transaktionen}}",
     "delete": "{description} löschen",
+    "edit": "{description} bearbeiten",
     "confirmTitle": "Transaktion löschen?",
     "confirmBody": "„<name>{description}</name>“ wird endgültig gelöscht. Das kann nicht rückgängig gemacht werden.",
+    "confirmBodyTransfer": "„<name>{description}</name>“ wird auf beiden Konten endgültig gelöscht. Das kann nicht rückgängig gemacht werden.",
     "cancel": "Abbrechen",
     "confirm": "Löschen",
     "deleting": "Wird gelöscht…",
     "errors": {
       "network": "Der Server ist nicht erreichbar. Bitte versuche es später erneut.",
-      "generic": "Etwas ist schiefgelaufen. Bitte versuche es erneut."
+      "generic": "Etwas ist schiefgelaufen. Bitte versuche es erneut.",
+      "accountArchived": "Dieses Konto ist archiviert und kann keine neuen Transaktionen erhalten.",
+      "notFound": "Diese Transaktion existiert nicht mehr. Vielleicht wurde sie an anderer Stelle gelöscht. Schließe dieses Formular, um die Liste zu aktualisieren.",
+      "typeInvalid": "Wähle Ausgabe, Einnahme oder Umbuchung",
+      "amountRequired": "Gib einen Betrag ein",
+      "amountNotPositive": "Gib einen Betrag über null ein; die Art legt Ausgabe oder Einnahme fest",
+      "amountInvalid": "Gib einen Betrag wie {example} ein",
+      "amountDecimals": "{digits, plural, =0 {Gib einen ganzen Betrag ohne Nachkommastellen ein} one {Gib einen Betrag mit höchstens # Nachkommastelle ein} other {Gib einen Betrag mit höchstens # Nachkommastellen ein}}",
+      "amountTooLarge": "Dieser Betrag ist zu groß",
+      "descriptionRequired": "Gib eine Beschreibung ein",
+      "descriptionTooLong": "Die Beschreibung darf höchstens {max, number} Zeichen lang sein",
+      "dateInvalid": "Wähle ein gültiges Datum",
+      "categoryInvalid": "Diese Kategorie ist nicht mehr verfügbar. Wähle eine andere.",
+      "toAccountInvalid": "Wähle ein anderes Zielkonto"
+    },
+    "newTransaction": "Neue Transaktion",
+    "form": {
+      "title": "Neue Transaktion",
+      "editTitle": "Transaktion bearbeiten",
+      "account": "Konto",
+      "fromAccount": "Von Konto",
+      "toAccount": "Auf Konto",
+      "chooseAccount": "Konto wählen",
+      "type": "Art",
+      "types": {
+        "expense": "Ausgabe",
+        "income": "Einnahme",
+        "transfer": "Umbuchung"
+      },
+      "amount": "Betrag ({currency})",
+      "amountSent": "Gesendeter Betrag ({currency})",
+      "amountReceived": "Erhaltener Betrag ({currency})",
+      "description": "Beschreibung",
+      "descriptionPlaceholder": "z. B. Wocheneinkauf",
+      "merchant": "Händler (optional)",
+      "date": "Datum",
+      "category": "Kategorie (optional)",
+      "noCategory": "Keine Kategorie",
+      "transferNeedsTwoAccounts": "Für eine Umbuchung brauchst du mindestens zwei aktive Konten.",
+      "noCategoriesHint": "{type, select, income {Noch keine Einnahmen-Kategorien. Du kannst eine auf der Seite „Kategorien“ anlegen.} other {Noch keine Ausgaben-Kategorien. Du kannst eine auf der Seite „Kategorien“ anlegen.}}",
+      "notes": "Notizen (optional)",
+      "notesPlaceholder": "Was du dir merken möchtest",
+      "cancel": "Abbrechen",
+      "submit": "Transaktion hinzufügen",
+      "submitting": "Wird hinzugefügt…",
+      "save": "Änderungen speichern",
+      "saving": "Wird gespeichert…",
+      "delete": "Transaktion löschen"
+    },
+    "announcements": {
+      "created": "„{description}“ hinzugefügt",
+      "saved": "„{description}“ gespeichert"
+    },
+    "added": {
+      "message": "„<desc>{description}</desc>“ zu <name>{account}</name> hinzugefügt.",
+      "view": "Transaktionen ansehen"
     }
   },
   "categories": {
@@ -195,23 +280,17 @@
     "empty": "Noch keine Kategorien. Lege deine erste an.",
     "newCategory": "Neue Kategorie",
     "addCategory": "Kategorie hinzufügen",
-    "groups": {
-      "expense": "Ausgaben",
-      "income": "Einnahmen",
-      "transfer": "Umbuchungen"
-    },
-    "groupCount": "{count, plural, one {# Kategorie} other {# Kategorien}}",
-    "kinds": {
+    "types": {
       "expense": "Ausgabe",
-      "income": "Einnahme",
-      "transfer": "Umbuchung"
+      "income": "Einnahme"
     },
     "form": {
       "title": "Neue Kategorie",
+      "editTitle": "Kategorie bearbeiten",
       "previewName": "Neue Kategorie",
       "name": "Name",
       "namePlaceholder": "z. B. Rewe",
-      "kind": "Typ",
+      "types": "Typ",
       "icon": "Symbol",
       "color": "Farbe",
       "cancel": "Abbrechen",
@@ -230,6 +309,9 @@
       "plane": "Reisen",
       "briefcase": "Arbeit",
       "piggy-bank": "Sparen",
+      "banknote": "Gehalt",
+      "trending-up": "Investitionen",
+      "hand-coins": "Erstattungen",
       "music": "Unterhaltung",
       "tag": "Etikett"
     },
@@ -245,15 +327,43 @@
     "errors": {
       "nameRequired": "Gib einen Namen für die Kategorie ein",
       "nameTooLong": "Der Name darf höchstens {max, number} Zeichen lang sein",
-      "nameTaken": "Für diesen Typ gibt es bereits eine Kategorie mit diesem Namen",
+      "nameTaken": "Eine Kategorie mit diesem Namen gibt es bereits",
       "iconInvalid": "Wähle ein Symbol",
       "colorInvalid": "Verwende eine Farbe wie #2563EB",
-      "kindInvalid": "Wähle einen Typ",
+      "typesInvalid": "Wähle mindestens einen Typ",
       "network": "Der Server ist nicht erreichbar. Bitte versuche es später erneut.",
       "generic": "Etwas ist schiefgelaufen. Bitte versuche es erneut."
     },
+    "actions": {
+      "edit": "{name} bearbeiten",
+      "delete": "{name} löschen"
+    },
+    "deleteDialog": {
+      "title": "„{name}“ löschen?",
+      "counting": "Prüfe, welche Transaktionen diese Kategorie nutzen…",
+      "description": "{count, plural, =0 {Keine Transaktion nutzt diese Kategorie.} one {# Transaktion nutzt diese Kategorie. Sie bleibt erhalten, aber ohne Kategorie.} other {# Transaktionen nutzen diese Kategorie. Sie bleiben erhalten, aber ohne Kategorie.}} Das kann nicht rückgängig gemacht werden.",
+      "unknownCount": "Transaktionen mit dieser Kategorie bleiben erhalten, aber ohne Kategorie. Das kann nicht rückgängig gemacht werden.",
+      "confirm": "Löschen",
+      "confirming": "Wird gelöscht…"
+    },
     "announcements": {
-      "created": "„{name}“ angelegt"
+      "created": "„{name}“ angelegt",
+      "saved": "„{name}“ gespeichert",
+      "deleted": "„{name}“ gelöscht"
+    }
+  },
+  "status": {
+    "toAccounts": "Zu den Konten",
+    "toSignIn": "Anmelden",
+    "notFound": {
+      "title": "Seite nicht gefunden",
+      "description": "Diese Seite gibt es nicht oder sie ist nicht verfügbar."
+    },
+    "error": {
+      "title": "Etwas ist schiefgelaufen",
+      "description": "Diese Seite konnte nicht geladen werden. Bitte versuche es erneut.",
+      "retry": "Erneut versuchen",
+      "reference": "Referenzcode: {code}"
     }
   }
 }

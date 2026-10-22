@@ -88,6 +88,32 @@
     "profile": "Profile",
     "back": "Back"
   },
+  "profile": {
+    "subtitle": "Manage your personal information and profile photo",
+    "editProfile": "Edit Profile",
+    "edit": "Edit",
+    "personalInfo": "Personal Information",
+    "name": "Full name",
+    "email": "Email address",
+    "changePhoto": "Change profile photo",
+    "removePhoto": "Remove photo",
+    "photoAlt": "Profile photo of {name}",
+    "nameDialog": {
+      "title": "Edit profile",
+      "save": "Save changes",
+      "saving": "Saving…"
+    },
+    "announcements": {
+      "photoUpdated": "Profile photo updated",
+      "photoRemoved": "Profile photo removed",
+      "nameSaved": "Name saved"
+    },
+    "errors": {
+      "photoType": "Choose a JPEG or PNG image",
+      "photoTooLarge": "The photo must be 5 MB or smaller",
+      "network": "Could not reach the server. Please try again later."
+    }
+  },
   "accounts": {
     "title": "Accounts",
     "subtitle": "An overview of your financial accounts and balances",
@@ -124,9 +150,9 @@
       "nameTooLong": "The name is too long",
       "typeInvalid": "Choose an account type",
       "currencyInvalid": "Choose a currency",
-      "openingBalanceInvalid": "Enter an amount like {example}",
-      "openingBalanceDecimals": "{digits, plural, =0 {Enter a whole amount without decimals} one {Enter an amount with at most # decimal place} other {Enter an amount with at most # decimal places}}",
-      "openingBalanceTooLarge": "This amount is too large",
+      "amountInvalid": "Enter an amount like {example}",
+      "amountDecimals": "{digits, plural, =0 {Enter a whole amount without decimals} one {Enter an amount with at most # decimal place} other {Enter an amount with at most # decimal places}}",
+      "amountTooLarge": "This amount is too large",
       "network": "Could not reach the server. Please try again later.",
       "generic": "Something went wrong. Please try again."
     },
@@ -152,7 +178,8 @@
     "archived": "Archived",
     "moneyIn": "Money in",
     "moneyOut": "Money out",
-    "net": "Net",
+    "balance": "Balance",
+    "balanceUnavailable": "Balance unavailable",
     "latestOnly": "Latest {count, plural, one {# transaction} other {# transactions}}",
     "chooseAccount": "Choose account",
     "chooseAccountHint": "Choose an account to see its transactions.",
@@ -162,7 +189,8 @@
     "filters": {
       "all": "All",
       "income": "Income",
-      "expense": "Expense"
+      "expense": "Expense",
+      "transfer": "Transfer"
     },
     "listTitle": "Transactions",
     "heading": "<name>{account}</name> transactions",
@@ -176,17 +204,74 @@
     },
     "uncategorised": "Uncategorised",
     "empty": "No transactions in this account yet.",
-    "emptyFiltered": "{filter, select, income {No income transactions.} expense {No expense transactions.} other {No transactions.}}",
+    "emptyFiltered": "{filter, select, income {No income transactions.} expense {No expense transactions.} transfer {No transfers.} other {No transactions.}}",
     "showing": "Showing {shown, number} of {total, plural, one {# transaction} other {# transactions}}",
     "delete": "Delete {description}",
+    "edit": "Edit {description}",
     "confirmTitle": "Delete transaction?",
     "confirmBody": "“<name>{description}</name>” will be permanently deleted. This can’t be undone.",
+    "confirmBodyTransfer": "“<name>{description}</name>” will be permanently deleted from both accounts. This can’t be undone.",
     "cancel": "Cancel",
     "confirm": "Delete",
     "deleting": "Deleting…",
     "errors": {
       "network": "Could not reach the server. Please try again later.",
-      "generic": "Something went wrong. Please try again."
+      "generic": "Something went wrong. Please try again.",
+      "accountArchived": "This account is archived, so it can't receive new transactions.",
+      "notFound": "This transaction no longer exists. It may have been deleted elsewhere. Close this form to update the list.",
+      "typeInvalid": "Choose expense, income or transfer",
+      "amountRequired": "Enter an amount",
+      "amountNotPositive": "Enter an amount above zero; the type sets expense or income",
+      "amountInvalid": "Enter an amount like {example}",
+      "amountDecimals": "{digits, plural, =0 {Enter a whole amount without decimals} one {Enter an amount with at most # decimal place} other {Enter an amount with at most # decimal places}}",
+      "amountTooLarge": "This amount is too large",
+      "descriptionRequired": "Enter a description",
+      "descriptionTooLong": "The description can be at most {max, number} characters",
+      "dateInvalid": "Choose a valid date",
+      "categoryInvalid": "This category is no longer available. Choose another one.",
+      "toAccountInvalid": "Choose a different account to transfer to"
+    },
+    "newTransaction": "New transaction",
+    "form": {
+      "title": "New transaction",
+      "editTitle": "Edit transaction",
+      "account": "Account",
+      "fromAccount": "From account",
+      "toAccount": "To account",
+      "chooseAccount": "Choose account",
+      "type": "Type",
+      "types": {
+        "expense": "Expense",
+        "income": "Income",
+        "transfer": "Transfer"
+      },
+      "amount": "Amount ({currency})",
+      "amountSent": "Amount sent ({currency})",
+      "amountReceived": "Amount received ({currency})",
+      "description": "Description",
+      "descriptionPlaceholder": "e.g. Weekly groceries",
+      "merchant": "Merchant (optional)",
+      "date": "Date",
+      "category": "Category (optional)",
+      "noCategory": "No category",
+      "transferNeedsTwoAccounts": "A transfer needs at least two active accounts.",
+      "noCategoriesHint": "{type, select, income {No income categories yet. You can add one on the Categories page.} other {No expense categories yet. You can add one on the Categories page.}}",
+      "notes": "Notes (optional)",
+      "notesPlaceholder": "Anything worth remembering",
+      "cancel": "Cancel",
+      "submit": "Add transaction",
+      "submitting": "Adding…",
+      "save": "Save changes",
+      "saving": "Saving…",
+      "delete": "Delete transaction"
+    },
+    "announcements": {
+      "created": "“{description}” added",
+      "saved": "“{description}” saved"
+    },
+    "added": {
+      "message": "“<desc>{description}</desc>” added to <name>{account}</name>.",
+      "view": "View transactions"
     }
   },
   "categories": {
@@ -195,23 +280,17 @@
     "empty": "No categories yet. Create your first one.",
     "newCategory": "New category",
     "addCategory": "Add category",
-    "groups": {
-      "expense": "Expenses",
-      "income": "Income",
-      "transfer": "Transfers"
-    },
-    "groupCount": "{count, plural, one {# category} other {# categories}}",
-    "kinds": {
+    "types": {
       "expense": "Expense",
-      "income": "Income",
-      "transfer": "Transfer"
+      "income": "Income"
     },
     "form": {
       "title": "New category",
+      "editTitle": "Edit category",
       "previewName": "New category",
       "name": "Name",
       "namePlaceholder": "e.g. Rewe",
-      "kind": "Type",
+      "types": "Type",
       "icon": "Icon",
       "color": "Colour",
       "cancel": "Cancel",
@@ -230,6 +309,9 @@
       "plane": "Travel",
       "briefcase": "Work",
       "piggy-bank": "Savings",
+      "banknote": "Salary",
+      "trending-up": "Investments",
+      "hand-coins": "Refunds",
       "music": "Entertainment",
       "tag": "Tag"
     },
@@ -245,15 +327,43 @@
     "errors": {
       "nameRequired": "Enter a name for the category",
       "nameTooLong": "The name can be at most {max, number} characters",
-      "nameTaken": "A category with this name already exists for this type",
+      "nameTaken": "A category with this name already exists",
       "iconInvalid": "Choose an icon",
       "colorInvalid": "Use a colour like #2563EB",
-      "kindInvalid": "Choose a type",
+      "typesInvalid": "Choose at least one type",
       "network": "Could not reach the server. Please try again later.",
       "generic": "Something went wrong. Please try again."
     },
+    "actions": {
+      "edit": "Edit {name}",
+      "delete": "Delete {name}"
+    },
+    "deleteDialog": {
+      "title": "Delete “{name}”?",
+      "counting": "Checking which transactions use this category…",
+      "description": "{count, plural, =0 {No transactions use this category.} one {# transaction uses this category. It will be kept, without a category.} other {# transactions use this category. They will be kept, without a category.}} This can’t be undone.",
+      "unknownCount": "Transactions that use this category will be kept, without a category. This can’t be undone.",
+      "confirm": "Delete",
+      "confirming": "Deleting…"
+    },
     "announcements": {
-      "created": "“{name}” created"
+      "created": "“{name}” created",
+      "saved": "“{name}” saved",
+      "deleted": "“{name}” deleted"
+    }
+  },
+  "status": {
+    "toAccounts": "Go to accounts",
+    "toSignIn": "Sign in",
+    "notFound": {
+      "title": "Page not found",
+      "description": "This page doesn't exist or isn't available."
+    },
+    "error": {
+      "title": "Something went wrong",
+      "description": "This page couldn't be loaded. Please try again.",
+      "retry": "Try again",
+      "reference": "Reference code: {code}"
     }
   }
 }

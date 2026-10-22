@@ -70,7 +70,12 @@ export const transactions = pgTable(
       .notNull()
       .references(() => appUsers.id, { onDelete: "cascade" }),
 
-    // Negative values are expenses; positive values are income.
+    // expense | income | transfer. The sign of amountMinor must match (see the CHECK below).
+    type: text("type").notNull(),
+    // Shared by the two legs of a transfer; null for every other transaction.
+    transferGroupId: uuid("transfer_group_id"),
+
+    // Negative values are expenses; positive values are income. A transfer leg is negative on the source account and positive on the destination.
     amountMinor: bigint("amount_minor", { mode: "number" }).notNull(),
 
     description: text("description").notNull(),
@@ -86,6 +91,12 @@ export const transactions = pgTable(
   },
   (table) => [
     check("transaction_amount_non_zero", sql`${table.amountMinor} <> 0`),
+    check(
+      "transaction_type_matches_amount",
+      sql`(${table.type} = 'expense' AND ${table.amountMinor} < 0) OR (${table.type} = 'income' AND ${table.amountMinor} > 0) OR ${table.type} = 'transfer'`,
+    ),
+    check("transaction_transfer_group", sql`(${table.type} = 'transfer') = (${table.transferGroupId} IS NOT NULL)`),
+    index("transaction_transfer_group_id_idx").on(table.transferGroupId),
     index("transaction_account_booked_on_idx").on(table.accountId, table.bookedOn),
     index("transaction_category_id_idx").on(table.categoryId),
   ],
@@ -136,12 +147,13 @@ export const categories = pgTable(
     name: text("name").notNull(),
     icon: text("icon").notNull(),
     color: text("color").notNull(),
-    kind: text("kind").notNull(),
+    // Transaction types the category can be used for: a non-empty subset of expense/income. Transfers have no category.
+    types: text("types").array().notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("category_user_id_idx").on(table.userId),
-    uniqueIndex("category_user_name_kind_unique").on(table.userId, table.name, table.kind),
+    uniqueIndex("category_user_name_unique").on(table.userId, table.name),
   ],
 );
 

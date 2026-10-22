@@ -1,22 +1,13 @@
 "use client";
 
-import { ChevronDown, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
-import {
-  startTransition,
-  useActionState,
-  useEffect,
-  useId,
-  useRef,
-  useState,
-  type FormEvent,
-  type ReactNode,
-  type SelectHTMLAttributes,
-} from "react";
+import { startTransition, useActionState, useEffect, useId, useRef, useState, type FormEvent } from "react";
 
 import { FormAlert, formErrorFor } from "@/components/auth/form-parts";
 import { Button } from "@/components/ui/button";
 import { useAnnounce } from "@/components/ui/live-status";
+import { SelectField } from "@/components/ui/select-field";
 import { TextField } from "@/components/ui/text-field";
 import { createAccount, updateAccount } from "@/lib/actions/accounts";
 import type { Account, Currency } from "@/lib/types";
@@ -60,7 +51,7 @@ export function CreateAccountForm({ currencies }: { currencies: Currency[] }) {
           }
         }}
         onClick={() => setIsOpen(true)}
-        className="ms-auto flex cursor-pointer items-center gap-1.5 rounded-[8px] bg-success-bg px-3 py-1.75 text-[13px] font-semibold text-success hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+        className="ms-auto flex cursor-pointer items-center gap-1.5 rounded-[8px] bg-success-bg px-3 py-1.75 text-[13px] font-semibold text-success transition-colors hover:bg-success hover:text-white dark:hover:text-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
       >
         <Plus size={14} aria-hidden />
         {t("newAccount")}
@@ -307,54 +298,5 @@ export function AccountForm(props: AccountFormProps) {
         </div>
       </fieldset>
     </form>
-  );
-}
-
-/** A native <select> styled like TextField, with its label and inline error. */
-function SelectField({
-  id,
-  label,
-  error,
-  children,
-  ...selectProps
-}: Omit<SelectHTMLAttributes<HTMLSelectElement>, "id" | "className"> & {
-  id: string;
-  label: string;
-  error?: string;
-  children: ReactNode;
-}) {
-  const errorId = `${id}-error`;
-  return (
-    <div className="mb-[18px]">
-      <label htmlFor={id} className="mb-[7px] block text-[13px] font-semibold">
-        {label}
-      </label>
-      {/* The native arrow can't be spaced from the edge, so it's hidden and drawn
-          as an icon at the input's own inline padding (mirrors in RTL). */}
-      <div className="relative">
-        <select
-          id={id}
-          required
-          aria-invalid={error ? true : undefined}
-          aria-describedby={error ? errorId : undefined}
-          className={`w-full cursor-pointer appearance-none rounded-[11px] border bg-field py-[13px] ps-[15px] pe-10 text-sm outline-none focus:ring-2 focus:ring-ring ${
-            error ? "border-destructive" : "border-input"
-          }`}
-          {...selectProps}
-        >
-          {children}
-        </select>
-        <ChevronDown
-          size={16}
-          aria-hidden
-          className="pointer-events-none absolute end-[15px] top-1/2 -translate-y-1/2 text-muted-foreground"
-        />
-      </div>
-      {error && (
-        <p id={errorId} className="mt-1.5 text-xs font-medium text-destructive">
-          {error}
-        </p>
-      )}
-    </div>
   );
 }

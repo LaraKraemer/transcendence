@@ -5,7 +5,8 @@ import { ThemeToggle } from "@/components/theme-toggle";
 
 export async function AuthShell({ hero, children }: { hero: ReactNode; children: ReactNode }) {
   return (
-    <main className="flex flex-1 items-center justify-center px-4 pt-20 pb-16 sm:p-10">
+    // tabIndex -1: the error page hands focus back here after Try again recovers.
+    <main tabIndex={-1} className="flex flex-1 items-center justify-center px-4 pt-20 pb-16 outline-none sm:p-10">
       <div className="fixed end-5 top-5 z-10 flex gap-2">
         <LocaleSwitcher />
         <ThemeToggle />

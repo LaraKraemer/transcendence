@@ -85,7 +85,7 @@ Browser → Next.js `:3000` → Express `:3001` → Postgres `:5432` (bound to 1
 - CORS allows `FRONTEND_ORIGIN` (default `http://localhost:3000`) with credentials, so frontend fetches to `NEXT_PUBLIC_API_URL` must use `credentials: "include"`.
 - Queries live in `srcs/db/{accounts,categories,currencies,transactions,users}.ts`; routers in `srcs/routes/` call them. Reuse these helpers, e.g. `findOwnedAccount`.
 - The schema's source of truth is `srcs/db/schema.ts`. `docs/*-db-schema.md` are target designs that include tables not built yet.
-- Avatar files are stored on a persistent Docker volume mounted at `/app/avatars` (override with `AVATAR_DIR`). `PUT /auth/me/avatar` reads a raw JPEG/PNG body through `express.raw` (no multipart); `GET /auth/me` exposes `avatarUrl` as the route `/auth/me/avatar`, never the storage key. File I/O lives in `srcs/storage.ts`; mock it in tests with `vi.mock("../../srcs/storage.ts")`. Storage keys are `<uuid>.<ext>` server-generated — never derived from client-supplied filenames.
+- Avatar files are stored on a persistent Docker volume mounted at `/app/avatars` (override with `AVATAR_DIR`). `PUT /auth/me/avatar` reads a raw JPEG/PNG body through `express.raw` (no multipart); `GET /auth/me`, login and register expose `avatarUrl` as `/auth/me/avatar?v=<hash of the storage key>` (`v` changes with every upload so browsers refetch), never the storage key. File I/O lives in `srcs/storage.ts`; mock it in tests with `vi.mock("../../srcs/storage.ts")`. Storage keys are `<uuid>.<ext>` server-generated — never derived from client-supplied filenames.
 
 | Mount | Routes |
 |---|---|
@@ -93,17 +93,20 @@ Browser → Next.js `:3000` → Express `:3001` → Postgres `:5432` (bound to 1
 | `/accounts` | `GET /`, `POST /`, `GET /:accountId`, `PATCH /:accountId`, `DELETE /:accountId`, `GET /:accountId/balance` |
 | `/categories` | `GET /`, `POST /`, `GET /:categoryId`, `PATCH /:categoryId`, `DELETE /:categoryId` |
 | `/currencies` | `GET /` (authenticated, global reference data ordered by code) |
-| `/transactions` | `GET /?accountId=&limit=&offset=&from=&to=`, `GET /summary?accountId=&from=&to=`, `GET /count/:categoryId`, `POST /`, `GET /:transactionId`, `PATCH /:transactionId`, `DELETE /:transactionId` |
+| `/transactions` | `GET /?accountId=&limit=&offset=&from=&to=`, `GET /summary?accountId=&from=&to=`, `GET /count/:categoryId`, `POST /`, `POST /transfers`, `GET /:transactionId`, `PATCH /:transactionId`, `DELETE /:transactionId` |
 
 ## Domain rules (enforced across routers, keep them consistent)
 
 - Money is integer minor units (`amountMinor`, `openingBalanceMinor`), validated with `Number.isSafeInteger`. Postgres aggregates return strings, so wrap them with `Number(...)` or `.mapWith(Number)`.
 - Currency reference data provides `code`, `name`, `symbol`, and `minorUnit` (JPY: 0, KWD: 3, others: 2). It has no foreign keys to ledger tables; account currency validation checks only the three-uppercase-letter format.
-- A transaction's sign is its direction: negative = expense, positive = income. Zero is rejected (by the app and a DB CHECK). The category `kind` must match the sign; `transfer` accepts either. `kind` is immutable; `(user, name, kind)` is unique (409).
+- A transaction has a `type` (`expense|income|transfer`) and a signed `amountMinor` whose sign must match it: expense negative, income positive, transfer either. Zero is rejected. The app and DB CHECKs enforce both.
+- A category has `types`, a non-empty subset of `expense|income` (multi-select, editable via PATCH), and is unique per `(user, name)` (409). A transaction's category must allow its type, and this is checked only when the transaction is created or its `type`/`categoryId` is sent in a PATCH. Editing or deleting a category never touches transactions, except that deletion nulls `categoryId`.
+- Transfers are created only with `POST /transactions/transfers`: two legs (`type = transfer`, shared `transferGroupId`; negative on the source account, positive on the destination), written in one statement. Both accounts must be owned, different and not archived; the amounts must be equal when the currencies are equal. Legs are not editable, and deleting either leg deletes both. Deleting an account leaves the other account's leg behind as a lone leg.
+- Transfer legs have no category (`categoryId` null). Categories are only for `expense` and/or `income`.
 - Accounts are archived and unarchived via `PATCH {"isArchived": bool}`. `DELETE /accounts/:id` permanently deletes an owned account and all its transactions, including archived accounts. `DELETE /categories/:id` and `DELETE /transactions/:id` permanently remove the row; deleting a category sets `categoryId = null` on its transactions. `DELETE /auth/me` permanently deletes the authenticated profile and cascades to accounts (including archived), categories, transactions, and sessions in one atomic statement, then clears the cookie. Transaction account and creator foreign keys use `ON DELETE CASCADE`. Users have no soft-delete field.
 - Archived accounts are hidden from lists but readable by ID, and can't receive new transactions. Existing transactions remain editable and deletable without restoring the account; account detail edits still require restoration.
 - `bookedOn` is a `YYYY-MM-DD` date (filters and reports). `occurredAt` is an optional ISO 8601 timestamp.
-- Enum-like columns are plain `text`. Allowed values are `as const` arrays plus type guards at the top of each router (`ACCOUNT_TYPES`, `CATEGORY_KINDS`), so adding a value needs no migration.
+- Enum-like columns are plain `text`. Allowed values are `as const` arrays plus type guards at the top of each router (`ACCOUNT_TYPES`, `CATEGORY_TYPES`, `TRANSACTION_TYPES`), so adding a value needs no migration.
 
 ## Backend conventions
 

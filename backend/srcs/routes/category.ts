@@ -3,7 +3,7 @@ import { Router } from "express";
 import { requireAuthenticatedUser } from "../auth.ts";
 import {
   deleteOwnedCategory,
-  findCategoryByNameAndKind,
+  findCategoryByName,
   findOwnedCategory,
   insertCategory,
   listCategories,
@@ -11,26 +11,32 @@ import {
 } from "../db/categories.ts";
 import { isHexColor, isUuid } from "../validation.ts";
 
-const CATEGORY_KINDS = ["expense", "income", "transfer"] as const;
-type CategoryKind = (typeof CATEGORY_KINDS)[number];
+// Transfers have no category, so a category is only ever for expenses and/or income.
+const CATEGORY_TYPES = ["expense", "income"] as const;
+type CategoryType = (typeof CATEGORY_TYPES)[number];
 
-function isCategoryKind(value: unknown): value is CategoryKind {
-  return typeof value === "string" && CATEGORY_KINDS.includes(value as CategoryKind);
+const TYPES_ERROR = "types must be a non-empty list of expense and/or income";
+
+/** Returns the valid, de-duplicated types in canonical order, or undefined when the value is not a valid non-empty list. */
+function parseCategoryTypes(value: unknown): CategoryType[] | undefined {
+  if (!Array.isArray(value) || !value.every((type) => CATEGORY_TYPES.includes(type))) return undefined;
+  const types = CATEGORY_TYPES.filter((type) => value.includes(type));
+  return types.length === 0 ? undefined : types;
 }
 
 export const categoriesRouter = Router();
 
 categoriesRouter.use(requireAuthenticatedUser);
 
-/** Returns all categories belonging to the authenticated user. */
+/** Returns the authenticated user's categories. */
 categoriesRouter.get("/", async (_req, res) => {
   const rows = await listCategories(res.locals.userId);
   res.json(rows);
 });
 
-/** Creates an expense, income, or transfer category for the authenticated user. */
+/** Creates an expense and/or income category for the authenticated user. */
 categoriesRouter.post("/", async (req, res) => {
-  const { name, icon, color, kind } = req.body ?? {};
+  const { name, icon, color, types: requestedTypes } = req.body ?? {};
 
   if (typeof name !== "string" || name.trim().length === 0 || name.trim().length > 80) {
     res.status(400).json({ error: "name must be between 1 and 80 characters" });
@@ -47,14 +53,15 @@ categoriesRouter.post("/", async (req, res) => {
     return;
   }
 
-  if (!isCategoryKind(kind)) {
-    res.status(400).json({ error: "kind must be expense, income, or transfer" });
+  const types = parseCategoryTypes(requestedTypes);
+  if (!types) {
+    res.status(400).json({ error: TYPES_ERROR });
     return;
   }
 
-  const existingCategory = await findCategoryByNameAndKind(res.locals.userId, name.trim(), kind);
+  const existingCategory = await findCategoryByName(res.locals.userId, name.trim());
   if (existingCategory) {
-    res.status(409).json({ error: "A category with this name and kind already exists" });
+    res.status(409).json({ error: "A category with this name already exists" });
     return;
   }
 
@@ -63,7 +70,7 @@ categoriesRouter.post("/", async (req, res) => {
     name: name.trim(),
     icon: icon.trim(),
     color: color.toUpperCase(),
-    kind,
+    types,
   });
 
   res.status(201).json(category);
@@ -104,7 +111,10 @@ categoriesRouter.delete("/:categoryId", async (req, res, next) => {
   }
 });
 
-/** Updates the display properties of a category owned by the authenticated user. */
+/**
+ * Updates the name, icon, color or types of a category owned by the authenticated user.
+ * Changing the types never touches existing transactions.
+ */
 categoriesRouter.patch("/:categoryId", async (req, res) => {
   if (!isUuid(req.params.categoryId)) {
     res.status(400).json({ error: "categoryId must be a valid UUID" });
@@ -112,12 +122,7 @@ categoriesRouter.patch("/:categoryId", async (req, res) => {
   }
 
   const body = req.body ?? {};
-  const updates: { name?: string; icon?: string; color?: string } = {};
-
-  if (Object.hasOwn(body, "kind")) {
-    res.status(400).json({ error: "A category kind cannot be changed" });
-    return;
-  }
+  const updates: { name?: string; icon?: string; color?: string; types?: CategoryType[] } = {};
 
   if (Object.hasOwn(body, "name")) {
     if (typeof body.name !== "string" || body.name.trim().length === 0 || body.name.trim().length > 80) {
@@ -143,6 +148,15 @@ categoriesRouter.patch("/:categoryId", async (req, res) => {
     updates.color = body.color.toUpperCase();
   }
 
+  if (Object.hasOwn(body, "types")) {
+    const types = parseCategoryTypes(body.types);
+    if (!types) {
+      res.status(400).json({ error: TYPES_ERROR });
+      return;
+    }
+    updates.types = types;
+  }
+
   if (Object.keys(updates).length === 0) {
     res.status(400).json({ error: "Provide at least one editable category field" });
     return;
@@ -155,9 +169,9 @@ categoriesRouter.patch("/:categoryId", async (req, res) => {
   }
 
   if (updates.name) {
-    const existingCategory = await findCategoryByNameAndKind(res.locals.userId, updates.name, category.kind);
+    const existingCategory = await findCategoryByName(res.locals.userId, updates.name);
     if (existingCategory && existingCategory.id !== category.id) {
-      res.status(409).json({ error: "A category with this name and kind already exists" });
+      res.status(409).json({ error: "A category with this name already exists" });
       return;
     }
   }

@@ -2,7 +2,7 @@ import { and, count, desc, eq, getTableColumns, gte, lte, sql } from "drizzle-or
 
 import { db } from "./client.ts";
 import { accounts, categories, transactions } from "./schema.ts";
-import type { NewTransaction } from "./schema.ts";
+import type { NewTransaction, Transaction } from "./schema.ts";
 
 /** Finds a transaction only when its account belongs to the authenticated user, including archived accounts. */
 export async function findOwnedTransaction(transactionId: string, userId: string) {
@@ -16,9 +16,10 @@ export async function findOwnedTransaction(transactionId: string, userId: string
   return transaction;
 }
 
-export async function findCategoryKind(categoryId: string, userId: string) {
+/** Finds the types of a category owned by the user. */
+export async function findCategoryTypes(categoryId: string, userId: string) {
   const [category] = await db
-    .select({ kind: categories.kind })
+    .select({ types: categories.types })
     .from(categories)
     .where(and(eq(categories.id, categoryId), eq(categories.userId, userId)))
     .limit(1);
@@ -59,6 +60,7 @@ export async function summarizeTransactionsByCategory(accountId: string, from?: 
   return db
     .select({
       categoryId: transactions.categoryId,
+      type: transactions.type,
       totalMinor: sql<number>`SUM(${transactions.amountMinor})`.mapWith(Number),
       count: sql<number>`COUNT(*)`.mapWith(Number),
     })
@@ -70,7 +72,7 @@ export async function summarizeTransactionsByCategory(accountId: string, from?: 
         ...(to ? [lte(transactions.bookedOn, to)] : []),
       ),
     )
-    .groupBy(transactions.categoryId);
+    .groupBy(transactions.categoryId, transactions.type);
 }
 
 /** Returns the number of transactions linked to a category, scoped to the owning user via account join. */
@@ -88,6 +90,11 @@ export async function insertTransaction(values: NewTransaction) {
   return transaction;
 }
 
+/** Inserts both legs of a transfer in one statement, so either both exist or neither does. */
+export async function insertTransferLegs(legs: NewTransaction[]) {
+  return db.insert(transactions).values(legs).returning();
+}
+
 export async function updateTransaction(
   transactionId: string,
   updates: Partial<Omit<NewTransaction, "id" | "accountId" | "createdById" | "createdAt">>,
@@ -101,7 +108,9 @@ export async function updateTransaction(
   return transaction;
 }
 
-/** Permanently deletes a transaction after the caller has checked ownership. */
-export async function deleteTransaction(transactionId: string) {
-  await db.delete(transactions).where(eq(transactions.id, transactionId));
+/** Permanently deletes a transaction after the caller has checked ownership. A transfer is deleted together with its other leg. */
+export async function deleteTransaction({ id, transferGroupId }: Pick<Transaction, "id" | "transferGroupId">) {
+  await db
+    .delete(transactions)
+    .where(transferGroupId === null ? eq(transactions.id, id) : eq(transactions.transferGroupId, transferGroupId));
 }

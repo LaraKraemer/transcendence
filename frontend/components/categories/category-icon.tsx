@@ -1,7 +1,9 @@
 import {
+  Banknote,
   Briefcase,
   Car,
   Gift,
+  HandCoins,
   Heart,
   House,
   Music,
@@ -9,6 +11,7 @@ import {
   Plane,
   ShoppingCart,
   Tag,
+  TrendingUp,
   Utensils,
   Zap,
   type LucideIcon,
@@ -17,6 +20,8 @@ import {
 /**
  * The icons the category form offers, stored in the backend as their Lucide
  * key. A short fixed list keeps the bundle small (no import of all icons).
+ * The order is the picker's 5-column grid: two rows of expenses, then income.
+ * Keys are stored on existing categories, so never rename or remove one.
  */
 export const CATEGORY_ICONS = {
   "shopping-cart": ShoppingCart,
@@ -25,12 +30,15 @@ export const CATEGORY_ICONS = {
   car: Car,
   zap: Zap,
   heart: Heart,
-  gift: Gift,
   plane: Plane,
-  briefcase: Briefcase,
-  "piggy-bank": PiggyBank,
   music: Music,
+  gift: Gift,
   tag: Tag,
+  briefcase: Briefcase,
+  banknote: Banknote,
+  "trending-up": TrendingUp,
+  "hand-coins": HandCoins,
+  "piggy-bank": PiggyBank,
 } satisfies Record<string, LucideIcon>;
 
 export type CategoryIconKey = keyof typeof CATEGORY_ICONS;

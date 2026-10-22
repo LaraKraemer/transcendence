@@ -113,6 +113,9 @@ describe("POST /register", () => {
       displayName: "Alice",
     });
     expect(result.status).toBe(201);
+    expect(result.body).toEqual({
+      user: { id: userId, email: "alice@example.com", displayName: "Alice", avatarUrl: null },
+    });
   });
 
   it("accepts a 72-byte password", async () => {
@@ -293,6 +296,7 @@ describe("POST /login", () => {
     const body = result.body as { user: Record<string, unknown> };
     expect(body.user.passwordHash).toBeUndefined();
     expect(body.user.id).toBe(userId);
+    expect(body.user.avatarUrl).toBeNull();
     expect(authMocks.createSession).toHaveBeenCalledWith(expect.anything(), expect.anything(), userId);
   });
 });
@@ -342,7 +346,21 @@ describe("GET /me", () => {
     authMocks.getAuthenticatedUserId.mockResolvedValueOnce(userId);
     query.mockResolvedValueOnce({ rows: [[userId, "alice@example.com", "Alice", "secret-key.png"]] });
     const result = await dispatch(authRouter, { method: "GET", url: "/me" });
-    expect(result.body).toMatchObject({ user: { avatarUrl: "/auth/me/avatar" } });
+    const { avatarUrl } = (result.body as { user: { avatarUrl: string } }).user;
+    expect(avatarUrl).toMatch(/^\/auth\/me\/avatar\?v=[0-9a-f]{16}$/);
+    expect(avatarUrl).not.toContain("secret-key");
+  });
+
+  it("changes the avatar version with the stored file, not with the user", async () => {
+    const versionFor = async (key: string) => {
+      authMocks.getAuthenticatedUserId.mockResolvedValueOnce(userId);
+      query.mockResolvedValueOnce({ rows: [[userId, "alice@example.com", "Alice", key]] });
+      const result = await dispatch(authRouter, { method: "GET", url: "/me" });
+      return (result.body as { user: { avatarUrl: string } }).user.avatarUrl;
+    };
+    const first = await versionFor("first.png");
+    expect(await versionFor("first.png")).toBe(first);
+    expect(await versionFor("second.png")).not.toBe(first);
   });
 
   it("forwards database errors", async () => {
@@ -568,7 +586,9 @@ describe("PATCH /me", () => {
     query.mockResolvedValueOnce({ rows: [[userId]] });
     query.mockResolvedValueOnce({ rows: [[userId, "alice@example.com", "Bob", "secret-key.png"]] });
     const result = await patch({ displayName: "Bob" });
-    expect(result.body).toMatchObject({ user: { avatarUrl: "/auth/me/avatar" } });
+    const { avatarUrl } = (result.body as { user: { avatarUrl: string } }).user;
+    expect(avatarUrl).toMatch(/^\/auth\/me\/avatar\?v=[0-9a-f]{16}$/);
+    expect(avatarUrl).not.toContain("secret-key");
   });
 
   it("trims the displayName before storing", async () => {
@@ -619,9 +639,14 @@ describe("PUT /me/avatar", () => {
     query.mockResolvedValueOnce({ rows: [] }); // updateUserAvatarUrl
 
     const result = await avatarRequest(jpegBytes);
-    expect(result).toEqual({
-      status: 200,
-      body: { user: { id: userId, email: "alice@example.com", displayName: "Alice", avatarUrl: "/auth/me/avatar" } },
+    expect(result.status).toBe(200);
+    expect(result.body).toEqual({
+      user: {
+        id: userId,
+        email: "alice@example.com",
+        displayName: "Alice",
+        avatarUrl: expect.stringMatching(/^\/auth\/me\/avatar\?v=[0-9a-f]{16}$/),
+      },
     });
     const [storedKey, storedBytes] = storageMocks.writeAvatar.mock.calls[0]!;
     expect(storedKey).toMatch(/^[0-9a-f-]{36}\.jpg$/);
@@ -695,7 +720,7 @@ describe("GET /me/avatar", () => {
     const result = await avatarGet();
     expect(result.status).toBe(200);
     expect(result.contentType).toBe("image/jpeg");
-    expect(result.headers).toEqual({ "Cache-Control": "no-cache" });
+    expect(result.headers).toEqual({ "Cache-Control": "private, no-cache" });
     expect(result.body).toBe(buf);
     expect(storageMocks.readAvatar).toHaveBeenCalledWith("photo.jpg");
   });

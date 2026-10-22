@@ -85,7 +85,7 @@ erDiagram
         text        name                    "NOT NULL"
         text        icon                    "NOT NULL — icon key, not an image"
         text        color                   "NOT NULL — #RRGGBB"
-        text        kind                    "NOT NULL — expense|income|transfer"
+        text[]      types                   "NOT NULL, non-empty — expense|income; transfers have no category"
         timestamptz created_at              "NOT NULL DEFAULT now()"
     }
 
@@ -106,8 +106,9 @@ erDiagram
         text        merchant_name           "NULL — optional free text, at most 100 trimmed characters"
         uuid        created_by_id       FK  "NOT NULL -> APP_USER — who entered it"
         uuid        paid_by_id          FK  "NOT NULL -> APP_USER — who actually paid"
-        uuid        transfer_group_id       "NULL — pairs the two legs of a transfer"
-        bigint      amount_minor            "NOT NULL, <> 0 — signed: +income, -expense"
+        text        type                    "NOT NULL — expense|income|transfer; CHECK sign matches (expense < 0, income > 0, transfer either)"
+        uuid        transfer_group_id       "NULL — pairs the two legs of a transfer; NOT NULL <=> type = transfer"
+        bigint      amount_minor            "NOT NULL, <> 0 — signed: +income, -expense; transfer legs: - on source, + on destination"
         char3       currency_code       FK  "NOT NULL -> CURRENCY"
         numeric     fx_rate                 "NULL — rate to account currency if differing"
         text        direction               "NOT NULL — debit|credit (derivable from sign)"

@@ -14,18 +14,19 @@ export async function findOwnedCategory(categoryId: string, userId: string) {
   return category;
 }
 
-export async function findCategoryByNameAndKind(userId: string, name: string, kind: string) {
+export async function findCategoryByName(userId: string, name: string) {
   const [category] = await db
     .select({ id: categories.id })
     .from(categories)
-    .where(and(eq(categories.userId, userId), eq(categories.name, name), eq(categories.kind, kind)))
+    .where(and(eq(categories.userId, userId), eq(categories.name, name)))
     .limit(1);
 
   return category;
 }
 
+/** Lists the user's categories. */
 export async function listCategories(userId: string) {
-  return db.select().from(categories).where(eq(categories.userId, userId)).orderBy(categories.kind, categories.name);
+  return db.select().from(categories).where(eq(categories.userId, userId)).orderBy(categories.name);
 }
 
 export async function insertCategory(values: NewCategory) {
@@ -35,7 +36,7 @@ export async function insertCategory(values: NewCategory) {
 
 export async function updateCategory(
   categoryId: string,
-  updates: Partial<Pick<NewCategory, "name" | "icon" | "color">>,
+  updates: Partial<Pick<NewCategory, "name" | "icon" | "color" | "types">>,
 ) {
   const [category] = await db.update(categories).set(updates).where(eq(categories.id, categoryId)).returning();
 

@@ -5,13 +5,15 @@
  * the auth server actions. Imported by the API client, the DAL, the server
  * actions, and the auth context.
  */
-import type { AccountType, CategoryKind } from "@/lib/validation";
+import type { AccountType, CategoryType, TransactionType } from "@/lib/validation";
 
 /** The authenticated user, as exposed to the UI (a safe subset of the backend row). */
 export type User = {
   id: string;
   email: string;
   displayName: string;
+  /** API path of the profile photo (`/auth/me/avatar?v=…`, the `v` changes with each new photo), or null when there is none. */
+  avatarUrl: string | null;
 };
 
 /**
@@ -53,15 +55,17 @@ export type AccountBalance = {
 };
 
 /**
- * A transaction, as returned by the backend's /transactions endpoints. The sign of
- * `amountMinor` is the direction: negative = expense, positive = income (never 0).
- * `bookedOn` is a `YYYY-MM-DD` date.
+ * A transaction, as returned by the backend's /transactions endpoints. Its `type` decides the sign
+ * of `amountMinor`: expense negative, income positive, transfer either (never 0). The two legs of a
+ * transfer share a `transferGroupId`. `bookedOn` is a `YYYY-MM-DD` date.
  */
 export type Transaction = {
   id: string;
   accountId: string;
   categoryId: string | null;
   createdById: string;
+  type: TransactionType;
+  transferGroupId: string | null;
   amountMinor: number;
   description: string;
   notes: string | null;
@@ -77,13 +81,16 @@ export type TransactionPage = {
   total: number;
 };
 
-/** A category, as returned by the backend's /categories endpoints. */
+/**
+ * A category, as returned by the backend's /categories endpoints. `types` are the transaction types
+ * it can be used for (transfers have no category).
+ */
 export type Category = {
   id: string;
   name: string;
   icon: string;
   color: string;
-  kind: CategoryKind;
+  types: CategoryType[];
   createdAt: string;
 };
 

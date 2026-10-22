@@ -5,11 +5,11 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
-import { initialsOf } from "@/components/app-shell/app-shell";
 import { LogoutButton } from "@/components/app-shell/logout-button";
 import { RedirectOnDesktop } from "@/components/app-shell/redirect-on-desktop";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { UserAvatar } from "@/components/user-avatar";
 import { localeNames } from "@/i18n/config";
 import { getCurrentUser } from "@/lib/dal";
 
@@ -43,19 +43,21 @@ export default async function MorePage() {
       <RedirectOnDesktop href="/profile" />
       <h1 className="text-[15px] font-bold">{t("nav.more")}</h1>
 
+      {/* Hover lays 10% black over the gradient, so the text only gains contrast (opacity let the page show through). */}
       <Link
         href="/profile"
-        className="flex items-center gap-3 rounded-(--radius) bg-(image:--grad) p-4 text-[#e6ecf5] transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none"
+        className="flex items-center gap-3 rounded-(--radius) bg-(image:--grad) p-4 text-[#e6ecf5] hover:bg-[linear-gradient(rgb(0_0_0/0.1),rgb(0_0_0/0.1)),var(--grad)] focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none"
       >
-        <span
-          aria-hidden
-          className="flex size-[46px] shrink-0 items-center justify-center rounded-full bg-white/12 text-[15px] font-bold"
-        >
-          {initialsOf(user.displayName)}
-        </span>
+        {/* Decorative: the name is right next to it. */}
+        <UserAvatar
+          displayName={user.displayName}
+          avatarUrl={user.avatarUrl}
+          alt=""
+          className="size-[46px] bg-white/12 text-[15px] font-bold"
+        />
         <span className="min-w-0">
           <span className="block truncate text-[15px] font-bold">{user.displayName}</span>
-          <span className="block truncate text-xs opacity-75">{user.email}</span>
+          <span className="block truncate text-xs">{user.email}</span>
         </span>
         <ChevronRight size={18} aria-hidden className="ms-auto shrink-0 opacity-80 rtl:-scale-x-100" />
       </Link>

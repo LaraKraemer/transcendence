@@ -2,23 +2,25 @@
 
 import { Check, Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { startTransition, useActionState, useEffect, useId, useState, type FormEvent, type ReactNode } from "react";
+import { startTransition, useActionState, useEffect, useId, useState, type FormEvent } from "react";
 
 import { FormAlert, formErrorFor } from "@/components/auth/form-parts";
 import { CATEGORY_ICON_KEYS, CategoryIcon } from "@/components/categories/category-icon";
 import { Button } from "@/components/ui/button";
+import { ChoiceGroup } from "@/components/ui/choice-group";
 import { useAnnounce } from "@/components/ui/live-status";
 import { Modal } from "@/components/ui/modal";
 import { TextField } from "@/components/ui/text-field";
-import { createCategory } from "@/lib/actions/categories";
+import { createCategory, updateCategory } from "@/lib/actions/categories";
+import type { Category } from "@/lib/types";
 import {
-  CATEGORY_KINDS,
+  CATEGORY_TYPES,
   HEX_COLOR_PATTERN,
   MAX_CATEGORY_NAME_LENGTH,
   isCategoryErrorCode,
   readableOn,
   type CategoryErrorCode,
-  type CategoryKind,
+  type CategoryType,
 } from "@/lib/validation";
 
 // Seven colours picked to be easy to tell apart: the closest pair is ΔE 53 in CIELAB
@@ -41,8 +43,8 @@ const circleClasses =
   "flex aspect-square w-full max-w-8 items-center justify-center rounded-full ring-1 ring-foreground/15 ring-inset";
 const selectedRing = "0 0 0 2px var(--card), 0 0 0 4px var(--foreground)";
 
-type CategoryFields = "name" | "icon" | "color" | "kind";
-const FIELD_ORDER: CategoryFields[] = ["name", "kind", "icon", "color"];
+type CategoryFields = "name" | "icon" | "color" | "types";
+const FIELD_ORDER: CategoryFields[] = ["name", "types", "icon", "color"];
 
 type FormState = {
   fieldErrors: Partial<Record<CategoryFields, CategoryErrorCode>>;
@@ -52,15 +54,9 @@ const initialState: FormState = { fieldErrors: {}, error: null };
 
 /**
  * "New category" trigger plus its modal form. `variant="tile"` is the dashed
- * "Add category" tile at the end of a group, which preselects that group's kind.
+ * "Add category" tile at the end of the list.
  */
-export function NewCategoryButton({
-  variant,
-  defaultKind = "expense",
-}: {
-  variant: "header" | "tile";
-  defaultKind?: CategoryKind;
-}) {
+export function NewCategoryButton({ variant }: { variant: "header" | "tile" }) {
   const t = useTranslations("categories");
   const [open, setOpen] = useState(false);
   // While saving, the modal can't be closed: a failure would have nowhere to show, and save could run twice.
@@ -85,13 +81,10 @@ export function NewCategoryButton({
       >
         <Plus size={variant === "header" ? 16 : 15} aria-hidden />
         {variant === "header" ? t("newCategory") : t("addCategory")}
-        {/* Each group has its own tile, so screen readers also hear which group it adds to ("Add category (Expenses)"). */}
-        {variant === "tile" && <span className="sr-only"> ({t(`groups.${defaultKind}`)})</span>}
       </button>
       <Modal open={open} title={t("form.title")} onClose={() => setOpen(false)} busy={saving}>
         <CategoryForm
           key={formKey}
-          defaultKind={defaultKind}
           onDone={() => setOpen(false)}
           onPendingChange={setSaving}
         />
@@ -100,32 +93,45 @@ export function NewCategoryButton({
   );
 }
 
-function CategoryForm({
-  defaultKind,
+/**
+ * The category form: empty to create one, or prefilled from `category` to edit it,
+ * in which case only the changed fields are saved.
+ */
+export function CategoryForm({
+  category,
   onDone,
   onPendingChange,
 }: {
-  defaultKind: CategoryKind;
+  category?: Category;
   onDone: () => void;
   onPendingChange: (pending: boolean) => void;
 }) {
   const t = useTranslations("categories");
   const announce = useAnnounce();
   const idPrefix = useId();
-  const [values, setValues] = useState<Record<CategoryFields, string>>({
-    name: "",
-    kind: defaultKind,
-    icon: CATEGORY_ICON_KEYS[0],
-    color: DEFAULT_COLOR,
-  });
-  const set = (field: CategoryFields) => (value: string) => setValues((prev) => ({ ...prev, [field]: value }));
+  // The values the form opened with; when editing, updateCategory sends only what differs from them.
+  const [opened] = useState(() =>
+    category
+      ? { name: category.name, types: category.types, icon: category.icon, color: category.color.toUpperCase() }
+      : { name: "", types: ["expense"] as CategoryType[], icon: CATEGORY_ICON_KEYS[0] as string, color: DEFAULT_COLOR },
+  );
+  const [values, setValues] = useState(opened);
+  const set = (field: "name" | "icon" | "color") => (value: string) =>
+    setValues((prev) => ({ ...prev, [field]: value }));
+  const toggleType = (type: CategoryType) =>
+    setValues((prev) => ({
+      ...prev,
+      types: prev.types.includes(type) ? prev.types.filter((selected) => selected !== type) : [...prev.types, type],
+    }));
 
   const [{ fieldErrors, error }, submitAction, isPending] = useActionState(
-    async (_prev: FormState, submitted: Record<CategoryFields, string>): Promise<FormState> => {
+    async (_prev: FormState, submitted: typeof values): Promise<FormState> => {
       try {
-        const result = await createCategory(submitted);
+        const result = category
+          ? await updateCategory(category.id, opened, submitted)
+          : await createCategory(submitted);
         if (result.success) {
-          announce(t("announcements.created", { name: submitted.name.trim() }));
+          announce(t(category ? "announcements.saved" : "announcements.created", { name: submitted.name.trim() }));
           onDone();
           return initialState;
         }
@@ -146,7 +152,7 @@ function CategoryForm({
   );
 
   // onSubmit rather than <form action>: React resets a form after every action,
-  // which would drop the radio selections while state still holds them.
+  // which would drop the radio and checkbox selections while state still holds them.
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     startTransition(() => submitAction(values));
@@ -177,7 +183,11 @@ function CategoryForm({
           </span>
           <div className="min-w-0">
             <div className="truncate text-sm font-semibold">{values.name.trim() || t("form.previewName")}</div>
-            <div className="text-[13px] text-muted-foreground">{t(`kinds.${values.kind as CategoryKind}`)}</div>
+            <div className="text-[13px] text-muted-foreground">
+              {CATEGORY_TYPES.filter((type) => values.types.includes(type))
+                .map((type) => t(`types.${type}`))
+                .join(" · ")}
+            </div>
           </div>
         </div>
 
@@ -197,21 +207,21 @@ function CategoryForm({
           error={errorText(fieldErrors.name)}
         />
 
-        <ChoiceGroup legend={t("form.kind")} error={errorText(fieldErrors.kind)} idPrefix={`${idPrefix}-kind`}>
+        <ChoiceGroup legend={t("form.types")} error={errorText(fieldErrors.types)} idPrefix={`${idPrefix}-types`}>
           <div className="flex gap-1 rounded-[11px] border border-border bg-muted p-1">
-            {CATEGORY_KINDS.map((kind, index) => (
-              <label key={kind} className="flex-1">
+            {CATEGORY_TYPES.map((type, index) => (
+              <label key={type} className="flex-1">
                 <input
-                  type="radio"
-                  name="kind"
-                  value={kind}
-                  checked={values.kind === kind}
-                  onChange={() => set("kind")(kind)}
-                  data-field={index === 0 ? `${idPrefix}-kind` : undefined}
+                  type="checkbox"
+                  name="types"
+                  value={type}
+                  checked={values.types.includes(type)}
+                  onChange={() => toggleType(type)}
+                  data-field={index === 0 ? `${idPrefix}-types` : undefined}
                   className="peer sr-only"
                 />
                 <span className="block cursor-pointer rounded-[8px] px-2 py-1.5 text-center text-[13px] font-medium text-muted-foreground peer-checked:bg-card peer-checked:font-semibold peer-checked:text-foreground peer-checked:shadow-sm peer-focus-visible:ring-2 peer-focus-visible:ring-ring">
-                  {t(`kinds.${kind}`)}
+                  {t(`types.${type}`)}
                 </span>
               </label>
             ))}
@@ -219,7 +229,7 @@ function CategoryForm({
         </ChoiceGroup>
 
         <ChoiceGroup legend={t("form.icon")} error={errorText(fieldErrors.icon)} idPrefix={`${idPrefix}-icon`}>
-          <div className="grid grid-cols-6 gap-2">
+          <div className="grid grid-cols-5 gap-2">
             {CATEGORY_ICON_KEYS.map((icon, index) => (
               <label key={icon} title={t(`icons.${icon}`)}>
                 <input
@@ -314,31 +324,5 @@ function CategoryForm({
         </div>
       </fieldset>
     </form>
-  );
-}
-
-/** A labelled group of choices (radios) with an inline error, like TextField's. */
-function ChoiceGroup({
-  legend,
-  error,
-  idPrefix,
-  children,
-}: {
-  legend: string;
-  error?: string;
-  idPrefix: string;
-  children: ReactNode;
-}) {
-  const errorId = `${idPrefix}-error`;
-  return (
-    <fieldset className="mb-[18px]" aria-describedby={error ? errorId : undefined}>
-      <legend className="mb-[7px] text-[13px] font-semibold">{legend}</legend>
-      {children}
-      {error && (
-        <p id={errorId} className="mt-1.5 text-xs font-medium text-destructive">
-          {error}
-        </p>
-      )}
-    </fieldset>
   );
 }

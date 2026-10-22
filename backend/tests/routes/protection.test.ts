@@ -33,6 +33,7 @@ const ROUTES: Array<{ router: Parameters<typeof dispatch>[0]; method: string; ur
   { router: transactionsRouter, method: "GET", url: "/summary" },
   { router: transactionsRouter, method: "GET", url: `/${validUuid}` },
   { router: transactionsRouter, method: "POST", url: "/" },
+  { router: transactionsRouter, method: "POST", url: "/transfers" },
   { router: transactionsRouter, method: "PATCH", url: `/${validUuid}` },
   { router: transactionsRouter, method: "DELETE", url: `/${validUuid}` },
 ];
