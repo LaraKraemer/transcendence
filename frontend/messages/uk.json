@@ -88,6 +88,24 @@
     "profile": "Профіль",
     "back": "Назад"
   },
+  "dashboard": {
+    "greeting": "Вітаємо, <name>{displayName}</name>",
+    "subtitle": "Ваш фінансовий огляд за {month}",
+    "netTitle": "Чистий баланс цього місяця",
+    "vsLastMonth": "{change} порівняно з минулим місяцем",
+    "summary": "Цього місяця ви отримали {income} і витратили {expenses}.",
+    "noActivity": "Цього місяця ще немає доходів і витрат.",
+    "accountBalance": "Баланс рахунку: {balance}",
+    "incomeVsExpense": "Доходи та витрати",
+    "income": "Доходи",
+    "expenses": "Витрати",
+    "spendingByCategory": "Витрати за категоріями",
+    "noSpending": "Цього місяця ще немає витрат.",
+    "latestTransactions": "Останні транзакції",
+    "latestCaption": "Останні транзакції рахунку {account}",
+    "viewAll": "Переглянути всі",
+    "loading": "Завантаження огляду…"
+  },
   "profile": {
     "subtitle": "Керуйте особистими даними та фото профілю",
     "editProfile": "Редагувати профіль",
