@@ -438,7 +438,8 @@ transactionsRouter.post("/transfers", async (req, res) => {
  * Transfers are created with POST /transfers.
  */
 transactionsRouter.post("/", async (req, res) => {
-  const { accountId, type, categoryId, amountMinor, description, notes, bookedOn, occurredAt } = req.body ?? {};
+  const { accountId, type, categoryId, amountMinor, description, merchant, notes, bookedOn, occurredAt } =
+    req.body ?? {};
 
   if (!isUuid(accountId)) {
     res.status(400).json({ error: "accountId must be a valid UUID" });
@@ -477,8 +478,9 @@ transactionsRouter.post("/", async (req, res) => {
     return;
   }
 
-  const merchant = parseOptionalText(req.body?.merchant === undefined ? null : req.body.merchant, 100);
-  if (merchant === undefined) {
+  // An omitted merchant is stored as null.
+  const merchantText = parseOptionalText(merchant ?? null, 100);
+  if (merchantText === undefined) {
     res.status(400).json({ error: "merchant must be a string of at most 100 characters or null" });
     return;
   }
@@ -507,7 +509,7 @@ transactionsRouter.post("/", async (req, res) => {
     ...(categoryId === undefined ? {} : { categoryId }),
     amountMinor,
     description: description.trim(),
-    merchant,
+    merchant: merchantText,
     ...(notes === undefined ? {} : { notes: notes.trim() }),
     bookedOn,
     ...(occurredAt === undefined ? {} : { occurredAt: occurredAt === null ? null : new Date(occurredAt) }),

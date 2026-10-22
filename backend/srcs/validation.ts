@@ -54,10 +54,16 @@ export function isJpegOrPng(header: Buffer): "image/jpeg" | "image/png" | null {
   return null;
 }
 
-/** Trims nullable text, treating blanks as null; undefined signals an invalid value. */
+/**
+ * Validates optional free text: trims it and maps blank or `null` to `null`.
+ * Returns `undefined` (not a valid value) when the input is not a string or exceeds `maxLength`
+ * trimmed characters (counted in UTF-16 units, like `description`). Callers handle an omitted
+ * field before calling, so `undefined` input is also rejected.
+ */
 export function parseOptionalText(value: unknown, maxLength: number): string | null | undefined {
   if (value === null) return null;
   if (typeof value !== "string") return undefined;
   const text = value.trim();
-  return text.length > maxLength ? undefined : text || null;
+  if (text.length > maxLength) return undefined;
+  return text === "" ? null : text;
 }
