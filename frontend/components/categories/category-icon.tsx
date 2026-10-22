@@ -16,6 +16,9 @@ import {
   Zap,
   type LucideIcon,
 } from "lucide-react";
+import type { CSSProperties } from "react";
+
+import { HEX_COLOR_PATTERN, readableOn } from "@/lib/validation";
 
 /**
  * The icons the category form offers, stored in the backend as their Lucide
@@ -46,6 +49,15 @@ export const CATEGORY_ICON_KEYS = Object.keys(CATEGORY_ICONS) as CategoryIconKey
 
 export function isCategoryIconKey(value: string): value is CategoryIconKey {
   return Object.hasOwn(CATEGORY_ICONS, value);
+}
+
+/**
+ * Style for an icon tile filled with the category's colour. The icon is white or black, whichever
+ * contrasts more, so any colour works in both themes. The backend validates colours, but an invalid
+ * one gives `undefined` (the tile's own background) rather than injecting bad CSS.
+ */
+export function categoryTileStyle(color: string): CSSProperties | undefined {
+  return HEX_COLOR_PATTERN.test(color) ? { backgroundColor: color, color: readableOn(color) } : undefined;
 }
 
 /**
