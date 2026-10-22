@@ -9,6 +9,7 @@ Next.js 16 (App Router), React 19, Tailwind 4. See the root `CLAUDE.md` for the 
 cp .env.example .env.local   # when running outside Docker
 npm run dev                  # http://localhost:3000
 npm run lint
+npm run check:format         # self-check for lib/format.ts (formatAmount)
 npm run build
 ```
 

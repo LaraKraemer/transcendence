@@ -1,6 +1,6 @@
 import { ArrowDownLeft, ArrowUpRight, Wallet, type LucideIcon } from "lucide-react";
 import type { Metadata } from "next";
-import { getFormatter, getTranslations } from "next-intl/server";
+import { getFormatter, getLocale, getTranslations } from "next-intl/server";
 import Link from "next/link";
 
 import { AccountSwitcher } from "@/components/transactions/account-switcher";
@@ -15,6 +15,7 @@ import {
   getCurrencies,
   notFoundOnMissingResource,
 } from "@/lib/dal";
+import { formatAmount } from "@/lib/format";
 import type { AccountBalance, Transaction, TransactionPage } from "@/lib/types";
 
 const TRANSACTIONS_LIMIT = 200;
@@ -48,6 +49,7 @@ export default async function AccountTransactionsPage({
   const [
     t,
     format,
+    locale,
     account,
     { items, total },
     activeCategories,
@@ -57,6 +59,7 @@ export default async function AccountTransactionsPage({
   ] = await Promise.all([
     getTranslations("transactions"),
     getFormatter(),
+    getLocale(),
     getAccount(accountId),
     fetchApiServer<TransactionPage>(
       `/transactions?${new URLSearchParams({ accountId, limit: String(TRANSACTIONS_LIMIT) })}`,
@@ -81,11 +84,7 @@ export default async function AccountTransactionsPage({
   const accountOption = { id: account.id, name: account.name, currencyCode: account.currencyCode, minorUnit };
   const categoryOptions = activeCategories.map(({ id, name, types }) => ({ id, name, types }));
   const money = (amountMinor: number) =>
-    format.number(amountMinor / 10 ** minorUnit, {
-      style: "currency",
-      currency: account.currencyCode,
-      signDisplay: "exceptZero",
-    });
+    formatAmount(amountMinor, account.currencyCode, minorUnit, locale, "exceptZero");
 
   const bookedOn = (date: string) => format.dateTime(new Date(date), { dateStyle: "medium", timeZone: "UTC" });
 
@@ -157,7 +156,7 @@ export default async function AccountTransactionsPage({
           value={
             balanceMinor === null
               ? "—"
-              : format.number(balanceMinor / 10 ** minorUnit, { style: "currency", currency: account.currencyCode })
+              : formatAmount(balanceMinor, account.currencyCode, minorUnit, locale)
           }
           valueClassName={balanceMinor !== null && balanceMinor < 0 ? "text-destructive" : ""}
           note={balanceMinor === null ? t("balanceUnavailable") : undefined}
