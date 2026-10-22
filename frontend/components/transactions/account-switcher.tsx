@@ -13,10 +13,12 @@ export function AccountSwitcher({
   accounts,
   currentAccountId,
   query,
+  page = "transactions",
 }: {
   accounts: { id: string; name: string }[];
   currentAccountId?: string;
   query: string;
+  page?: "transactions" | "dashboard";
 }) {
   const t = useTranslations("transactions");
   const router = useRouter();
@@ -32,7 +34,9 @@ export function AccountSwitcher({
     event.preventDefault();
     const accountId = new FormData(event.currentTarget).get("accountId");
     if (typeof accountId === "string" && accountId !== "" && accountId !== currentAccountId) {
-      router.push(`/accounts/${accountId}/transactions${query}`, { scroll: false });
+      const href =
+        page === "dashboard" ? `/dashboard?accountId=${accountId}` : `/accounts/${accountId}/transactions${query}`;
+      router.push(href, { scroll: false });
     }
   }
 

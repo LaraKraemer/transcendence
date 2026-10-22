@@ -88,6 +88,24 @@
     "profile": "Profile",
     "back": "Back"
   },
+  "dashboard": {
+    "greeting": "Hi, <name>{displayName}</name>",
+    "subtitle": "Your financial overview for {month}",
+    "netTitle": "Net balance this month",
+    "vsLastMonth": "{change} vs last month",
+    "summary": "You earned {income} and spent {expenses} this month.",
+    "noActivity": "No income or expenses booked this month yet.",
+    "accountBalance": "Account balance: {balance}",
+    "incomeVsExpense": "Income vs expenses",
+    "income": "Income",
+    "expenses": "Expenses",
+    "spendingByCategory": "Spending by category",
+    "noSpending": "No expenses booked this month yet.",
+    "latestTransactions": "Latest transactions",
+    "latestCaption": "Latest transactions for {account}",
+    "viewAll": "View all",
+    "loading": "Loading overview…"
+  },
   "profile": {
     "subtitle": "Manage your personal information and profile photo",
     "editProfile": "Edit Profile",

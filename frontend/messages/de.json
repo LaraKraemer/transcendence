@@ -88,6 +88,24 @@
     "profile": "Profil",
     "back": "Zurück"
   },
+  "dashboard": {
+    "greeting": "Hallo, <name>{displayName}</name>",
+    "subtitle": "Deine Finanzübersicht für {month}",
+    "netTitle": "Nettosaldo diesen Monat",
+    "vsLastMonth": "{change} zum Vormonat",
+    "summary": "Diesen Monat hast du {income} eingenommen und {expenses} ausgegeben.",
+    "noActivity": "Diesen Monat wurden noch keine Einnahmen oder Ausgaben gebucht.",
+    "accountBalance": "Kontostand: {balance}",
+    "incomeVsExpense": "Einnahmen und Ausgaben",
+    "income": "Einnahmen",
+    "expenses": "Ausgaben",
+    "spendingByCategory": "Ausgaben nach Kategorie",
+    "noSpending": "Diesen Monat wurden noch keine Ausgaben gebucht.",
+    "latestTransactions": "Letzte Transaktionen",
+    "latestCaption": "Letzte Transaktionen für {account}",
+    "viewAll": "Alle anzeigen",
+    "loading": "Übersicht wird geladen…"
+  },
   "profile": {
     "subtitle": "Verwalte deine persönlichen Daten und dein Profilfoto",
     "editProfile": "Profil bearbeiten",

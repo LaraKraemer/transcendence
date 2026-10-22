@@ -88,6 +88,24 @@
     "profile": "پروفایل",
     "back": "بازگشت"
   },
+  "dashboard": {
+    "greeting": "سلام، <name>{displayName}</name>",
+    "subtitle": "خلاصهٔ مالی شما برای {month}",
+    "netTitle": "تراز خالص این ماه",
+    "vsLastMonth": "{change} نسبت به ماه گذشته",
+    "summary": "این ماه {income} درآمد داشتید و {expenses} خرج کردید.",
+    "noActivity": "این ماه هنوز درآمد یا هزینه‌ای ثبت نشده است.",
+    "accountBalance": "موجودی حساب: {balance}",
+    "incomeVsExpense": "درآمد و هزینه",
+    "income": "درآمد",
+    "expenses": "هزینه‌ها",
+    "spendingByCategory": "هزینه‌ها بر اساس دسته‌بندی",
+    "noSpending": "این ماه هنوز هزینه‌ای ثبت نشده است.",
+    "latestTransactions": "آخرین تراکنش‌ها",
+    "latestCaption": "آخرین تراکنش‌های {account}",
+    "viewAll": "مشاهدهٔ همه",
+    "loading": "در حال بارگذاری نمای کلی…"
+  },
   "profile": {
     "subtitle": "اطلاعات شخصی و عکس پروفایل خود را مدیریت کنید",
     "editProfile": "ویرایش پروفایل",
