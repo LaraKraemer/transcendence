@@ -80,6 +80,7 @@ export const transactions = pgTable(
 
     description: text("description").notNull(),
     notes: text("notes"),
+    merchant: text("merchant_name"),
 
     // YYYY-MM-DD: this is the date used for filtering and reports.
     bookedOn: date("booked_on").notNull(),

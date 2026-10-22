@@ -103,7 +103,7 @@ erDiagram
         uuid        id                  PK
         uuid        account_id          FK  "NOT NULL -> ACCOUNT, ON DELETE CASCADE"
         uuid        category_id         FK  "NULL -> CATEGORY, ON DELETE SET NULL"
-        uuid        merchant_id         FK  "NULL -> MERCHANT"
+        text        merchant_name           "NULL — optional free text, at most 100 trimmed characters"
         uuid        created_by_id       FK  "NOT NULL -> APP_USER — who entered it"
         uuid        paid_by_id          FK  "NOT NULL -> APP_USER — who actually paid"
         text        type                    "NOT NULL — expense|income|transfer; CHECK sign matches (expense < 0, income > 0, transfer either)"
@@ -218,7 +218,6 @@ erDiagram
     CATEGORY        ||--o{ TRANSACTION       : "classifies"
     CATEGORY        ||--o{ CATEGORY          : "parent of"
     APP_USER        ||--o{ CATEGORY          : "customises"
-    MERCHANT        ||--o{ TRANSACTION       : "billed"
     CATEGORY        ||--o{ MERCHANT          : "defaults for"
     CURRENCY        ||--o{ TRANSACTION       : "denominates"
 

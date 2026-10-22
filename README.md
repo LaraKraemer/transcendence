@@ -321,6 +321,8 @@ category, deleted together.
 `DELETE /accounts/:accountId` permanently removes the owned account and all its transactions.
 `DELETE /transactions/:transactionId` permanently removes one transaction.
 
+Transactions accept an optional `merchant` (max 100 trimmed characters); `null` or blank clears it.
+
 <br>
 
 # Local API Testing

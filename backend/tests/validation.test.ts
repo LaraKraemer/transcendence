@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { isCurrencyCode, isDateOnly, isHexColor, isIsoTimestamp, isUuid } from "../srcs/validation.ts";
+import {
+  isCurrencyCode,
+  isDateOnly,
+  isHexColor,
+  isIsoTimestamp,
+  isUuid,
+  parseOptionalText,
+} from "../srcs/validation.ts";
 
 describe("isUuid", () => {
   it("accepts a valid v4 UUID", () => {
@@ -104,5 +111,29 @@ describe("isCurrencyCode", () => {
     ["undefined", undefined],
   ])("rejects %s", (_description, value) => {
     expect(isCurrencyCode(value)).toBe(false);
+  });
+});
+
+describe("parseOptionalText", () => {
+  it.each([
+    ["null", null, null],
+    ["an empty string", "", null],
+    ["whitespace only", " \t ", null],
+    ["text with surrounding whitespace", "  Cafe  ", "Cafe"],
+    ["exactly the maximum length", "a".repeat(100), "a".repeat(100)],
+    ["the maximum length after trimming", ` ${"a".repeat(100)} `, "a".repeat(100)],
+  ])("accepts %s", (_description, value, expected) => {
+    expect(parseOptionalText(value, 100)).toBe(expected);
+  });
+
+  it.each([
+    ["one character too long", "a".repeat(101)],
+    ["a number", 123],
+    ["a boolean", true],
+    ["an array", []],
+    ["an object", {}],
+    ["undefined", undefined],
+  ])("rejects %s", (_description, value) => {
+    expect(parseOptionalText(value, 100)).toBeUndefined();
   });
 });

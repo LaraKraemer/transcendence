@@ -16,7 +16,7 @@ import {
   updateTransaction,
   deleteTransaction,
 } from "../db/transactions.ts";
-import { isDateOnly, isIsoTimestamp, isUuid } from "../validation.ts";
+import { isDateOnly, isIsoTimestamp, isUuid, parseOptionalText } from "../validation.ts";
 
 function parsePaginationInt(value: unknown, defaultValue: number): number | null {
   if (value === undefined) return defaultValue;
@@ -233,6 +233,7 @@ transactionsRouter.patch("/:transactionId", async (req, res) => {
     amountMinor?: number;
     description?: string;
     notes?: string | null;
+    merchant?: string | null;
     bookedOn?: string;
     occurredAt?: Date | null;
     updatedAt: Date;
@@ -276,6 +277,16 @@ transactionsRouter.patch("/:transactionId", async (req, res) => {
       return;
     }
     updates.description = body.description.trim();
+    hasUpdates = true;
+  }
+
+  if (Object.hasOwn(body, "merchant")) {
+    const merchant = parseOptionalText(body.merchant, 100);
+    if (merchant === undefined) {
+      res.status(400).json({ error: "merchant must be a string of at most 100 characters or null" });
+      return;
+    }
+    updates.merchant = merchant;
     hasUpdates = true;
   }
 
@@ -427,7 +438,8 @@ transactionsRouter.post("/transfers", async (req, res) => {
  * Transfers are created with POST /transfers.
  */
 transactionsRouter.post("/", async (req, res) => {
-  const { accountId, type, categoryId, amountMinor, description, notes, bookedOn, occurredAt } = req.body ?? {};
+  const { accountId, type, categoryId, amountMinor, description, merchant, notes, bookedOn, occurredAt } =
+    req.body ?? {};
 
   if (!isUuid(accountId)) {
     res.status(400).json({ error: "accountId must be a valid UUID" });
@@ -466,6 +478,13 @@ transactionsRouter.post("/", async (req, res) => {
     return;
   }
 
+  // An omitted merchant is stored as null.
+  const merchantText = parseOptionalText(merchant ?? null, 100);
+  if (merchantText === undefined) {
+    res.status(400).json({ error: "merchant must be a string of at most 100 characters or null" });
+    return;
+  }
+
   const account = await findOwnedAccount(accountId, res.locals.userId);
   if (!account) {
     res.status(404).json({ error: "Account not found" });
@@ -490,6 +509,7 @@ transactionsRouter.post("/", async (req, res) => {
     ...(categoryId === undefined ? {} : { categoryId }),
     amountMinor,
     description: description.trim(),
+    merchant: merchantText,
     ...(notes === undefined ? {} : { notes: notes.trim() }),
     bookedOn,
     ...(occurredAt === undefined ? {} : { occurredAt: occurredAt === null ? null : new Date(occurredAt) }),
