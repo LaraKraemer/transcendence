@@ -81,6 +81,14 @@ export type TransactionPage = {
   total: number;
 };
 
+/** One row of `GET /transactions/summary`: the signed total and count per (category, type); null = uncategorised. */
+export type TransactionSummaryRow = {
+  categoryId: string | null;
+  type: TransactionType;
+  totalMinor: number;
+  count: number;
+};
+
 /**
  * A category, as returned by the backend's /categories endpoints. `types` are the transaction types
  * it can be used for (transfers have no category).
