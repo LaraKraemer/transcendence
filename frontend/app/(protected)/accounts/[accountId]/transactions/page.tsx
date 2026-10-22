@@ -86,7 +86,8 @@ export default async function AccountTransactionsPage({
   const money = (amountMinor: number) =>
     formatAmount(amountMinor, account.currencyCode, minorUnit, locale, "exceptZero");
 
-  const bookedOn = (date: string) => format.dateTime(new Date(date), { dateStyle: "medium", timeZone: "UTC" });
+  const bookedOn = (date: string) =>
+    format.dateTime(new Date(date), { dateStyle: "medium", timeZone: "UTC", calendar: "gregory" });
 
   const moneyInMinor = items.reduce((sum, tx) => (tx.amountMinor > 0 ? sum + tx.amountMinor : sum), 0);
   const moneyOutMinor = items.reduce((sum, tx) => (tx.amountMinor < 0 ? sum + tx.amountMinor : sum), 0);
