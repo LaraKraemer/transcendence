@@ -156,7 +156,7 @@ export default async function AccountTransactionsPage({
           value={
             balanceMinor === null
               ? "—"
-              : format.number(balanceMinor / 10 ** minorUnit, { style: "currency", currency: account.currencyCode })
+              : formatAmount(balanceMinor, account.currencyCode, minorUnit, locale)
           }
           valueClassName={balanceMinor !== null && balanceMinor < 0 ? "text-destructive" : ""}
           note={balanceMinor === null ? t("balanceUnavailable") : undefined}

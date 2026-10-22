@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, Pencil, Plus, Wallet, X } from "lucide-react";
-import { useFormatter, useLocale, useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { startTransition, useActionState, useEffect, useId, useState, type FormEvent } from "react";
@@ -17,6 +17,7 @@ import { Modal } from "@/components/ui/modal";
 import { SelectField } from "@/components/ui/select-field";
 import { TextField } from "@/components/ui/text-field";
 import { createTransaction, createTransfer, updateTransaction } from "@/lib/actions/transactions";
+import { formatAmount } from "@/lib/format";
 import { LAST_ACCOUNT_COOKIE } from "@/lib/last-account";
 import type { Category, Transaction } from "@/lib/types";
 import {
@@ -266,7 +267,6 @@ function TransactionForm(props: TransactionFormProps) {
   const t = useTranslations("transactions");
   const tCommon = useTranslations("common");
   const locale = useLocale();
-  const format = useFormatter();
   const announce = useAnnounce();
   const idPrefix = useId();
   const fieldId = (name: TransactionFields | "merchant") => `${idPrefix}-${name}`;
@@ -443,11 +443,7 @@ function TransactionForm(props: TransactionFormProps) {
                   <span
                     className={`tabular-nums ${props.transaction.amountMinor > 0 ? "text-success" : "text-destructive"}`}
                   >
-                    {format.number(props.transaction.amountMinor / 10 ** minorUnit, {
-                      style: "currency",
-                      currency: account.currencyCode,
-                      signDisplay: "exceptZero",
-                    })}
+                    {formatAmount(props.transaction.amountMinor, account.currencyCode, minorUnit, locale, "exceptZero")}
                   </span>
                   <span aria-hidden> · </span>
                   <span className="font-normal text-muted-foreground">
