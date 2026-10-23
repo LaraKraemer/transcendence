@@ -10,6 +10,7 @@ import type { ActionResponse, Transaction } from "@/lib/types";
 import {
   CATEGORY_TYPES,
   MAX_TRANSACTION_DESCRIPTION_LENGTH,
+  MAX_TRANSACTION_MERCHANT_LENGTH,
   changedFields,
   toPositiveMinorUnits,
   type EditableTransactionFields,
@@ -27,6 +28,10 @@ const CreateTransactionSchema = z.object({
     .max(MAX_TRANSACTION_DESCRIPTION_LENGTH, { error: "descriptionTooLong" satisfies TransactionErrorCode }),
   bookedOn: z.iso.date({ error: "dateInvalid" satisfies TransactionErrorCode }),
   categoryId: z.union([z.literal(""), z.uuid()], { error: "categoryInvalid" satisfies TransactionErrorCode }),
+  merchant: z
+    .string()
+    .trim()
+    .max(MAX_TRANSACTION_MERCHANT_LENGTH, { error: "merchantTooLong" satisfies TransactionErrorCode }),
   notes: z.string().trim(),
 });
 
@@ -42,6 +47,7 @@ export async function createTransaction(accountId: string, data: CreateTransacti
     description: String(data.description),
     bookedOn: String(data.bookedOn),
     categoryId: String(data.categoryId),
+    merchant: String(data.merchant),
     notes: String(data.notes),
   });
   const errors: Record<string, string[]> = parsed.success
@@ -60,7 +66,7 @@ export async function createTransaction(accountId: string, data: CreateTransacti
     return backendFailure(error, "createTransaction");
   }
 
-  const { type, description, bookedOn, categoryId, notes } = parsed.data;
+  const { type, description, bookedOn, categoryId, merchant, notes } = parsed.data;
   try {
     await fetchApiServer<Transaction>("/transactions", {
       method: "POST",
@@ -71,6 +77,7 @@ export async function createTransaction(accountId: string, data: CreateTransacti
         description,
         bookedOn,
         ...(categoryId === "" ? {} : { categoryId }),
+        ...(merchant === "" ? {} : { merchant }),
         ...(notes === "" ? {} : { notes }),
       }),
     });
@@ -85,6 +92,7 @@ export async function createTransaction(accountId: string, data: CreateTransacti
 const UpdateTransactionSchema = CreateTransactionSchema.pick({ description: true, bookedOn: true }).extend({
   categoryId: CreateTransactionSchema.shape.categoryId.transform((value) => value || null),
   notes: CreateTransactionSchema.shape.notes.transform((value) => value || null),
+  merchant: CreateTransactionSchema.shape.merchant.transform((value) => value || null),
 });
 
 export type UpdateTransactionInput = Record<keyof z.input<typeof UpdateTransactionSchema>, string>;
@@ -99,6 +107,7 @@ export async function updateTransaction(
   }
   const parsed = UpdateTransactionSchema.safeParse({
     description: String(data.description),
+    merchant: String(data.merchant),
     bookedOn: String(data.bookedOn),
     categoryId: String(data.categoryId),
     notes: String(data.notes),
@@ -128,6 +137,14 @@ export async function updateTransaction(
 }
 
 function transactionFailure(error: unknown, sentCategory: boolean, action: string): ActionResponse {
+  if (error instanceof ApiError && error.status === 400 && /^merchant/.test(error.message)) {
+    return {
+      success: false,
+      message: error.message,
+      status: error.status,
+      errors: { merchant: ["merchantTooLong"] },
+    };
+  }
   if (error instanceof ApiError && sentCategory && /category/i.test(error.message)) {
     return {
       success: false,

@@ -99,6 +99,7 @@ export function toMinorUnits(
 export const TRANSACTION_TYPES = ["expense", "income", "transfer"] as const;
 export type TransactionType = (typeof TRANSACTION_TYPES)[number];
 export const MAX_TRANSACTION_DESCRIPTION_LENGTH = 500;
+export const MAX_TRANSACTION_MERCHANT_LENGTH = 100;
 
 export const transactionErrorCodes = [
   "typeInvalid",
@@ -109,6 +110,7 @@ export const transactionErrorCodes = [
   "amountTooLarge",
   "descriptionRequired",
   "descriptionTooLong",
+  "merchantTooLong",
   "dateInvalid",
   "categoryInvalid",
   "toAccountInvalid",
@@ -147,6 +149,7 @@ export type EditableAccountFields = {
 /** The transaction fields the edit form can change (not the amount, type or account). */
 export type EditableTransactionFields = {
   description: string;
+  merchant: string | null;
   bookedOn: string;
   categoryId: string | null;
   notes: string | null;
