@@ -245,11 +245,13 @@
       "amountTooLarge": "این مبلغ بیش از حد بزرگ است",
       "descriptionRequired": "شرح را وارد کنید",
       "descriptionTooLong": "شرح حداکثر می‌تواند {max, number} نویسه باشد",
+      "merchantTooLong": "نام فروشنده حداکثر می‌تواند {max, number} نویسه باشد",
       "dateInvalid": "تاریخ معتبری انتخاب کنید",
       "categoryInvalid": "این دسته‌بندی دیگر در دسترس نیست. دسته‌بندی دیگری انتخاب کنید.",
       "toAccountInvalid": "حساب مقصد دیگری انتخاب کنید"
     },
     "newTransaction": "تراکنش جدید",
+    "merchant": "فروشنده",
     "form": {
       "title": "تراکنش جدید",
       "editTitle": "ویرایش تراکنش",

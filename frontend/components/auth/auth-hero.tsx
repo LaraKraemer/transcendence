@@ -48,7 +48,7 @@ export async function SignInHero() {
       <div className="mb-1.5 flex items-start justify-between">
         <div>
           <div className="text-xs text-muted-foreground">
-            {t("netBalance", { month: format.dateTime(new Date(2026, 7, 15), { month: "long" }) })}
+            {t("netBalance", { month: format.dateTime(new Date(2026, 7, 15), { month: "long", calendar: "gregory" }) })}
           </div>
           <div className="text-[26px] font-bold text-success">{format.number(1729.55, money)}</div>
         </div>

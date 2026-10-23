@@ -245,11 +245,13 @@
       "amountTooLarge": "Сума завелика",
       "descriptionRequired": "Введіть опис",
       "descriptionTooLong": "Опис може містити щонайбільше {max, number} символів",
+      "merchantTooLong": "Назва продавця може містити щонайбільше {max, number} символів",
       "dateInvalid": "Виберіть коректну дату",
       "categoryInvalid": "Ця категорія більше недоступна. Виберіть іншу.",
       "toAccountInvalid": "Виберіть інший рахунок для переказу"
     },
     "newTransaction": "Нова транзакція",
+    "merchant": "Продавець",
     "form": {
       "title": "Нова транзакція",
       "editTitle": "Редагування транзакції",

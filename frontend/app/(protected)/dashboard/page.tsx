@@ -311,7 +311,11 @@ export default async function DashboardPage({
                   noCategoryLabel={
                     tx.type === "transfer" ? t("transactions.form.types.transfer") : t("transactions.uncategorised")
                   }
-                  date={format.dateTime(new Date(tx.bookedOn), { dateStyle: "medium", timeZone: "UTC" })}
+                  date={format.dateTime(new Date(tx.bookedOn), {
+                    dateStyle: "medium",
+                    timeZone: "UTC",
+                    calendar: "gregory",
+                  })}
                   amount={money(tx.amountMinor, "exceptZero")}
                 />
               ))}

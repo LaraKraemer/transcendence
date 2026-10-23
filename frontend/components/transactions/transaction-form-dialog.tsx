@@ -23,6 +23,7 @@ import type { Category, Transaction } from "@/lib/types";
 import {
   MAX_NOTES_LENGTH,
   MAX_TRANSACTION_DESCRIPTION_LENGTH,
+  MAX_TRANSACTION_MERCHANT_LENGTH,
   TRANSACTION_TYPES,
   changedFields,
   isTransactionErrorCode,
@@ -32,7 +33,16 @@ import {
 } from "@/lib/validation";
 
 type TransactionFields =
-  "accountId" | "type" | "toAccountId" | "amount" | "toAmount" | "description" | "bookedOn" | "categoryId" | "notes";
+  | "accountId"
+  | "type"
+  | "toAccountId"
+  | "amount"
+  | "toAmount"
+  | "description"
+  | "merchant"
+  | "bookedOn"
+  | "categoryId"
+  | "notes";
 
 const FIELD_ORDER: TransactionFields[] = [
   "type",
@@ -40,6 +50,7 @@ const FIELD_ORDER: TransactionFields[] = [
   "amount",
   "toAmount",
   "description",
+  "merchant",
   "bookedOn",
   "categoryId",
 ];
@@ -238,6 +249,7 @@ export function EditTransactionButton({
 
 const editableFields = (transaction: Transaction): EditableTransactionFields => ({
   description: transaction.description,
+  merchant: transaction.merchant,
   bookedOn: transaction.bookedOn,
   categoryId: transaction.categoryId,
   notes: transaction.notes,
@@ -266,11 +278,10 @@ type TransactionFormProps = FormProps & {
 function TransactionForm(props: TransactionFormProps) {
   const { summaryId, accounts, allAccounts, categories, onDone, onPendingChange } = props;
   const t = useTranslations("transactions");
-  const tCommon = useTranslations("common");
   const locale = useLocale();
   const announce = useAnnounce();
   const idPrefix = useId();
-  const fieldId = (name: TransactionFields | "merchant") => `${idPrefix}-${name}`;
+  const fieldId = (name: TransactionFields) => `${idPrefix}-${name}`;
 
   const [values, setValues] = useState<Record<TransactionFields, string>>(() =>
     props.mode === "create"
@@ -281,6 +292,7 @@ function TransactionForm(props: TransactionFormProps) {
           amount: "",
           toAmount: "",
           description: "",
+          merchant: "",
           bookedOn: props.today,
           categoryId: "",
           notes: "",
@@ -292,6 +304,7 @@ function TransactionForm(props: TransactionFormProps) {
           amount: "",
           toAmount: "",
           description: props.transaction.description,
+          merchant: props.transaction.merchant ?? "",
           bookedOn: props.transaction.bookedOn,
           categoryId: props.transaction.categoryId ?? "",
           notes: props.transaction.notes ?? "",
@@ -365,6 +378,7 @@ function TransactionForm(props: TransactionFormProps) {
       Object.keys(
         changedFields(editableFields(props.transaction), {
           description: values.description.trim(),
+          merchant: values.merchant.trim(),
           bookedOn: values.bookedOn,
           categoryId: values.categoryId,
           notes: values.notes.trim(),
@@ -400,14 +414,13 @@ function TransactionForm(props: TransactionFormProps) {
     t(`errors.${code}`, {
       digits: forMinorUnit,
       example: (12.5).toFixed(forMinorUnit),
-      max: MAX_TRANSACTION_DESCRIPTION_LENGTH,
+      max: code === "merchantTooLong" ? MAX_TRANSACTION_MERCHANT_LENGTH : MAX_TRANSACTION_DESCRIPTION_LENGTH,
     });
 
   const byName = new Intl.Collator(locale).compare;
   const typeCategories = categories
     .filter((category) => category.types.some((allowed) => allowed === values.type))
     .sort((a, b) => byName(a.name, b.name));
-  const merchantHintId = `${fieldId("merchant")}-hint`;
 
   return (
     <form onSubmit={handleSubmit} noValidate>
@@ -546,18 +559,15 @@ function TransactionForm(props: TransactionFormProps) {
           error={errorText(fieldErrors.description)}
         />
 
-        {props.mode === "create" && (
+        {!isTransfer && (
           <TextField
             id={fieldId("merchant")}
+            {...field("merchant")}
             label={t("form.merchant")}
             type="text"
-            disabled
-            aria-describedby={merchantHintId}
-          >
-            <p id={merchantHintId} className="mt-1.5 text-xs text-muted-foreground">
-              {tCommon("comingSoon")}
-            </p>
-          </TextField>
+            maxLength={MAX_TRANSACTION_MERCHANT_LENGTH}
+            error={errorText(fieldErrors.merchant)}
+          />
         )}
 
         <div className={`grid gap-x-4 ${isTransfer ? "" : "sm:grid-cols-2"}`}>
