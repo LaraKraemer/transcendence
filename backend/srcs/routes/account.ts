@@ -49,7 +49,6 @@ accountsRouter.post("/", async (req, res) => {
     return;
   }
 
-  // Omitted optional text is stored as null.
   const institutionText = parseOptionalText(institution ?? null, TEXT_LIMITS.institution);
   if (institutionText === undefined) {
     res
