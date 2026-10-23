@@ -10,7 +10,7 @@ import {
   sumTransactions,
   updateAccount,
 } from "../db/accounts.ts";
-import { isCurrencyCode, isUuid } from "../validation.ts";
+import { isCurrencyCode, isUuid, parseOptionalText, parseRequiredText, TEXT_LIMITS } from "../validation.ts";
 
 const ACCOUNT_TYPES = ["checking", "savings", "cash"] as const;
 type AccountType = (typeof ACCOUNT_TYPES)[number];
@@ -33,8 +33,9 @@ accountsRouter.get("/", async (_req, res) => {
 accountsRouter.post("/", async (req, res) => {
   const { name, type, openingBalanceMinor, institution, accountRef, currencyCode } = req.body ?? {};
 
-  if (typeof name !== "string" || name.trim().length === 0 || name.trim().length > 100) {
-    res.status(400).json({ error: "name must be between 1 and 100 characters" });
+  const accountName = parseRequiredText(name, TEXT_LIMITS.accountName);
+  if (accountName === undefined) {
+    res.status(400).json({ error: `name must be between 1 and ${TEXT_LIMITS.accountName} characters` });
     return;
   }
 
@@ -48,13 +49,19 @@ accountsRouter.post("/", async (req, res) => {
     return;
   }
 
-  if (institution !== undefined && typeof institution !== "string") {
-    res.status(400).json({ error: "institution must be a string" });
+  const institutionText = parseOptionalText(institution ?? null, TEXT_LIMITS.institution);
+  if (institutionText === undefined) {
+    res
+      .status(400)
+      .json({ error: `institution must be a string of at most ${TEXT_LIMITS.institution} characters or null` });
     return;
   }
 
-  if (accountRef !== undefined && typeof accountRef !== "string") {
-    res.status(400).json({ error: "accountRef must be a string" });
+  const accountRefText = parseOptionalText(accountRef ?? null, TEXT_LIMITS.accountRef);
+  if (accountRefText === undefined) {
+    res
+      .status(400)
+      .json({ error: `accountRef must be a string of at most ${TEXT_LIMITS.accountRef} characters or null` });
     return;
   }
 
@@ -65,11 +72,11 @@ accountsRouter.post("/", async (req, res) => {
 
   const account = await insertAccount({
     userId: res.locals.userId,
-    name: name.trim(),
+    name: accountName,
     type,
     ...(openingBalanceMinor === undefined ? {} : { openingBalanceMinor }),
-    ...(institution === undefined ? {} : { institution: institution.trim() }),
-    ...(accountRef === undefined ? {} : { accountRef: accountRef.trim() }),
+    institution: institutionText,
+    accountRef: accountRefText,
     ...(currencyCode === undefined ? {} : { currencyCode }),
   });
 
@@ -129,11 +136,12 @@ accountsRouter.patch("/:accountId", async (req, res) => {
   } = {};
 
   if (Object.hasOwn(body, "name")) {
-    if (typeof body.name !== "string" || body.name.trim().length === 0 || body.name.trim().length > 100) {
-      res.status(400).json({ error: "name must be between 1 and 100 characters" });
+    const accountName = parseRequiredText(body.name, TEXT_LIMITS.accountName);
+    if (accountName === undefined) {
+      res.status(400).json({ error: `name must be between 1 and ${TEXT_LIMITS.accountName} characters` });
       return;
     }
-    updates.name = body.name.trim();
+    updates.name = accountName;
   }
 
   if (Object.hasOwn(body, "type")) {
@@ -154,11 +162,14 @@ accountsRouter.patch("/:accountId", async (req, res) => {
 
   for (const field of ["institution", "accountRef"] as const) {
     if (Object.hasOwn(body, field)) {
-      if (body[field] !== null && typeof body[field] !== "string") {
-        res.status(400).json({ error: `${field} must be a string or null` });
+      const text = parseOptionalText(body[field], TEXT_LIMITS[field]);
+      if (text === undefined) {
+        res
+          .status(400)
+          .json({ error: `${field} must be a string of at most ${TEXT_LIMITS[field]} characters or null` });
         return;
       }
-      updates[field] = body[field] === null ? null : body[field].trim();
+      updates[field] = text;
     }
   }
 

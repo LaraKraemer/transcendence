@@ -1,6 +1,20 @@
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const CURRENCY_CODE_PATTERN = /^[A-Z]{3}$/;
 
+/** Maximum lengths of text fields (UTF-16 units, after trimming). The frontend mirrors them in lib/validation.ts. */
+export const TEXT_LIMITS = {
+  email: 254,
+  displayName: 100,
+  accountName: 100,
+  institution: 100,
+  accountRef: 50,
+  categoryName: 80,
+  categoryIcon: 100,
+  description: 500,
+  merchant: 100,
+  notes: 2000,
+} as const;
+
 /** Returns whether a value is a valid UUID string. */
 export function isUuid(value: unknown): value is string {
   return typeof value === "string" && UUID_PATTERN.test(value);
@@ -33,11 +47,6 @@ export function isValidPassword(value: unknown): value is string {
   return typeof value === "string" && value.length >= 12 && Buffer.byteLength(value, "utf8") <= 72;
 }
 
-/** Returns whether a value is a valid display name (1–100 chars after trim). */
-export function isValidDisplayName(value: unknown): value is string {
-  return typeof value === "string" && value.trim().length >= 1 && value.trim().length <= 100;
-}
-
 // File format signatures (magic bytes): the first bytes of a file that identify
 // its format per spec, regardless of filename or Content-Type header. Using
 // these prevents a malicious upload from disguising a non-image as JPEG/PNG.
@@ -66,4 +75,14 @@ export function parseOptionalText(value: unknown, maxLength: number): string | n
   const text = value.trim();
   if (text.length > maxLength) return undefined;
   return text === "" ? null : text;
+}
+
+/**
+ * Validates required free text: returns it trimmed, or `undefined` when the input is not a string,
+ * blank, or longer than `maxLength` trimmed characters.
+ */
+export function parseRequiredText(value: unknown, maxLength: number): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const text = value.trim();
+  return text === "" || text.length > maxLength ? undefined : text;
 }

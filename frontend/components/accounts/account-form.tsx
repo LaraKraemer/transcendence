@@ -11,7 +11,14 @@ import { SelectField } from "@/components/ui/select-field";
 import { TextField } from "@/components/ui/text-field";
 import { createAccount, updateAccount } from "@/lib/actions/accounts";
 import type { Account, Currency } from "@/lib/types";
-import { ACCOUNT_TYPES, MAX_ACCOUNT_NAME_LENGTH, isAccountErrorCode, type AccountErrorCode } from "@/lib/validation";
+import {
+  ACCOUNT_TYPES,
+  MAX_ACCOUNT_NAME_LENGTH,
+  MAX_ACCOUNT_REF_LENGTH,
+  MAX_INSTITUTION_LENGTH,
+  isAccountErrorCode,
+  type AccountErrorCode,
+} from "@/lib/validation";
 
 type AccountFields = "name" | "type" | "currencyCode" | "openingBalance" | "institution" | "accountRef";
 
@@ -249,6 +256,7 @@ export function AccountForm(props: AccountFormProps) {
               {...field("institution")}
               label={t("form.institution")}
               type="text"
+              maxLength={MAX_INSTITUTION_LENGTH}
               placeholder={t("form.institutionPlaceholder")}
             />
           )}
@@ -278,6 +286,7 @@ export function AccountForm(props: AccountFormProps) {
             // Account numbers and IBANs read left to right in every language.
             dir="ltr"
             autoComplete="off"
+            maxLength={MAX_ACCOUNT_REF_LENGTH}
             placeholder={t("form.accountRefPlaceholder")}
           />
         )}

@@ -2,7 +2,17 @@
 //   node --experimental-strip-types lib/validation.check.mjs
 import assert from "node:assert/strict";
 
-import { changedCategoryFields, changedFields, contrastRatio, readableOn, toMinorUnits, toPositiveMinorUnits } from "./validation.ts";
+import {
+  MAX_ACCOUNT_REF_LENGTH,
+  MAX_INSTITUTION_LENGTH,
+  MAX_NOTES_LENGTH,
+  changedCategoryFields,
+  changedFields,
+  contrastRatio,
+  readableOn,
+  toMinorUnits,
+  toPositiveMinorUnits,
+} from "./validation.ts";
 
 assert.equal(toMinorUnits("100.50", 2), 10050);
 assert.equal(toMinorUnits("100.5", 2), 10050);
@@ -56,11 +66,28 @@ console.log("changedFields: ok");
 // changedCategoryFields: only what differs goes into the PATCH body
 const category = { name: "Food", icon: "utensils", color: "#4ADE80", types: ["expense"] };
 assert.deepEqual(changedCategoryFields(category, { ...category, color: "#4ade80" }), {}); // same color, other case
-assert.deepEqual(changedCategoryFields({ ...category, types: ["expense", "income"] }, { ...category, types: ["income", "expense"] }), {}); // same set
-assert.deepEqual(changedCategoryFields(category, { ...category, name: "Groceries", types: ["income"] }), { name: "Groceries", types: ["income"] });
-assert.deepEqual(changedCategoryFields(category, { ...category, types: ["expense", "income"] }), { types: ["expense", "income"] });
-assert.deepEqual(changedCategoryFields(category, { ...category, icon: "gift", color: "#DC2626" }), { icon: "gift", color: "#DC2626" });
+assert.deepEqual(
+  changedCategoryFields({ ...category, types: ["expense", "income"] }, { ...category, types: ["income", "expense"] }),
+  {},
+); // same set
+assert.deepEqual(changedCategoryFields(category, { ...category, name: "Groceries", types: ["income"] }), {
+  name: "Groceries",
+  types: ["income"],
+});
+assert.deepEqual(changedCategoryFields(category, { ...category, types: ["expense", "income"] }), {
+  types: ["expense", "income"],
+});
+assert.deepEqual(changedCategoryFields(category, { ...category, icon: "gift", color: "#DC2626" }), {
+  icon: "gift",
+  color: "#DC2626",
+});
 console.log("changedCategoryFields: ok");
+
+// The optional-text limits mirror TEXT_LIMITS in backend/srcs/validation.ts
+assert.equal(MAX_NOTES_LENGTH, 2000);
+assert.equal(MAX_INSTITUTION_LENGTH, 100);
+assert.equal(MAX_ACCOUNT_REF_LENGTH, 50);
+console.log("optional text limits: ok");
 
 // readableOn: the icon colour on a category tile always contrasts enough
 assert.equal(readableOn("#1E3352"), "#FFFFFF"); // navy → white

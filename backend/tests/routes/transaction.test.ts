@@ -428,7 +428,8 @@ describe("POST /transactions", () => {
     [{ ...validBody, bookedOn: undefined }, "bookedOn must use YYYY-MM-DD format"],
     [{ ...validBody, bookedOn: "2025/01/01" }, "bookedOn must use YYYY-MM-DD format"],
     [{ ...validBody, bookedOn: "2025-1-1" }, "bookedOn must use YYYY-MM-DD format"],
-    [{ ...validBody, notes: 123 }, "notes must be a string"],
+    [{ ...validBody, notes: 123 }, "notes must be a string of at most 2000 characters or null"],
+    [{ ...validBody, notes: "a".repeat(2001) }, "notes must be a string of at most 2000 characters or null"],
     [{ ...validBody, categoryId: "not-a-uuid" }, "categoryId must be a valid UUID"],
     [{ ...validBody, occurredAt: "not-a-date" }, "occurredAt must be a valid ISO 8601 timestamp or null"],
   ])("returns 400 for invalid body %j", async (body, error) => {
@@ -474,18 +475,32 @@ describe("POST /transactions", () => {
     expect(insertParams).not.toContain("  Coffee  ");
   });
 
+  it.each([["  "], [""], [null]])("stores blank notes %j as null", async (notes) => {
+    query.mockResolvedValueOnce({ rows: [acctRow()] });
+    query.mockResolvedValueOnce({ rows: [txRow()] });
+    await post({ ...validBody, notes });
+    const insertParams: unknown[] = query.mock.calls[1]![1];
+    expect(insertParams).not.toContain("");
+    expect(insertParams.filter((p) => p === null)).toHaveLength(2); // merchant and notes
+  });
+
+  it("accepts notes at the limit", async () => {
+    query.mockResolvedValueOnce({ rows: [acctRow()] });
+    query.mockResolvedValueOnce({ rows: [txRow()] });
+    expect((await post({ ...validBody, notes: "a".repeat(2000) })).status).toBe(201);
+  });
+
   it("omits optional fields not sent", async () => {
     query.mockResolvedValueOnce({ rows: [acctRow()] });
     query.mockResolvedValueOnce({ rows: [txRow()] });
     await post(validBody);
     // Drizzle uses "default" for omitted columns — params won't include explicit notes/occurredAt
     const insertParams: unknown[] = query.mock.calls[1]![1];
-    // Only type, amountMinor, description, bookedOn, userId, accountId are bound explicitly
-    // notes, occurredAt go in as default → not in params list
+    // merchant and notes are bound as null; occurredAt goes in as default → not in params list
     const insertSql: string = query.mock.calls[1]![0].text;
     expect(insertSql).toContain("default"); // confirms defaults are used
     expect(insertSql).not.toContain('"status"');
-    expect(insertParams).toEqual([accountId, userId, "expense", -1000, "Coffee", null, "2025-01-15"]);
+    expect(insertParams).toEqual([accountId, userId, "expense", -1000, "Coffee", null, null, "2025-01-15"]);
   });
 
   it("does not run category query when categoryId is not sent", async () => {
@@ -537,7 +552,8 @@ describe("PATCH /transactions/:transactionId", () => {
     [{ categoryId: "not-a-uuid" }, "categoryId must be a valid UUID or null"],
     [{ description: "" }, "description must be between 1 and 500 characters"],
     [{ description: "a".repeat(501) }, "description must be between 1 and 500 characters"],
-    [{ notes: 123 }, "notes must be a string or null"],
+    [{ notes: 123 }, "notes must be a string of at most 2000 characters or null"],
+    [{ notes: "a".repeat(2001) }, "notes must be a string of at most 2000 characters or null"],
     [{ bookedOn: "2025/01/01" }, "bookedOn must use YYYY-MM-DD format"],
     [{ occurredAt: "not-a-date" }, "occurredAt must be a valid ISO 8601 timestamp or null"],
   ])("returns 400 for invalid field %j (found tx)", async (body, error) => {
@@ -573,6 +589,15 @@ describe("PATCH /transactions/:transactionId", () => {
     const updateParams: unknown[] = query.mock.calls[1]![1];
     expect(updateParams).toContain(-2000);
     expect(updateParams).not.toContain("Coffee"); // description not updated
+  });
+
+  it("stores blank notes as null", async () => {
+    query.mockResolvedValueOnce({ rows: [txRow()] }); // findOwnedTransaction
+    query.mockResolvedValueOnce({ rows: [txRow()] });
+    await patch(transactionId, { notes: "  " });
+    const updateParams: unknown[] = query.mock.calls[1]![1];
+    expect(updateParams).toContain(null);
+    expect(updateParams).not.toContain("");
   });
 
   it("null clears notes, categoryId, occurredAt", async () => {
@@ -774,7 +799,8 @@ describe("POST /transactions/transfers", () => {
     [{ ...validBody, toAmountMinor: 2 ** 53 }, "toAmountMinor must be a positive safe integer"],
     [{ ...validBody, description: " " }, "description must be between 1 and 500 characters"],
     [{ ...validBody, bookedOn: "2025/01/15" }, "bookedOn must use YYYY-MM-DD format"],
-    [{ ...validBody, notes: 1 }, "notes must be a string"],
+    [{ ...validBody, notes: 1 }, "notes must be a string of at most 2000 characters or null"],
+    [{ ...validBody, notes: "a".repeat(2001) }, "notes must be a string of at most 2000 characters or null"],
     [{ ...validBody, occurredAt: "nope" }, "occurredAt must be a valid ISO 8601 timestamp or null"],
   ])("returns 400 for invalid body %j", async (body, error) => {
     expect(await post(body)).toEqual({ status: 400, body: { error } });

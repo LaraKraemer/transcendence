@@ -59,6 +59,8 @@ export function validateRegister({ email, displayName, password }: RegisterField
 export const ACCOUNT_TYPES = ["checking", "savings", "cash"] as const;
 export type AccountType = (typeof ACCOUNT_TYPES)[number];
 export const MAX_ACCOUNT_NAME_LENGTH = 100;
+export const MAX_INSTITUTION_LENGTH = 100;
+export const MAX_ACCOUNT_REF_LENGTH = 50;
 
 export const accountErrorCodes = [
   "nameRequired",
@@ -99,6 +101,7 @@ export function toMinorUnits(
 export const TRANSACTION_TYPES = ["expense", "income", "transfer"] as const;
 export type TransactionType = (typeof TRANSACTION_TYPES)[number];
 export const MAX_TRANSACTION_DESCRIPTION_LENGTH = 500;
+export const MAX_NOTES_LENGTH = 2000;
 export const MAX_TRANSACTION_MERCHANT_LENGTH = 100;
 
 export const transactionErrorCodes = [
