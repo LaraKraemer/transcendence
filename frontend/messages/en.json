@@ -245,11 +245,13 @@
       "amountTooLarge": "This amount is too large",
       "descriptionRequired": "Enter a description",
       "descriptionTooLong": "The description can be at most {max, number} characters",
+      "merchantTooLong": "The merchant can be at most {max, number} characters",
       "dateInvalid": "Choose a valid date",
       "categoryInvalid": "This category is no longer available. Choose another one.",
       "toAccountInvalid": "Choose a different account to transfer to"
     },
     "newTransaction": "New transaction",
+    "merchant": "Merchant",
     "form": {
       "title": "New transaction",
       "editTitle": "Edit transaction",
