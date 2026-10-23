@@ -1,4 +1,4 @@
-import { ArrowDownLeft, ArrowUpRight, Wallet, type LucideIcon } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Store, Wallet, type LucideIcon } from "lucide-react";
 import type { Metadata } from "next";
 import { getFormatter, getLocale, getTranslations } from "next-intl/server";
 import Link from "next/link";
@@ -230,6 +230,13 @@ export default async function AccountTransactionsPage({
                         <div className="font-semibold break-words">
                           <bdi>{tx.description}</bdi>
                         </div>
+                        {tx.merchant && (
+                          <div className="flex items-center gap-1 text-xs break-words text-muted-foreground sm:text-[13px]">
+                            <Store size={12} aria-hidden className="shrink-0" />
+                            <span className="sr-only">{t("merchant")}: </span>
+                            <bdi className="min-w-0">{tx.merchant}</bdi>
+                          </div>
+                        )}
                         {tx.notes && (
                           <div className="text-xs break-words text-muted-foreground sm:text-[13px]">
                             <bdi>{tx.notes}</bdi>
