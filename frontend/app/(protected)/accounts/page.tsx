@@ -1,6 +1,6 @@
 import { Banknote, Landmark, PiggyBank, Wallet, type LucideIcon } from "lucide-react";
 import type { Metadata } from "next";
-import { getFormatter, getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { Fragment, type ReactNode } from "react";
 
@@ -8,6 +8,7 @@ import { CreateAccountForm } from "@/components/accounts/account-form";
 import { AccountRowActions } from "@/components/accounts/account-row-actions";
 import { LiveStatusProvider } from "@/components/ui/live-status";
 import { fetchApiServer, getAccounts, getCurrencies } from "@/lib/dal";
+import { formatAmount } from "@/lib/format";
 import type { Account, AccountBalance } from "@/lib/types";
 import type { AccountType } from "@/lib/validation";
 
@@ -50,18 +51,17 @@ async function loadAccounts(): Promise<AccountWithBalance[]> {
  * language/theme switchers.
  */
 export default async function AccountsPage() {
-  const [t, format, accounts, currencies] = await Promise.all([
+  const [t, locale, accounts, currencies] = await Promise.all([
     getTranslations("accounts"),
-    getFormatter(),
+    getLocale(),
     loadAccounts(),
     getCurrencies(),
   ]);
 
-  // Minor units → amount: divide by 10^minorUnit (JPY 0, KWD 3). Accounts may use
-  // codes outside the catalogue; those fall back to the common 2 decimals.
+  // Accounts may use codes outside the catalogue; those fall back to the common 2 decimals.
   const minorUnits = new Map(currencies.map((c) => [c.code, c.minorUnit]));
   const money = (amountMinor: number, currency: string) =>
-    format.number(amountMinor / 10 ** (minorUnits.get(currency) ?? 2), { style: "currency", currency });
+    formatAmount(amountMinor, currency, minorUnits.get(currency) ?? 2, locale);
 
   // Balances in different currencies can't be added up, so total each currency
   // separately. With any balance unavailable the total would be wrong, so none is shown.

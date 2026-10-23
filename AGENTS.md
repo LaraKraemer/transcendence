@@ -72,7 +72,7 @@ The server applies migrations on startup. The currency table's creation migratio
 
 API smoke test (CI runs it too): copy `backend/bruno/.env.example` to `backend/bruno/.env`, set `TEST_PASSWORD` (at least 12 chars), then `cd backend/bruno && npx bru run --env local` with the stack running.
 
-Frontend (`cd frontend`): `npm run lint && npm run build` (matches CI).
+Frontend (`cd frontend`): `npm run lint && npm run check:format && npm run build` (matches CI). Format money with `formatAmount` from `lib/format.ts`; `check:format` is its self-check.
 
 ## Architecture
 
