@@ -9,7 +9,7 @@ import {
   listCategories,
   updateCategory,
 } from "../db/categories.ts";
-import { isHexColor, isUuid } from "../validation.ts";
+import { isHexColor, isUuid, parseRequiredText, TEXT_LIMITS } from "../validation.ts";
 
 // Transfers have no category, so a category is only ever for expenses and/or income.
 const CATEGORY_TYPES = ["expense", "income"] as const;
@@ -38,13 +38,15 @@ categoriesRouter.get("/", async (_req, res) => {
 categoriesRouter.post("/", async (req, res) => {
   const { name, icon, color, types: requestedTypes } = req.body ?? {};
 
-  if (typeof name !== "string" || name.trim().length === 0 || name.trim().length > 80) {
-    res.status(400).json({ error: "name must be between 1 and 80 characters" });
+  const categoryName = parseRequiredText(name, TEXT_LIMITS.categoryName);
+  if (categoryName === undefined) {
+    res.status(400).json({ error: `name must be between 1 and ${TEXT_LIMITS.categoryName} characters` });
     return;
   }
 
-  if (typeof icon !== "string" || icon.trim().length === 0 || icon.trim().length > 100) {
-    res.status(400).json({ error: "icon must be between 1 and 100 characters" });
+  const categoryIcon = parseRequiredText(icon, TEXT_LIMITS.categoryIcon);
+  if (categoryIcon === undefined) {
+    res.status(400).json({ error: `icon must be between 1 and ${TEXT_LIMITS.categoryIcon} characters` });
     return;
   }
 
@@ -59,7 +61,7 @@ categoriesRouter.post("/", async (req, res) => {
     return;
   }
 
-  const existingCategory = await findCategoryByName(res.locals.userId, name.trim());
+  const existingCategory = await findCategoryByName(res.locals.userId, categoryName);
   if (existingCategory) {
     res.status(409).json({ error: "A category with this name already exists" });
     return;
@@ -67,8 +69,8 @@ categoriesRouter.post("/", async (req, res) => {
 
   const category = await insertCategory({
     userId: res.locals.userId,
-    name: name.trim(),
-    icon: icon.trim(),
+    name: categoryName,
+    icon: categoryIcon,
     color: color.toUpperCase(),
     types,
   });
@@ -125,19 +127,21 @@ categoriesRouter.patch("/:categoryId", async (req, res) => {
   const updates: { name?: string; icon?: string; color?: string; types?: CategoryType[] } = {};
 
   if (Object.hasOwn(body, "name")) {
-    if (typeof body.name !== "string" || body.name.trim().length === 0 || body.name.trim().length > 80) {
-      res.status(400).json({ error: "name must be between 1 and 80 characters" });
+    const categoryName = parseRequiredText(body.name, TEXT_LIMITS.categoryName);
+    if (categoryName === undefined) {
+      res.status(400).json({ error: `name must be between 1 and ${TEXT_LIMITS.categoryName} characters` });
       return;
     }
-    updates.name = body.name.trim();
+    updates.name = categoryName;
   }
 
   if (Object.hasOwn(body, "icon")) {
-    if (typeof body.icon !== "string" || body.icon.trim().length === 0 || body.icon.trim().length > 100) {
-      res.status(400).json({ error: "icon must be between 1 and 100 characters" });
+    const categoryIcon = parseRequiredText(body.icon, TEXT_LIMITS.categoryIcon);
+    if (categoryIcon === undefined) {
+      res.status(400).json({ error: `icon must be between 1 and ${TEXT_LIMITS.categoryIcon} characters` });
       return;
     }
-    updates.icon = body.icon.trim();
+    updates.icon = categoryIcon;
   }
 
   if (Object.hasOwn(body, "color")) {

@@ -22,7 +22,7 @@ import {
   updateUserProfile,
 } from "../db/users.ts";
 import { deleteAvatar, readAvatar, writeAvatar } from "../storage.ts";
-import { isJpegOrPng, isValidDisplayName, isValidPassword } from "../validation.ts";
+import { isJpegOrPng, isValidPassword, parseRequiredText, TEXT_LIMITS } from "../validation.ts";
 
 export const authRouter = Router();
 const avatarMaxBytes = 5 * 1024 * 1024;
@@ -45,7 +45,7 @@ authRouter.post("/register", async (req, res) => {
   const { email, password, displayName } = req.body ?? {};
   const normalizedEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
 
-  if (!/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
+  if (normalizedEmail.length > TEXT_LIMITS.email || !/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
     res.status(400).json({ error: "A valid email is required" });
     return;
   }
@@ -53,8 +53,9 @@ authRouter.post("/register", async (req, res) => {
     res.status(400).json({ error: "Password must be 12 to 72 bytes" });
     return;
   }
-  if (!isValidDisplayName(displayName)) {
-    res.status(400).json({ error: "displayName must be between 1 and 100 characters" });
+  const displayNameText = parseRequiredText(displayName, TEXT_LIMITS.displayName);
+  if (displayNameText === undefined) {
+    res.status(400).json({ error: `displayName must be between 1 and ${TEXT_LIMITS.displayName} characters` });
     return;
   }
 
@@ -64,7 +65,7 @@ authRouter.post("/register", async (req, res) => {
     return;
   }
 
-  const user = await createUser(normalizedEmail, await hashPassword(password), displayName.trim());
+  const user = await createUser(normalizedEmail, await hashPassword(password), displayNameText);
   if (!user) throw new Error("User creation did not return a user");
   await createSession(req, res, user.id);
   res.status(201).json({ user: { ...user, avatarUrl: null } });
@@ -143,12 +144,13 @@ authRouter.patch("/me", requireAuthenticatedUser, async (req, res, next) => {
     return;
   }
   const { displayName } = body;
-  if (!isValidDisplayName(displayName)) {
-    res.status(400).json({ error: "displayName must be between 1 and 100 characters" });
+  const displayNameText = parseRequiredText(displayName, TEXT_LIMITS.displayName);
+  if (displayNameText === undefined) {
+    res.status(400).json({ error: `displayName must be between 1 and ${TEXT_LIMITS.displayName} characters` });
     return;
   }
   try {
-    const user = await updateUserProfile(res.locals.userId as string, { displayName: displayName.trim() });
+    const user = await updateUserProfile(res.locals.userId as string, { displayName: displayNameText });
     res.json({ user: user && toPublicUser(user) });
   } catch (error) {
     next(error);

@@ -21,6 +21,7 @@ import { formatAmount } from "@/lib/format";
 import { LAST_ACCOUNT_COOKIE } from "@/lib/last-account";
 import type { Category, Transaction } from "@/lib/types";
 import {
+  MAX_NOTES_LENGTH,
   MAX_TRANSACTION_DESCRIPTION_LENGTH,
   TRANSACTION_TYPES,
   changedFields,
@@ -309,7 +310,9 @@ function TransactionForm(props: TransactionFormProps) {
     setValues((prev) => ({
       ...prev,
       type,
-      categoryId: categories.find((category) => category.id === prev.categoryId)?.types.some((allowed) => allowed === type)
+      categoryId: categories
+        .find((category) => category.id === prev.categoryId)
+        ?.types.some((allowed) => allowed === type)
         ? prev.categoryId
         : "",
     }));
@@ -593,6 +596,7 @@ function TransactionForm(props: TransactionFormProps) {
             id={fieldId("notes")}
             {...field("notes")}
             rows={3}
+            maxLength={MAX_NOTES_LENGTH}
             placeholder={t("form.notesPlaceholder")}
             className="block w-full resize-y rounded-[11px] border border-input bg-field px-[15px] py-[13px] text-sm outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
           />

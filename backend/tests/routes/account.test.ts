@@ -249,9 +249,11 @@ describe("POST /accounts", () => {
   });
 
   it.each([
-    [{ ...validBody, institution: null }, "institution must be a string"],
-    [{ ...validBody, accountRef: 123 }, "accountRef must be a string"],
-  ])("rejects non-string institution/accountRef", async (body, error) => {
+    [{ ...validBody, institution: 123 }, "institution must be a string of at most 100 characters or null"],
+    [{ ...validBody, institution: "a".repeat(101) }, "institution must be a string of at most 100 characters or null"],
+    [{ ...validBody, accountRef: 123 }, "accountRef must be a string of at most 50 characters or null"],
+    [{ ...validBody, accountRef: "a".repeat(51) }, "accountRef must be a string of at most 50 characters or null"],
+  ])("rejects invalid institution/accountRef", async (body, error) => {
     expect(await post(body)).toEqual({ status: 400, body: { error } });
     expect(query).not.toHaveBeenCalled();
   });
@@ -284,6 +286,18 @@ describe("POST /accounts", () => {
     expect(insertParams).toContain("My Bank");
     expect(insertParams).toContain("ING");
     expect(insertParams).not.toContain("  My Bank  ");
+  });
+
+  it.each([
+    [{}, [null, null]],
+    [{ institution: " ", accountRef: "" }, [null, null]],
+    [{ institution: null, accountRef: null }, [null, null]],
+    [{ institution: "a".repeat(100), accountRef: "b".repeat(50) }, ["a".repeat(100), "b".repeat(50)]],
+  ])("stores blank or omitted institution/accountRef as null (%j)", async (extra, [institution, accountRef]) => {
+    query.mockResolvedValueOnce({ rows: [accountRow()] });
+    await post({ ...validBody, ...extra });
+    const insertParams: unknown[] = query.mock.calls[0]![1];
+    expect(insertParams.slice(-2)).toEqual(expect.arrayContaining([institution, accountRef]));
   });
 
   it("accepts openingBalanceMinor of 0 and negatives", async () => {
@@ -346,8 +360,10 @@ describe("PATCH /accounts/:accountId", () => {
     [{ type: "credit" }, "type must be checking, savings, or cash"],
     [{ openingBalanceMinor: 1.5 }, "openingBalanceMinor must be a safe integer"],
     [{ openingBalanceMinor: null }, "openingBalanceMinor must be a safe integer"],
-    [{ institution: 123 }, "institution must be a string or null"],
-    [{ accountRef: true }, "accountRef must be a string or null"],
+    [{ institution: 123 }, "institution must be a string of at most 100 characters or null"],
+    [{ institution: "a".repeat(101) }, "institution must be a string of at most 100 characters or null"],
+    [{ accountRef: true }, "accountRef must be a string of at most 50 characters or null"],
+    [{ accountRef: "a".repeat(51) }, "accountRef must be a string of at most 50 characters or null"],
     [{ currencyCode: "eur" }, "currencyCode must be a 3-letter uppercase ISO 4217 code (e.g. EUR, USD)"],
     [{ isArchived: "true" }, "isArchived must be a boolean"],
   ])("rejects invalid field %j", async (body, error) => {
@@ -415,6 +431,15 @@ describe("PATCH /accounts/:accountId", () => {
 
     await expect(patch(accountId, { currencyCode: "USD" })).rejects.toThrow();
     expect(query).toHaveBeenCalledTimes(2);
+  });
+
+  it("stores blank institution as null", async () => {
+    query.mockResolvedValueOnce({ rows: [accountRow()] });
+    query.mockResolvedValueOnce({ rows: [accountRow()] });
+    await patch(accountId, { institution: "  " });
+    const updateParams: unknown[] = query.mock.calls[1]![1];
+    expect(updateParams).toContain(null);
+    expect(updateParams).not.toContain("");
   });
 
   it("null clears institution and accountRef", async () => {

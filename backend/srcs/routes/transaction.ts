@@ -16,7 +16,14 @@ import {
   updateTransaction,
   deleteTransaction,
 } from "../db/transactions.ts";
-import { isDateOnly, isIsoTimestamp, isUuid, parseOptionalText } from "../validation.ts";
+import {
+  isDateOnly,
+  isIsoTimestamp,
+  isUuid,
+  parseOptionalText,
+  parseRequiredText,
+  TEXT_LIMITS,
+} from "../validation.ts";
 
 function parsePaginationInt(value: unknown, defaultValue: number): number | null {
   if (value === undefined) return defaultValue;
@@ -60,22 +67,29 @@ async function validateCategory(
     : { status: 400, error: `An ${type} transaction requires a category that allows ${type}` };
 }
 
-/** Validates the fields shared by regular transactions and transfers. Returns an error message, if any. */
-function validateEntryFields({
+/**
+ * Validates the fields shared by regular transactions and transfers. Returns an error message, or the
+ * trimmed `description` and `notes` (an omitted `notes` is stored as null).
+ */
+function parseEntryFields({
   description,
   bookedOn,
   notes,
   occurredAt,
-}: Record<string, unknown>): string | undefined {
-  if (typeof description !== "string" || description.trim().length === 0 || description.trim().length > 500) {
-    return "description must be between 1 and 500 characters";
+}: Record<string, unknown>): { error: string } | { description: string; notes: string | null } {
+  const descriptionText = parseRequiredText(description, TEXT_LIMITS.description);
+  if (descriptionText === undefined) {
+    return { error: `description must be between 1 and ${TEXT_LIMITS.description} characters` };
   }
-  if (!isDateOnly(bookedOn)) return "bookedOn must use YYYY-MM-DD format";
-  if (notes !== undefined && typeof notes !== "string") return "notes must be a string";
+  if (!isDateOnly(bookedOn)) return { error: "bookedOn must use YYYY-MM-DD format" };
+  const notesText = parseOptionalText(notes ?? null, TEXT_LIMITS.notes);
+  if (notesText === undefined) {
+    return { error: `notes must be a string of at most ${TEXT_LIMITS.notes} characters or null` };
+  }
   if (occurredAt !== undefined && occurredAt !== null && !isIsoTimestamp(occurredAt)) {
-    return "occurredAt must be a valid ISO 8601 timestamp or null";
+    return { error: "occurredAt must be a valid ISO 8601 timestamp or null" };
   }
-  return undefined;
+  return { description: descriptionText, notes: notesText };
 }
 
 export const transactionsRouter = Router();
@@ -268,22 +282,21 @@ transactionsRouter.patch("/:transactionId", async (req, res) => {
   }
 
   if (Object.hasOwn(body, "description")) {
-    if (
-      typeof body.description !== "string" ||
-      body.description.trim().length === 0 ||
-      body.description.trim().length > 500
-    ) {
-      res.status(400).json({ error: "description must be between 1 and 500 characters" });
+    const description = parseRequiredText(body.description, TEXT_LIMITS.description);
+    if (description === undefined) {
+      res.status(400).json({ error: `description must be between 1 and ${TEXT_LIMITS.description} characters` });
       return;
     }
-    updates.description = body.description.trim();
+    updates.description = description;
     hasUpdates = true;
   }
 
   if (Object.hasOwn(body, "merchant")) {
-    const merchant = parseOptionalText(body.merchant, 100);
+    const merchant = parseOptionalText(body.merchant, TEXT_LIMITS.merchant);
     if (merchant === undefined) {
-      res.status(400).json({ error: "merchant must be a string of at most 100 characters or null" });
+      res
+        .status(400)
+        .json({ error: `merchant must be a string of at most ${TEXT_LIMITS.merchant} characters or null` });
       return;
     }
     updates.merchant = merchant;
@@ -291,11 +304,12 @@ transactionsRouter.patch("/:transactionId", async (req, res) => {
   }
 
   if (Object.hasOwn(body, "notes")) {
-    if (body.notes !== null && typeof body.notes !== "string") {
-      res.status(400).json({ error: "notes must be a string or null" });
+    const notes = parseOptionalText(body.notes, TEXT_LIMITS.notes);
+    if (notes === undefined) {
+      res.status(400).json({ error: `notes must be a string of at most ${TEXT_LIMITS.notes} characters or null` });
       return;
     }
-    updates.notes = body.notes === null ? null : body.notes.trim();
+    updates.notes = notes;
     hasUpdates = true;
   }
 
@@ -392,9 +406,9 @@ transactionsRouter.post("/transfers", async (req, res) => {
     res.status(400).json({ error: "toAmountMinor must be a positive safe integer" });
     return;
   }
-  const fieldsError = validateEntryFields({ description, bookedOn, notes, occurredAt });
-  if (fieldsError) {
-    res.status(400).json({ error: fieldsError });
+  const fields = parseEntryFields({ description, bookedOn, notes, occurredAt });
+  if ("error" in fields) {
+    res.status(400).json({ error: fields.error });
     return;
   }
 
@@ -420,8 +434,8 @@ transactionsRouter.post("/transfers", async (req, res) => {
     createdById: res.locals.userId,
     type: "transfer",
     transferGroupId: randomUUID(),
-    description: description.trim(),
-    ...(notes === undefined ? {} : { notes: notes.trim() }),
+    description: fields.description,
+    notes: fields.notes,
     bookedOn,
     ...(occurredAt === undefined ? {} : { occurredAt: occurredAt === null ? null : new Date(occurredAt) }),
   };
@@ -467,9 +481,9 @@ transactionsRouter.post("/", async (req, res) => {
     return;
   }
 
-  const fieldsError = validateEntryFields({ description, bookedOn, notes, occurredAt });
-  if (fieldsError) {
-    res.status(400).json({ error: fieldsError });
+  const fields = parseEntryFields({ description, bookedOn, notes, occurredAt });
+  if ("error" in fields) {
+    res.status(400).json({ error: fields.error });
     return;
   }
 
@@ -478,10 +492,9 @@ transactionsRouter.post("/", async (req, res) => {
     return;
   }
 
-  // An omitted merchant is stored as null.
-  const merchantText = parseOptionalText(merchant ?? null, 100);
+  const merchantText = parseOptionalText(merchant ?? null, TEXT_LIMITS.merchant);
   if (merchantText === undefined) {
-    res.status(400).json({ error: "merchant must be a string of at most 100 characters or null" });
+    res.status(400).json({ error: `merchant must be a string of at most ${TEXT_LIMITS.merchant} characters or null` });
     return;
   }
 
@@ -508,9 +521,9 @@ transactionsRouter.post("/", async (req, res) => {
     type,
     ...(categoryId === undefined ? {} : { categoryId }),
     amountMinor,
-    description: description.trim(),
+    description: fields.description,
     merchant: merchantText,
-    ...(notes === undefined ? {} : { notes: notes.trim() }),
+    notes: fields.notes,
     bookedOn,
     ...(occurredAt === undefined ? {} : { occurredAt: occurredAt === null ? null : new Date(occurredAt) }),
   });

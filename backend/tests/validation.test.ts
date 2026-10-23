@@ -7,6 +7,7 @@ import {
   isIsoTimestamp,
   isUuid,
   parseOptionalText,
+  parseRequiredText,
 } from "../srcs/validation.ts";
 
 describe("isUuid", () => {
@@ -135,5 +136,27 @@ describe("parseOptionalText", () => {
     ["undefined", undefined],
   ])("rejects %s", (_description, value) => {
     expect(parseOptionalText(value, 100)).toBeUndefined();
+  });
+});
+
+describe("parseRequiredText", () => {
+  it.each([
+    ["text with surrounding whitespace", "  Cafe  ", "Cafe"],
+    ["exactly the maximum length", "a".repeat(100), "a".repeat(100)],
+    ["the maximum length after trimming", ` ${"a".repeat(100)} `, "a".repeat(100)],
+  ])("accepts %s", (_description, value, expected) => {
+    expect(parseRequiredText(value, 100)).toBe(expected);
+  });
+
+  it.each([
+    ["an empty string", ""],
+    ["whitespace only", " \t "],
+    ["one character too long", "a".repeat(101)],
+    ["null", null],
+    ["a number", 123],
+    ["an array", []],
+    ["undefined", undefined],
+  ])("rejects %s", (_description, value) => {
+    expect(parseRequiredText(value, 100)).toBeUndefined();
   });
 });

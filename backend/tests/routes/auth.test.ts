@@ -87,6 +87,7 @@ describe("POST /register", () => {
     ["not-an-email", "A valid email is required"],
     ["a@b", "A valid email is required"],
     ["  @example.com", "A valid email is required"],
+    [`${"a".repeat(250)}@b.co`, "A valid email is required"], // 255 characters
   ])("rejects invalid email %j", async (email, errorMsg) => {
     const result = await register({ email, password: "validpassword12", displayName: "Alice" });
     expect(result).toEqual({ status: 400, body: { error: errorMsg } });
