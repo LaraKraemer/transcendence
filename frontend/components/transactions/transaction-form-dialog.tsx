@@ -17,13 +17,14 @@ import { Modal } from "@/components/ui/modal";
 import { SelectField } from "@/components/ui/select-field";
 import { TextField } from "@/components/ui/text-field";
 import { createTransaction, createTransfer, updateTransaction } from "@/lib/actions/transactions";
-import { formatAmount } from "@/lib/format";
+import { formatAmount, transactionLabel } from "@/lib/format";
 import { LAST_ACCOUNT_COOKIE } from "@/lib/last-account";
 import type { Category, Transaction } from "@/lib/types";
 import {
   MAX_NOTES_LENGTH,
   MAX_TRANSACTION_DESCRIPTION_LENGTH,
   MAX_TRANSACTION_MERCHANT_LENGTH,
+  filterAmountInput,
   TRANSACTION_TYPES,
   changedFields,
   isTransactionErrorCode,
@@ -206,6 +207,11 @@ export function EditTransactionButton({
   // Set when saving finds the transaction deleted elsewhere: closing then reloads the list without it.
   const [gone, setGone] = useState(false);
   const summaryId = useId();
+  const description = transactionLabel(
+    transaction,
+    categories.find((category) => category.id === transaction.categoryId)?.name,
+    t(`form.types.${transaction.type}`),
+  );
 
   const close = () => {
     if (!gone) return setOpen(false);
@@ -219,8 +225,8 @@ export function EditTransactionButton({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        aria-label={t("edit", { description: transaction.description })}
-        title={t("edit", { description: transaction.description })}
+        aria-label={t("edit", { description })}
+        title={t("edit", { description })}
         className={`${iconButtonClasses} hover:text-foreground`}
       >
         <Pencil size={15} aria-hidden />
@@ -303,7 +309,7 @@ function TransactionForm(props: TransactionFormProps) {
           toAccountId: "",
           amount: "",
           toAmount: "",
-          description: props.transaction.description,
+          description: props.transaction.description ?? "",
           merchant: props.transaction.merchant ?? "",
           bookedOn: props.transaction.bookedOn,
           categoryId: props.transaction.categoryId ?? "",
@@ -313,7 +319,14 @@ function TransactionForm(props: TransactionFormProps) {
   const field = (name: TransactionFields) => ({
     name,
     value: values[name],
-    onChange: (e: { target: { value: string } }) => setValues((prev) => ({ ...prev, [name]: e.target.value })),
+    onChange: (e: { target: { value: string } }) =>
+      setValues((prev) => ({
+        ...prev,
+        [name]:
+          name === "amount" || name === "toAmount"
+            ? filterAmountInput(e.target.value, name === "amount" ? minorUnit : (toAccount?.minorUnit ?? 2))
+            : e.target.value,
+      })),
   });
   // The destination can't be the source account, so a source change may invalidate it.
   const changeSourceAccount = (accountId: string) =>
@@ -340,7 +353,14 @@ function TransactionForm(props: TransactionFormProps) {
               ? await createTransfer(accountId, submitted)
               : await createTransaction(accountId, submitted);
         if (result.success) {
-          const description = submitted.description.trim();
+          const description = transactionLabel(
+            {
+              description: submitted.description.trim(),
+              merchant: submitted.type === "transfer" ? null : submitted.merchant.trim(),
+            },
+            categories.find((category) => category.id === submitted.categoryId)?.name,
+            t(`form.types.${submitted.type as TransactionType}`),
+          );
           if (props.mode === "create") {
             announce(t("announcements.created", { description }));
             props.onCreated(accountId, description);
@@ -553,7 +573,6 @@ function TransactionForm(props: TransactionFormProps) {
           data-autofocus={props.mode === "edit" || undefined}
           label={t("form.description")}
           type="text"
-          required
           maxLength={MAX_TRANSACTION_DESCRIPTION_LENGTH}
           placeholder={t("form.descriptionPlaceholder")}
           error={errorText(fieldErrors.description)}
@@ -633,7 +652,11 @@ function TransactionForm(props: TransactionFormProps) {
             <DeleteTransactionButton
               variant="text"
               transactionId={props.transaction.id}
-              description={props.transaction.description}
+              description={transactionLabel(
+                props.transaction,
+                categories.find((category) => category.id === props.transaction.categoryId)?.name,
+                t(`form.types.${props.transaction.type}`),
+              )}
               isTransfer={props.transaction.type === "transfer"}
               focusAfterDeleteId={props.focusAfterDeleteId}
               onDeleted={props.onDeleted}

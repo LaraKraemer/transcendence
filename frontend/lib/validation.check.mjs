@@ -10,6 +10,7 @@ import {
   changedFields,
   contrastRatio,
   readableOn,
+  filterAmountInput,
   toMinorUnits,
   toPositiveMinorUnits,
 } from "./validation.ts";
@@ -27,7 +28,7 @@ assert.equal(toMinorUnits("1.5", 0), "amountDecimals");
 assert.equal(toMinorUnits(".", 2), "amountInvalid");
 assert.equal(toMinorUnits("-", 2), "amountInvalid");
 assert.equal(toMinorUnits("1e3", 2), "amountInvalid");
-assert.equal(toMinorUnits("12,50", 2), "amountInvalid");
+assert.equal(toMinorUnits("12,50", 2), 1250);
 assert.equal(toMinorUnits("abc", 2), "amountInvalid");
 assert.equal(toMinorUnits("99999999999999999", 2), "amountTooLarge"); // not a safe integer
 console.log("toMinorUnits: ok");
@@ -103,3 +104,11 @@ for (let i = 0; i < 4096; i++) {
   assert.ok(contrastRatio(hex, readableOn(hex)) >= 4.5, `${hex} on ${readableOn(hex)}`);
 }
 console.log("readableOn: ok");
+
+assert.equal(filterAmountInput("abc12,50xyz", 2), "12,50");
+assert.equal(filterAmountInput("12.3,4.5", 2), "12.345");
+assert.equal(filterAmountInput("12,50", 0), "1250");
+assert.equal(filterAmountInput("-12.50", 2), "12.50");
+assert.equal(filterAmountInput("-12,50", 2, true), "-12,50");
+assert.equal(filterAmountInput("12-50", 2, true), "1250");
+assert.equal(filterAmountInput("", 2), "");

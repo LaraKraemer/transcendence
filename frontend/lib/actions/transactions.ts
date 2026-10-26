@@ -24,7 +24,6 @@ const CreateTransactionSchema = z.object({
   description: z
     .string()
     .trim()
-    .min(1, { error: "descriptionRequired" satisfies TransactionErrorCode })
     .max(MAX_TRANSACTION_DESCRIPTION_LENGTH, { error: "descriptionTooLong" satisfies TransactionErrorCode }),
   bookedOn: z.iso.date({ error: "dateInvalid" satisfies TransactionErrorCode }),
   categoryId: z.union([z.literal(""), z.uuid()], { error: "categoryInvalid" satisfies TransactionErrorCode }),

@@ -78,6 +78,22 @@ export function isAccountErrorCode(value: unknown): value is AccountErrorCode {
   return typeof value === "string" && (accountErrorCodes as readonly string[]).includes(value);
 }
 
+/** Filters typing and pasted text; opening balances may also have a leading minus. */
+export function filterAmountInput(amount: string, minorUnit: number, allowNegative = false): string {
+  let hasSeparator = false;
+  return Array.from(amount)
+    .filter((character, index) => {
+      if (character >= "0" && character <= "9") return true;
+      if (allowNegative && character === "-" && index === 0) return true;
+      if (minorUnit > 0 && (character === "." || character === ",") && !hasSeparator) {
+        hasSeparator = true;
+        return true;
+      }
+      return false;
+    })
+    .join("");
+}
+
 /**
  * Converts a typed decimal amount ("100.50", ".5", "12.") to integer minor
  * units for a currency with `minorUnit` decimals, using string digits rather
@@ -88,7 +104,7 @@ export function toMinorUnits(
   amount: string,
   minorUnit: number,
 ): number | "amountInvalid" | "amountDecimals" | "amountTooLarge" {
-  const match = /^(-?)(\d*)(?:\.(\d*))?$/.exec(amount.trim());
+  const match = /^(-?)(\d*)(?:\.(\d*))?$/.exec(amount.trim().replace(",", "."));
   const [, sign = "", whole = "", fraction = ""] = match ?? [];
   if (!match || whole.length + fraction.length === 0) return "amountInvalid";
   if (fraction.length > minorUnit) return "amountDecimals";
@@ -151,7 +167,7 @@ export type EditableAccountFields = {
 
 /** The transaction fields the edit form can change (not the amount, type or account). */
 export type EditableTransactionFields = {
-  description: string;
+  description: string | null;
   merchant: string | null;
   bookedOn: string;
   categoryId: string | null;

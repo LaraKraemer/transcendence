@@ -112,7 +112,7 @@ erDiagram
         char3       currency_code       FK  "NOT NULL -> CURRENCY"
         numeric     fx_rate                 "NULL — rate to account currency if differing"
         text        direction               "NOT NULL — debit|credit (derivable from sign)"
-        text        description             "NULL — free text"
+        text        description             "NULL — optional free text; blank descriptions stored as NULL"
         text        notes                   "NULL"
         date        booked_on               "NOT NULL — the date users filter by"
         timestamptz occurred_at             "NULL — precise timestamp when known"

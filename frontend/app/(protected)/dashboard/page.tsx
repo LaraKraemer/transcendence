@@ -17,7 +17,7 @@ import {
   notFoundOnMissingResource,
 } from "@/lib/dal";
 import { currentMonth, monthRange, netChange, summarizeMonth } from "@/lib/dashboard";
-import { formatAmount } from "@/lib/format";
+import { formatAmount, transactionLabel } from "@/lib/format";
 import { LAST_ACCOUNT_COOKIE } from "@/lib/last-account";
 import type { AccountBalance, Category, Transaction, TransactionPage, TransactionSummaryRow } from "@/lib/types";
 
@@ -307,6 +307,7 @@ export default async function DashboardPage({
                 <LatestTransactionRow
                   key={tx.id}
                   transaction={tx}
+                  typeLabel={t(`transactions.form.types.${tx.type}`)}
                   category={tx.categoryId === null ? undefined : categories.get(tx.categoryId)}
                   noCategoryLabel={
                     tx.type === "transfer" ? t("transactions.form.types.transfer") : t("transactions.uncategorised")
@@ -366,12 +367,14 @@ function LatestTransactionRow({
   transaction: tx,
   category,
   noCategoryLabel,
+  typeLabel,
   date,
   amount,
 }: {
   transaction: Transaction;
   category: Category | undefined;
   noCategoryLabel: string;
+  typeLabel: string;
   date: string;
   amount: string;
 }) {
@@ -393,7 +396,7 @@ function LatestTransactionRow({
           </span>
           <div className="min-w-0">
             <div className="font-semibold break-words sm:font-medium">
-              <bdi>{tx.description}</bdi>
+              <bdi>{transactionLabel(tx, category?.name, typeLabel)}</bdi>
             </div>
             <div className="mt-0.5 text-xs text-muted-foreground sm:hidden">
               {categoryLabel}

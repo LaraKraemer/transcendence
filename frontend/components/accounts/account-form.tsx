@@ -17,6 +17,7 @@ import {
   MAX_ACCOUNT_REF_LENGTH,
   MAX_INSTITUTION_LENGTH,
   isAccountErrorCode,
+  filterAmountInput,
   type AccountErrorCode,
 } from "@/lib/validation";
 
@@ -122,7 +123,11 @@ export function AccountForm(props: AccountFormProps) {
   const field = (name: AccountFields) => ({
     name,
     value: values[name],
-    onChange: (e: { target: { value: string } }) => setValues((prev) => ({ ...prev, [name]: e.target.value })),
+    onChange: (e: { target: { value: string } }) =>
+      setValues((prev) => ({
+        ...prev,
+        [name]: name === "openingBalance" ? filterAmountInput(e.target.value, minorUnit, true) : e.target.value,
+      })),
   });
 
   const [{ fieldErrors, error }, submitAction, isPending] = useActionState(
