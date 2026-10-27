@@ -66,6 +66,8 @@ export type Transaction = {
   createdById: string;
   type: TransactionType;
   transferGroupId: string | null;
+  /** List responses only: the account of the transfer's other leg (null when that leg was deleted). */
+  transferAccountId?: string | null;
   amountMinor: number;
   description: string;
   merchant: string | null;

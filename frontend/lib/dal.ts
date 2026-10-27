@@ -67,6 +67,11 @@ export const getCurrencies = cache((): Promise<Currency[]> => fetchApiServer<Cur
  */
 export const getAccounts = cache((): Promise<Account[]> => fetchApiServer<Account[]>("/accounts"));
 
+/** Returns only the user's archived accounts from `GET /accounts?archived=true`, cached per request like getAccounts. */
+export const getArchivedAccounts = cache(
+  (): Promise<Account[]> => fetchApiServer<Account[]>("/accounts?archived=true"),
+);
+
 /** Returns the user's categories from `GET /categories`, cached per request like getAccounts. */
 export const getCategories = cache((): Promise<Category[]> => fetchApiServer<Category[]>("/categories"));
 

@@ -40,14 +40,13 @@ export function NavLinks({ variant }: { variant: keyof typeof variantClasses }) 
   const pathname = usePathname();
   const classes = variantClasses[variant];
   const items = variant === "tabs" ? [...NAV_ITEMS, MORE_ITEM] : NAV_ITEMS;
-  const sectionPath = /^\/accounts\/[^/]+\/transactions(\/|$)/.test(pathname) ? "/transactions" : pathname;
 
   return (
     <nav aria-label={t("mainNavigation")}>
       <ul className={classes.list}>
         {items.map(({ href, labelKey, icon: Icon }) => {
           // A nested route (/accounts/123) keeps its section highlighted.
-          const isActive = sectionPath === href || sectionPath.startsWith(`${href}/`);
+          const isActive = pathname === href || pathname.startsWith(`${href}/`);
           return (
             <li key={href}>
               <Link
