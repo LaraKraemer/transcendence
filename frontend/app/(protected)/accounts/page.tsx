@@ -1,21 +1,23 @@
-import { Banknote, Landmark, PiggyBank, Wallet, type LucideIcon } from "lucide-react";
+import { Banknote, ChevronDown, Landmark, PiggyBank, Wallet, type LucideIcon } from "lucide-react";
 import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { Fragment, type ReactNode } from "react";
 
 import { CreateAccountForm } from "@/components/accounts/account-form";
-import { AccountRowActions } from "@/components/accounts/account-row-actions";
+import { AccountRowActions, UnarchiveButton } from "@/components/accounts/account-row-actions";
 import { LiveStatusProvider } from "@/components/ui/live-status";
-import { fetchApiServer, getAccounts, getCurrencies } from "@/lib/dal";
+import { fetchApiServer, getAccounts, getArchivedAccounts, getCurrencies } from "@/lib/dal";
 import { formatAmount } from "@/lib/format";
 import type { Account, AccountBalance } from "@/lib/types";
 import type { AccountType } from "@/lib/validation";
 
 // `null` when the balance request failed: a wrong number that looks right is
 // worse than none in a money app, so the UI says "unavailable" instead.
-// Focus lands on the list heading after an archived row disappears.
+// Focus lands on the list heading after an archived or restored row disappears.
 const ACCOUNTS_HEADING_ID = "accounts-heading";
+// Badge colours for archived rows, shared with the "Archived" badge on /transactions.
+const ARCHIVED_STYLE = "bg-muted text-muted-foreground";
 
 type AccountWithBalance = Account & { balanceMinor: number | null };
 
@@ -30,9 +32,8 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("accountsTitle") };
 }
 
-/** Loads all non-archived accounts with their current balance (`null` if that request fails). */
-async function loadAccounts(): Promise<AccountWithBalance[]> {
-  const accounts = await getAccounts();
+/** Adds each account's current balance (`null` if that request fails). */
+async function withBalances(accounts: Account[]): Promise<AccountWithBalance[]> {
   const balances = await Promise.all(
     accounts.map((account) =>
       fetchApiServer<AccountBalance>(`/accounts/${account.id}/balance`).then(
@@ -51,10 +52,11 @@ async function loadAccounts(): Promise<AccountWithBalance[]> {
  * language/theme switchers.
  */
 export default async function AccountsPage() {
-  const [t, locale, accounts, currencies] = await Promise.all([
+  const [t, locale, accounts, archivedAccounts, currencies] = await Promise.all([
     getTranslations("accounts"),
     getLocale(),
-    loadAccounts(),
+    getAccounts().then(withBalances),
+    getArchivedAccounts().then(withBalances),
     getCurrencies(),
   ]);
 
@@ -122,65 +124,98 @@ export default async function AccountsPage() {
               <p className="py-10 text-center text-sm text-muted-foreground">{t("empty")}</p>
             ) : (
               <ul className="mt-1.5">
-                {accounts.map((account) => {
-                  const { icon: Icon, className } = TYPE_STYLE[account.type];
-                  return (
-                    <li
-                      key={account.id}
-                      // flex-wrap: the edit form (and, on phones, the action buttons) take their own line.
-                      className="flex flex-wrap items-center gap-x-3.5 gap-y-2 border-b border-border py-3.5 last:border-b-0"
-                    >
-                      <span
-                        className={`flex size-9.5 shrink-0 items-center justify-center rounded-[10px] ${className}`}
-                      >
-                        <Icon size={17} aria-hidden />
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        {/* Wraps the badge under the name on narrow screens instead of squeezing the name. */}
-                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                          <Link
-                            href={`/transactions?accountId=${account.id}`}
-                            className="max-w-full truncate text-sm font-semibold hover:underline"
-                          >
-                            {account.name}
-                          </Link>
-                          <span
-                            className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold tracking-wide uppercase ${className}`}
-                          >
-                            {t(`types.${account.type}`)}
-                          </span>
-                        </div>
-                        <div className="truncate text-[13px] text-muted-foreground">
-                          {account.institution
-                            ? `${account.currencyCode} · ${account.institution}`
-                            : account.currencyCode}
-                        </div>
-                      </div>
-                      {account.balanceMinor === null ? (
-                        <span className="ms-auto shrink-0 text-[13px] text-muted-foreground">
-                          {t("balanceUnavailable")}
-                        </span>
-                      ) : (
-                        <span
-                          className={`ms-auto shrink-0 text-sm font-semibold ${account.balanceMinor < 0 ? "text-destructive" : ""}`}
-                        >
-                          {money(account.balanceMinor, account.currencyCode)}
-                        </span>
-                      )}
-                      <AccountRowActions
-                        account={account}
-                        minorUnit={minorUnits.get(account.currencyCode) ?? 2}
-                        headingId={ACCOUNTS_HEADING_ID}
-                      />
-                    </li>
-                  );
-                })}
+                {accounts.map((account) => (
+                  <AccountRow key={account.id} account={account} money={money}>
+                    <AccountRowActions
+                      account={account}
+                      minorUnit={minorUnits.get(account.currencyCode) ?? 2}
+                      headingId={ACCOUNTS_HEADING_ID}
+                    />
+                  </AccountRow>
+                ))}
               </ul>
             )}
           </section>
+
+          {archivedAccounts.length > 0 && (
+            // Collapsed by default: archived accounts are rarely needed. Their totals stay out of the cards above.
+            <details className="group rounded-lg border border-border bg-card p-4 sm:p-6">
+              <summary className="flex cursor-pointer list-none items-center gap-2 rounded-[9px] text-base font-semibold focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none [&::-webkit-details-marker]:hidden">
+                <h2>{t("archivedTitle", { count: archivedAccounts.length })}</h2>
+                <ChevronDown size={17} aria-hidden className="shrink-0 transition-transform group-open:rotate-180" />
+              </summary>
+              <ul className="mt-1.5">
+                {archivedAccounts.map((account) => (
+                  <AccountRow key={account.id} account={account} money={money} archived>
+                    <UnarchiveButton account={account} headingId={ACCOUNTS_HEADING_ID} />
+                  </AccountRow>
+                ))}
+              </ul>
+            </details>
+          )}
         </div>
       </div>
     </LiveStatusProvider>
+  );
+}
+
+/**
+ * One account row: icon, name linking to its transactions, type (or "Archived")
+ * badge, balance, and the row's actions passed as `children`.
+ */
+async function AccountRow({
+  account,
+  money,
+  archived = false,
+  children,
+}: {
+  account: AccountWithBalance;
+  money: (amountMinor: number, currency: string) => string;
+  archived?: boolean;
+  children: ReactNode;
+}) {
+  const t = await getTranslations("accounts");
+  const { icon: Icon, className } = TYPE_STYLE[account.type];
+  return (
+    <li
+      // flex-wrap: the edit form (and, on phones, the action buttons) take their own line.
+      className="flex flex-wrap items-center gap-x-3.5 gap-y-2 border-b border-border py-3.5 last:border-b-0"
+    >
+      <span
+        className={`flex size-9.5 shrink-0 items-center justify-center rounded-[10px] ${archived ? ARCHIVED_STYLE : className}`}
+      >
+        <Icon size={17} aria-hidden />
+      </span>
+      <div className="min-w-0 flex-1">
+        {/* Wraps the badge under the name on narrow screens instead of squeezing the name. */}
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <Link
+            href={`/transactions?accountId=${account.id}`}
+            className="max-w-full truncate text-sm font-semibold hover:underline"
+          >
+            {account.name}
+          </Link>
+          <span
+            className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold tracking-wide uppercase ${archived ? ARCHIVED_STYLE : className}`}
+          >
+            {archived ? t("archived") : t(`types.${account.type}`)}
+          </span>
+        </div>
+        <div className="truncate text-[13px] text-muted-foreground">
+          {account.institution ? `${account.currencyCode} · ${account.institution}` : account.currencyCode}
+        </div>
+      </div>
+      {account.balanceMinor === null ? (
+        <span className="ms-auto shrink-0 text-[13px] text-muted-foreground">{t("balanceUnavailable")}</span>
+      ) : (
+        <span
+          className={`ms-auto shrink-0 text-sm font-semibold ${account.balanceMinor < 0 ? "text-destructive" : ""}`}
+        >
+          {money(account.balanceMinor, account.currencyCode)}
+        </span>
+      )}
+      {children}
+    </li>
   );
 }
 

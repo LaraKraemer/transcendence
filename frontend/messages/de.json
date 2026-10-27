@@ -175,9 +175,14 @@
       "generic": "Etwas ist schiefgelaufen. Bitte versuche es erneut."
     },
     "balanceUnavailable": "Saldo nicht verfügbar",
+    "archivedTitle": "Archiviert ({count})",
+    "archived": "Archiviert",
+    "unarchive": "Wiederherstellen",
+    "unarchiving": "Wird wiederhergestellt…",
     "actions": {
       "edit": "{name} bearbeiten",
-      "archive": "{name} archivieren"
+      "archive": "{name} archivieren",
+      "unarchive": "{name} wiederherstellen"
     },
     "archiveDialog": {
       "title": "„{name}“ archivieren?",
@@ -188,7 +193,8 @@
     "announcements": {
       "created": "„{name}“ angelegt",
       "saved": "„{name}“ gespeichert",
-      "archived": "„{name}“ archiviert"
+      "archived": "„{name}“ archiviert",
+      "restored": "„{name}“ wiederhergestellt"
     }
   },
   "transactions": {

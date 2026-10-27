@@ -175,9 +175,14 @@
       "generic": "Щось пішло не так. Спробуйте ще раз."
     },
     "balanceUnavailable": "Баланс недоступний",
+    "archivedTitle": "В архіві ({count})",
+    "archived": "В архіві",
+    "unarchive": "Відновити",
+    "unarchiving": "Відновлення…",
     "actions": {
       "edit": "Редагувати «{name}»",
-      "archive": "Архівувати «{name}»"
+      "archive": "Архівувати «{name}»",
+      "unarchive": "Відновити {name}"
     },
     "archiveDialog": {
       "title": "Архівувати «{name}»?",
@@ -188,7 +193,8 @@
     "announcements": {
       "created": "Рахунок «{name}» створено",
       "saved": "Зміни в «{name}» збережено",
-      "archived": "Рахунок «{name}» архівовано"
+      "archived": "Рахунок «{name}» архівовано",
+      "restored": "Рахунок «{name}» відновлено"
     }
   },
   "transactions": {
