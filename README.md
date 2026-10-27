@@ -388,7 +388,7 @@ with `TEST_DATABASE_URL` set using
 API startup applies migrations; CI waits for `/health`, then runs requests and
 prints the API log if a step fails.
 
-From `frontend/`, run `npm ci`, `npm run lint`, `npm run check:format` and `npm run build`.
+From `frontend/`, run `npm ci`, `npm run lint`, `npm run check:format`, `npm run check:transactions` and `npm run build`.
 Frontend CI runs lint, the `formatAmount` self-check and build. Both workflows run on relevant pull requests and pushes to
 `main`, with read-only repository permissions and cancellation of superseded runs.
 
