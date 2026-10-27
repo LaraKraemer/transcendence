@@ -21,11 +21,12 @@ export async function findOwnedAccount(accountId: string, userId: string, allowA
   return account;
 }
 
-export async function listActiveAccounts(userId: string) {
+/** Lists the user's active accounts, or only the archived ones. */
+export async function listAccounts(userId: string, isArchived: boolean) {
   return db
     .select()
     .from(accounts)
-    .where(and(eq(accounts.userId, userId), eq(accounts.isArchived, false)));
+    .where(and(eq(accounts.userId, userId), eq(accounts.isArchived, isArchived)));
 }
 
 export async function insertAccount(values: NewAccount) {
