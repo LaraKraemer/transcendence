@@ -10,7 +10,7 @@ import { getLocale } from "next-intl/server";
 import { z } from "zod";
 
 import { backendFailure } from "@/lib/action-errors";
-import { fetchApiServer, getCurrencies } from "@/lib/dal";
+import { fetchApiServer, getAccount, getCurrencies } from "@/lib/dal";
 import type { Account, ActionResponse } from "@/lib/types";
 import {
   ACCOUNT_TYPES,
@@ -89,6 +89,7 @@ export async function createAccount(data: CreateAccountInput): Promise<ActionRes
 }
 
 const UpdateAccountSchema = z.object({
+  openingBalance: z.string(),
   name: nameSchema,
   type: typeSchema,
   institution: optionalTextSchema,
@@ -112,6 +113,7 @@ export async function updateAccount(
     return { success: false, message: "Account not found", status: 404 };
   }
   const parsed = UpdateAccountSchema.safeParse({
+    openingBalance: String(data.openingBalance),
     name: String(data.name),
     type: String(data.type),
     institution: String(data.institution),
@@ -125,12 +127,20 @@ export async function updateAccount(
     };
   }
 
-  // `opened` only decides which fields to send; every value sent comes from the validated input.
-  const updates = changedFields(opened, parsed.data);
-  // Nothing changed: the backend would reject an empty PATCH, and there is nothing to save or reload.
-  if (Object.keys(updates).length === 0) return { success: true, message: "No changes" };
-
   try {
+    // Read currency from the owned account, never from client-supplied form metadata.
+    const account = await getAccount(accountId);
+    const currency = (await getCurrencies()).find((currency) => currency.code === account.currencyCode);
+    const { openingBalance, ...fields } = parsed.data;
+    const openingBalanceMinor = toMinorUnits(openingBalance, currency?.minorUnit ?? 2, await getLocale());
+    if (typeof openingBalanceMinor === "string") {
+      return { success: false, message: "Validation failed", errors: { openingBalance: [openingBalanceMinor] } };
+    }
+
+    // `opened` only decides which fields to send; sent values come from validated input.
+    const updates = changedFields(opened, { ...fields, openingBalanceMinor });
+    if (Object.keys(updates).length === 0) return { success: true, message: "No changes" };
+
     await fetchApiServer<Account>(`/accounts/${accountId}`, { method: "PATCH", body: JSON.stringify(updates) });
   } catch (error) {
     return backendFailure(error, "updateAccount");

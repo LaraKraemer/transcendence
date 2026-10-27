@@ -78,12 +78,13 @@ export function isAccountErrorCode(value: unknown): value is AccountErrorCode {
   return typeof value === "string" && (accountErrorCodes as readonly string[]).includes(value);
 }
 
-/** Formats the unsigned edit value without floating-point rounding. */
-export function amountInputValue(amountMinor: number, minorUnit: number): string {
+/** Formats an edit value exactly; transactions use magnitude, opening balances preserve the sign. */
+export function amountInputValue(amountMinor: number, minorUnit: number, allowNegative = false): string {
   const digits = Math.abs(amountMinor)
     .toString()
     .padStart(minorUnit + 1, "0");
-  return minorUnit === 0 ? digits : `${digits.slice(0, -minorUnit)}.${digits.slice(-minorUnit)}`;
+  const magnitude = minorUnit === 0 ? digits : `${digits.slice(0, -minorUnit)}.${digits.slice(-minorUnit)}`;
+  return `${allowNegative && amountMinor < 0 ? "-" : ""}${magnitude}`;
 }
 
 /** Keeps separators for validation, even for JPY, so filtering cannot multiply a pasted amount. */
@@ -171,6 +172,7 @@ export function toPositiveMinorUnits(
 
 /** The account fields the edit form can change. */
 export type EditableAccountFields = {
+  openingBalanceMinor: number;
   name: string;
   type: AccountType;
   institution: string | null;
@@ -191,11 +193,11 @@ export type EditableTransactionFields = {
  * (`/accounts/:id`, `/transactions/:id`). An empty optional text and `null`
  * both mean "not set", so switching between them is not a change.
  */
-export function changedFields<Fields extends Record<string, string | null>>(
+export function changedFields<Fields extends Record<string, string | number | null>>(
   original: Fields,
   next: Fields,
 ): Partial<Fields> {
-  const notSetIsNull = (value: string | null) => (value === "" ? null : value);
+  const notSetIsNull = (value: string | number | null) => (value === "" ? null : value);
   return Object.fromEntries(
     (Object.keys(next) as (keyof Fields)[])
       .filter((field) => notSetIsNull(next[field]) !== notSetIsNull(original[field]))

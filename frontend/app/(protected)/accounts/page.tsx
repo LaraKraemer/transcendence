@@ -167,7 +167,11 @@ export default async function AccountsPage() {
                           {money(account.balanceMinor, account.currencyCode)}
                         </span>
                       )}
-                      <AccountRowActions account={account} headingId={ACCOUNTS_HEADING_ID} />
+                      <AccountRowActions
+                        account={account}
+                        minorUnit={minorUnits.get(account.currencyCode) ?? 2}
+                        headingId={ACCOUNTS_HEADING_ID}
+                      />
                     </li>
                   );
                 })}

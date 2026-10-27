@@ -18,6 +18,7 @@ import {
   MAX_INSTITUTION_LENGTH,
   isAccountErrorCode,
   filterAmountInput,
+  amountInputValue,
   type AccountErrorCode,
 } from "@/lib/validation";
 
@@ -81,13 +82,13 @@ export function CreateAccountForm({ currencies }: { currencies: Currency[] }) {
 }
 
 type AccountFormProps = { onClose: () => void } & (
-  { mode: "create"; currencies: Currency[] } | { mode: "edit"; account: Account }
+  { mode: "create"; currencies: Currency[] } | { mode: "edit"; account: Account; minorUnit: number }
 );
 
 /**
  * The account form, shared by create (name, type, currency, opening balance)
- * and edit (name, type, institution, account reference; currency and opening
- * balance stay as they are). Validation, error display and focus handling are the same.
+ * and edit (name, type, opening balance, institution, account reference).
+ * Validation, error display and focus handling are the same.
  */
 export function AccountForm(props: AccountFormProps) {
   const { mode, onClose } = props;
@@ -115,7 +116,7 @@ export function AccountForm(props: AccountFormProps) {
           name: props.account.name,
           type: props.account.type,
           currencyCode: props.account.currencyCode,
-          openingBalance: "",
+          openingBalance: amountInputValue(props.account.openingBalanceMinor, props.minorUnit, true),
           institution: props.account.institution ?? "",
           accountRef: props.account.accountRef ?? "",
         },
@@ -145,12 +146,14 @@ export function AccountForm(props: AccountFormProps) {
                 props.account.id,
                 // What the form was opened with, so only fields the user changed are sent.
                 {
+                  openingBalanceMinor: props.account.openingBalanceMinor,
                   name: props.account.name,
                   type: props.account.type,
                   institution: props.account.institution,
                   accountRef: props.account.accountRef,
                 },
                 {
+                  openingBalance: submitted.openingBalance,
                   name: submitted.name,
                   type: submitted.type,
                   institution: submitted.institution,
@@ -172,7 +175,10 @@ export function AccountForm(props: AccountFormProps) {
         );
         return Object.keys(fieldErrors).length > 0
           ? { fieldErrors, error: null }
-          : { fieldErrors: {}, error: formErrorFor(result) === "network" ? "network" : "generic" };
+          : {
+              fieldErrors: {},
+              error: formErrorFor(result) === "network" ? "network" : "generic",
+            };
       } catch {
         // The action call itself failed (offline, Next server down).
         return { fieldErrors: {}, error: "network" };
@@ -197,7 +203,8 @@ export function AccountForm(props: AccountFormProps) {
 
   // Currency names in the user's language; the catalogue's names are English.
   const currencyNames = new Intl.DisplayNames(locale, { type: "currency" });
-  const minorUnit = currencies.find((c) => c.code === values.currencyCode)?.minorUnit ?? 2;
+  const minorUnit =
+    mode === "edit" ? props.minorUnit : (currencies.find((c) => c.code === values.currencyCode)?.minorUnit ?? 2);
   const errorText = (code: AccountErrorCode) =>
     t(`errors.${code}`, { digits: minorUnit, example: (12.5).toFixed(minorUnit) });
   const headingId = `${idPrefix}-heading`;
@@ -267,22 +274,21 @@ export function AccountForm(props: AccountFormProps) {
           )}
         </div>
 
-        {mode === "create" ? (
-          <TextField
-            id={fieldId("openingBalance")}
-            {...field("openingBalance")}
-            label={t("form.openingBalance")}
-            // Text, not number: a number input submits "" for input it can't parse
-            // (e.g. "12."), which would silently save 0. The server parses the text
-            // and the currency decides how many decimals are allowed (JPY 0, KWD 3).
-            type="text"
-            dir="ltr"
-            inputMode={minorUnit === 0 ? "numeric" : "decimal"}
-            autoComplete="off"
-            placeholder={(0).toFixed(minorUnit)}
-            error={fieldErrors.openingBalance && errorText(fieldErrors.openingBalance)}
-          />
-        ) : (
+        <TextField
+          id={fieldId("openingBalance")}
+          {...field("openingBalance")}
+          label={t("form.openingBalance")}
+          // Text, not number: a number input submits "" for input it can't parse
+          // (e.g. "12."), which would silently save 0. The server parses the text
+          // and the currency decides how many decimals are allowed (JPY 0, KWD 3).
+          type="text"
+          dir="ltr"
+          inputMode={minorUnit === 0 ? "numeric" : "decimal"}
+          autoComplete="off"
+          placeholder={(0).toFixed(minorUnit)}
+          error={fieldErrors.openingBalance && errorText(fieldErrors.openingBalance)}
+        />
+        {mode === "edit" && (
           <TextField
             id={fieldId("accountRef")}
             {...field("accountRef")}
