@@ -164,7 +164,6 @@
       "saving": "Saving…"
     },
     "errors": {
-      "accountArchived": "This account is archived. Restore it before making changes.",
       "nameRequired": "Enter a name for the account",
       "nameTooLong": "The name is too long",
       "typeInvalid": "Choose an account type",

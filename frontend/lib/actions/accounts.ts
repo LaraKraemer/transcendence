@@ -130,9 +130,6 @@ export async function updateAccount(
   try {
     // Read currency from the owned account, never from client-supplied form metadata.
     const account = await getAccount(accountId);
-    if (account.isArchived) {
-      return { success: false, message: "Restore the account before editing", status: 409 };
-    }
     const currency = (await getCurrencies()).find((currency) => currency.code === account.currencyCode);
     const { openingBalance, ...fields } = parsed.data;
     const openingBalanceMinor = toMinorUnits(openingBalance, currency?.minorUnit ?? 2, await getLocale());

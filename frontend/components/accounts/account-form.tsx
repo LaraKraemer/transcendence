@@ -30,7 +30,7 @@ const FIELD_ORDER: AccountFields[] = ["name", "type", "currencyCode", "openingBa
 // Errors are stored as codes, so they re-translate if the language changes.
 type FormState = {
   fieldErrors: Partial<Record<AccountFields, AccountErrorCode>>;
-  error: "network" | "generic" | "accountArchived" | null;
+  error: "network" | "generic" | null;
 };
 
 const initialState: FormState = { fieldErrors: {}, error: null };
@@ -177,8 +177,7 @@ export function AccountForm(props: AccountFormProps) {
           ? { fieldErrors, error: null }
           : {
               fieldErrors: {},
-              error:
-                result.status === 409 ? "accountArchived" : formErrorFor(result) === "network" ? "network" : "generic",
+              error: formErrorFor(result) === "network" ? "network" : "generic",
             };
       } catch {
         // The action call itself failed (offline, Next server down).

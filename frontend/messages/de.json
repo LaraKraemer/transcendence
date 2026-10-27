@@ -164,7 +164,6 @@
       "saving": "Wird gespeichert…"
     },
     "errors": {
-      "accountArchived": "Dieses Konto ist archiviert. Stelle es wieder her, bevor du Änderungen vornimmst.",
       "nameRequired": "Gib einen Namen für das Konto ein",
       "nameTooLong": "Der Name ist zu lang",
       "typeInvalid": "Wähle eine Kontoart",
