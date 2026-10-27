@@ -101,7 +101,6 @@ export default async function DashboardPage({
         <AccountSwitcher
           accounts={accounts.some((other) => other.id === account.id) ? accounts : [account, ...accounts]}
           currentAccountId={account.id}
-          query=""
           page="dashboard"
         />
       )}
@@ -271,7 +270,7 @@ export default async function DashboardPage({
           </h2>
           {latest.total > 0 && (
             <Link
-              href={`/accounts/${account.id}/transactions`}
+              href={`/transactions?accountId=${account.id}`}
               aria-describedby={LATEST_HEADING_ID}
               className={`flex items-center gap-1 rounded-sm text-[13px] font-semibold text-primary hover:underline dark:text-accent-foreground ${focusRing}`}
             >

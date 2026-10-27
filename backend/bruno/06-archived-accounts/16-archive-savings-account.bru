@@ -1,0 +1,28 @@
+meta {
+  name: 16 - Archive savings account
+  type: http
+  seq: 17
+}
+
+patch {
+  url: {{baseUrl}}/accounts/{{savingsAccountId}}
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "isArchived": true
+  }
+}
+
+tests {
+  test("savings account is archived", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().isArchived).to.equal(true);
+  });
+}
