@@ -268,7 +268,7 @@
       "amount": "مبلغ ({currency})",
       "amountSent": "مبلغ ارسالی ({currency})",
       "amountReceived": "مبلغ دریافتی ({currency})",
-      "description": "شرح",
+      "description": "شرح (اختیاری)",
       "descriptionPlaceholder": "مثلاً خرید هفتگی",
       "merchant": "فروشنده (اختیاری)",
       "date": "تاریخ",

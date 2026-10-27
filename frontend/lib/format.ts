@@ -21,3 +21,12 @@ export function formatAmount(
     maximumFractionDigits: minorUnit,
   }).format(amountMinor / 10 ** minorUnit);
 }
+
+/** A readable transaction name, including when optional details are absent. */
+export function transactionLabel(
+  transaction: { description: string | null; merchant: string | null },
+  categoryName: string | undefined,
+  typeLabel: string,
+): string {
+  return transaction.description || transaction.merchant || categoryName || typeLabel;
+}

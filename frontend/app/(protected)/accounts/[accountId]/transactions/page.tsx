@@ -15,7 +15,7 @@ import {
   getCurrencies,
   notFoundOnMissingResource,
 } from "@/lib/dal";
-import { formatAmount } from "@/lib/format";
+import { formatAmount, transactionLabel } from "@/lib/format";
 import type { AccountBalance, Transaction, TransactionPage } from "@/lib/types";
 
 const TRANSACTIONS_LIMIT = 200;
@@ -224,13 +224,14 @@ export default async function AccountTransactionsPage({
               <tbody>
                 {visible.map((tx) => {
                   const category = tx.categoryId === null ? undefined : categories.get(tx.categoryId);
+                  const description = transactionLabel(tx, category?.name, t(`form.types.${tx.type}`));
                   return (
                     <tr key={tx.id} className="border-t border-border">
                       <td className="py-[11px] ps-4 pe-3 sm:py-3.5 sm:ps-6">
                         <div className="font-semibold break-words">
-                          <bdi>{tx.description}</bdi>
+                          <bdi>{description}</bdi>
                         </div>
-                        {tx.merchant && (
+                        {tx.description && tx.merchant && (
                           <div className="flex items-center gap-1 text-xs break-words text-muted-foreground sm:text-[13px]">
                             <Store size={12} aria-hidden className="shrink-0" />
                             <span className="sr-only">{t("merchant")}: </span>
@@ -285,7 +286,7 @@ export default async function AccountTransactionsPage({
                           )}
                           <DeleteTransactionButton
                             transactionId={tx.id}
-                            description={tx.description}
+                            description={description}
                             isTransfer={tx.type === "transfer"}
                             focusAfterDeleteId={LIST_HEADING_ID}
                           />

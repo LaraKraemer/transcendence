@@ -6,6 +6,7 @@
  * form can show them in the user's language.
  */
 import { refresh } from "next/cache";
+import { getLocale } from "next-intl/server";
 import { z } from "zod";
 
 import { backendFailure } from "@/lib/action-errors";
@@ -67,7 +68,7 @@ export async function createAccount(data: CreateAccountInput): Promise<ActionRes
     if (!currency) errors.currencyCode = ["currencyInvalid" satisfies AccountErrorCode];
 
     const openingBalanceMinor =
-      input.openingBalance && currency ? toMinorUnits(input.openingBalance, currency.minorUnit) : 0;
+      input.openingBalance && currency ? toMinorUnits(input.openingBalance, currency.minorUnit, await getLocale()) : 0;
     if (typeof openingBalanceMinor === "string") errors.openingBalance = [openingBalanceMinor];
 
     if (!parsed.success || Object.keys(errors).length > 0) {

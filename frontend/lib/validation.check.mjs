@@ -10,6 +10,8 @@ import {
   changedFields,
   contrastRatio,
   readableOn,
+  filterAmountInput,
+  amountInputValue,
   toMinorUnits,
   toPositiveMinorUnits,
 } from "./validation.ts";
@@ -27,7 +29,7 @@ assert.equal(toMinorUnits("1.5", 0), "amountDecimals");
 assert.equal(toMinorUnits(".", 2), "amountInvalid");
 assert.equal(toMinorUnits("-", 2), "amountInvalid");
 assert.equal(toMinorUnits("1e3", 2), "amountInvalid");
-assert.equal(toMinorUnits("12,50", 2), "amountInvalid");
+assert.equal(toMinorUnits("12,50", 2, "de"), 1250);
 assert.equal(toMinorUnits("abc", 2), "amountInvalid");
 assert.equal(toMinorUnits("99999999999999999", 2), "amountTooLarge"); // not a safe integer
 console.log("toMinorUnits: ok");
@@ -103,3 +105,26 @@ for (let i = 0; i < 4096; i++) {
   assert.ok(contrastRatio(hex, readableOn(hex)) >= 4.5, `${hex} on ${readableOn(hex)}`);
 }
 console.log("readableOn: ok");
+
+// Keep separators until locale/currency validation; never silently multiply money.
+assert.equal(filterAmountInput("abc12,50xyz"), "12,50");
+assert.equal(filterAmountInput("12.3,4.5"), "12.345");
+assert.equal(toMinorUnits(filterAmountInput("12.50"), 0), "amountDecimals");
+assert.equal(toMinorUnits(filterAmountInput("12,50"), 0, "de"), "amountDecimals");
+assert.equal(filterAmountInput("-12.50"), "12.50");
+assert.equal(filterAmountInput("  -250 ", true), "-250");
+assert.equal(filterAmountInput("  −250 ", true), "-250");
+assert.equal(toMinorUnits(filterAmountInput("  −250 ", true), 2), -25000);
+assert.equal(filterAmountInput("12-50", true), "1250");
+assert.equal(filterAmountInput(""), "");
+assert.equal(toMinorUnits(filterAmountInput("1,500"), 3, "en"), "amountInvalid");
+assert.equal(toMinorUnits("12,50", 2, "uk"), 1250);
+assert.equal(toMinorUnits("12,50", 2, "de-DE"), 1250);
+assert.equal(toPositiveMinorUnits("12,50", 2, "uk"), 1250);
+assert.equal(toPositiveMinorUnits("1,500", 3, "en"), "amountInvalid");
+
+assert.equal(amountInputValue(-1250, 2), "12.50");
+assert.equal(amountInputValue(5, 3), "0.005");
+assert.equal(amountInputValue(1500, 0), "1500");
+assert.equal(amountInputValue(Number.MAX_SAFE_INTEGER, 3), "9007199254740.991");
+assert.equal(toPositiveMinorUnits(amountInputValue(-1250, 2), 2), 1250);

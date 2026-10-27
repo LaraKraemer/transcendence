@@ -268,7 +268,7 @@
       "amount": "Сума ({currency})",
       "amountSent": "Сума списання ({currency})",
       "amountReceived": "Сума зарахування ({currency})",
-      "description": "Опис",
+      "description": "Опис (необов’язково)",
       "descriptionPlaceholder": "Напр., продукти на тиждень",
       "merchant": "Продавець (необов’язково)",
       "date": "Дата",

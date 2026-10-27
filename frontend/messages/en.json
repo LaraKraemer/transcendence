@@ -268,7 +268,7 @@
       "amount": "Amount ({currency})",
       "amountSent": "Amount sent ({currency})",
       "amountReceived": "Amount received ({currency})",
-      "description": "Description",
+      "description": "Description (optional)",
       "descriptionPlaceholder": "e.g. Weekly groceries",
       "merchant": "Merchant (optional)",
       "date": "Date",

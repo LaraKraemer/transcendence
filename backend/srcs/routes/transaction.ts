@@ -16,14 +16,7 @@ import {
   updateTransaction,
   deleteTransaction,
 } from "../db/transactions.ts";
-import {
-  isDateOnly,
-  isIsoTimestamp,
-  isUuid,
-  parseOptionalText,
-  parseRequiredText,
-  TEXT_LIMITS,
-} from "../validation.ts";
+import { isDateOnly, isIsoTimestamp, isUuid, parseOptionalText, TEXT_LIMITS } from "../validation.ts";
 
 function parsePaginationInt(value: unknown, defaultValue: number): number | null {
   if (value === undefined) return defaultValue;
@@ -69,17 +62,17 @@ async function validateCategory(
 
 /**
  * Validates the fields shared by regular transactions and transfers. Returns an error message, or the
- * trimmed `description` and `notes` (an omitted `notes` is stored as null).
+ * trimmed optional `description` and `notes` (omitted values are stored as null).
  */
 function parseEntryFields({
   description,
   bookedOn,
   notes,
   occurredAt,
-}: Record<string, unknown>): { error: string } | { description: string; notes: string | null } {
-  const descriptionText = parseRequiredText(description, TEXT_LIMITS.description);
+}: Record<string, unknown>): { error: string } | { description: string | null; notes: string | null } {
+  const descriptionText = parseOptionalText(description ?? null, TEXT_LIMITS.description);
   if (descriptionText === undefined) {
-    return { error: `description must be between 1 and ${TEXT_LIMITS.description} characters` };
+    return { error: `description must be a string of at most ${TEXT_LIMITS.description} characters or null` };
   }
   if (!isDateOnly(bookedOn)) return { error: "bookedOn must use YYYY-MM-DD format" };
   const notesText = parseOptionalText(notes ?? null, TEXT_LIMITS.notes);
@@ -245,7 +238,7 @@ transactionsRouter.patch("/:transactionId", async (req, res) => {
     type?: string;
     categoryId?: string | null;
     amountMinor?: number;
-    description?: string;
+    description?: string | null;
     notes?: string | null;
     merchant?: string | null;
     bookedOn?: string;
@@ -282,9 +275,11 @@ transactionsRouter.patch("/:transactionId", async (req, res) => {
   }
 
   if (Object.hasOwn(body, "description")) {
-    const description = parseRequiredText(body.description, TEXT_LIMITS.description);
+    const description = parseOptionalText(body.description, TEXT_LIMITS.description);
     if (description === undefined) {
-      res.status(400).json({ error: `description must be between 1 and ${TEXT_LIMITS.description} characters` });
+      res
+        .status(400)
+        .json({ error: `description must be a string of at most ${TEXT_LIMITS.description} characters or null` });
       return;
     }
     updates.description = description;

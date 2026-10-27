@@ -37,7 +37,7 @@ function txRow(overrides: Record<string, unknown> = {}) {
     overrides.type ?? "expense",
     overrides.transferGroupId ?? null,
     overrides.amountMinor ?? "-1000",
-    overrides.description ?? "Coffee",
+    Object.hasOwn(overrides, "description") ? overrides.description : "Coffee",
     overrides.notes ?? null,
     overrides.merchant ?? null,
     overrides.bookedOn ?? "2025-01-15",
@@ -422,9 +422,8 @@ describe("POST /transactions", () => {
     [{ ...validBody, amountMinor: 10.5 }, "amountMinor must be a non-zero safe integer"],
     [{ ...validBody, amountMinor: "100" }, "amountMinor must be a non-zero safe integer"],
     [{ ...validBody, amountMinor: 2 ** 53 }, "amountMinor must be a non-zero safe integer"],
-    [{ ...validBody, description: undefined }, "description must be between 1 and 500 characters"],
-    [{ ...validBody, description: "  " }, "description must be between 1 and 500 characters"],
-    [{ ...validBody, description: "a".repeat(501) }, "description must be between 1 and 500 characters"],
+    [{ ...validBody, description: 123 }, "description must be a string of at most 500 characters or null"],
+    [{ ...validBody, description: "a".repeat(501) }, "description must be a string of at most 500 characters or null"],
     [{ ...validBody, bookedOn: undefined }, "bookedOn must use YYYY-MM-DD format"],
     [{ ...validBody, bookedOn: "2025/01/01" }, "bookedOn must use YYYY-MM-DD format"],
     [{ ...validBody, bookedOn: "2025-1-1" }, "bookedOn must use YYYY-MM-DD format"],
@@ -435,6 +434,14 @@ describe("POST /transactions", () => {
   ])("returns 400 for invalid body %j", async (body, error) => {
     expect(await post(body)).toEqual({ status: 400, body: { error } });
     expect(query).not.toHaveBeenCalled();
+  });
+
+  it.each([undefined, null, "", "  "])("stores optional description %j as null", async (description) => {
+    query.mockResolvedValueOnce({ rows: [acctRow()] });
+    query.mockResolvedValueOnce({ rows: [txRow({ description: null })] });
+    expect((await post({ ...validBody, description })).status).toBe(201);
+    const params: unknown[] = query.mock.calls[1]![1];
+    expect(params.filter((value) => value === null)).toHaveLength(3);
   });
 
   it("returns 400 with no request body", async () => {
@@ -529,6 +536,13 @@ describe("PATCH /transactions/:transactionId", () => {
     return dispatch(transactionsRouter, { method: "PATCH", url: `/${id}`, body });
   }
 
+  it.each([null, "", "  "])("clears description %j", async (description) => {
+    query.mockResolvedValueOnce({ rows: [txRow()] });
+    query.mockResolvedValueOnce({ rows: [txRow({ description: null })] });
+    expect(await patch(transactionId, { description })).toMatchObject({ status: 200, body: { description: null } });
+    expect(query.mock.calls[1]![1]).toContain(null);
+  });
+
   it("rejects an invalid UUID with no query", async () => {
     expect((await patch("not-a-uuid", { amountMinor: -100 })).status).toBe(400);
     expect(query).not.toHaveBeenCalled();
@@ -550,8 +564,7 @@ describe("PATCH /transactions/:transactionId", () => {
     [{ amountMinor: "100" }, "amountMinor must be a non-zero safe integer"],
     [{ amountMinor: 2 ** 53 }, "amountMinor must be a non-zero safe integer"],
     [{ categoryId: "not-a-uuid" }, "categoryId must be a valid UUID or null"],
-    [{ description: "" }, "description must be between 1 and 500 characters"],
-    [{ description: "a".repeat(501) }, "description must be between 1 and 500 characters"],
+    [{ description: "a".repeat(501) }, "description must be a string of at most 500 characters or null"],
     [{ notes: 123 }, "notes must be a string of at most 2000 characters or null"],
     [{ notes: "a".repeat(2001) }, "notes must be a string of at most 2000 characters or null"],
     [{ bookedOn: "2025/01/01" }, "bookedOn must use YYYY-MM-DD format"],
@@ -797,7 +810,6 @@ describe("POST /transactions/transfers", () => {
     [{ ...validBody, fromAmountMinor: 1.5 }, "fromAmountMinor must be a positive safe integer"],
     [{ ...validBody, toAmountMinor: "5000" }, "toAmountMinor must be a positive safe integer"],
     [{ ...validBody, toAmountMinor: 2 ** 53 }, "toAmountMinor must be a positive safe integer"],
-    [{ ...validBody, description: " " }, "description must be between 1 and 500 characters"],
     [{ ...validBody, bookedOn: "2025/01/15" }, "bookedOn must use YYYY-MM-DD format"],
     [{ ...validBody, notes: 1 }, "notes must be a string of at most 2000 characters or null"],
     [{ ...validBody, notes: "a".repeat(2001) }, "notes must be a string of at most 2000 characters or null"],
@@ -805,6 +817,15 @@ describe("POST /transactions/transfers", () => {
   ])("returns 400 for invalid body %j", async (body, error) => {
     expect(await post(body)).toEqual({ status: 400, body: { error } });
     expect(query).not.toHaveBeenCalled();
+  });
+
+  it.each([undefined, null, "", "  "])("stores optional description %j as null", async (description) => {
+    query.mockResolvedValueOnce({ rows: [acctRow()] });
+    query.mockResolvedValueOnce({ rows: [acctRow({ id: otherAccountId })] });
+    query.mockResolvedValueOnce({ rows: [txRow({ description: null })] });
+    expect((await post({ ...validBody, description })).status).toBe(201);
+    const params: unknown[] = query.mock.calls[2]![1];
+    expect(params.filter((value) => value === null)).toHaveLength(4);
   });
 
   it("returns 404 when either account is missing or foreign", async () => {

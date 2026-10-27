@@ -67,7 +67,7 @@ export type Transaction = {
   type: TransactionType;
   transferGroupId: string | null;
   amountMinor: number;
-  description: string;
+  description: string | null;
   merchant: string | null;
   notes: string | null;
   bookedOn: string;
