@@ -90,10 +90,10 @@ Browser → Next.js `:3000` → Express `:3001` → Postgres `:5432` (bound to 1
 | Mount | Routes |
 |---|---|
 | `/auth` | `POST /register`, `POST /login`, `PATCH /password`, `POST /logout`, `GET /me`, `PATCH /me`, `DELETE /me`, `PUT /me/avatar`, `GET /me/avatar`, `DELETE /me/avatar` |
-| `/accounts` | `GET /`, `POST /`, `GET /:accountId`, `PATCH /:accountId`, `DELETE /:accountId`, `GET /:accountId/balance` |
+| `/accounts` | `GET /?archived=true`, `POST /`, `GET /:accountId`, `PATCH /:accountId`, `DELETE /:accountId`, `GET /:accountId/balance` |
 | `/categories` | `GET /`, `POST /`, `GET /:categoryId`, `PATCH /:categoryId`, `DELETE /:categoryId` |
 | `/currencies` | `GET /` (authenticated, global reference data ordered by code) |
-| `/transactions` | `GET /?accountId=&limit=&offset=&from=&to=`, `GET /summary?accountId=&from=&to=`, `GET /count/:categoryId`, `POST /`, `POST /transfers`, `GET /:transactionId`, `PATCH /:transactionId`, `DELETE /:transactionId` |
+| `/transactions` | `GET /?accountId=&limit=&offset=&from=&to=` (without `accountId`: all of the user's accounts), `GET /summary?accountId=&from=&to=`, `GET /count/:categoryId`, `POST /`, `POST /transfers`, `GET /:transactionId`, `PATCH /:transactionId`, `DELETE /:transactionId` |
 
 ## Domain rules (enforced across routers, keep them consistent)
 
@@ -104,7 +104,7 @@ Browser → Next.js `:3000` → Express `:3001` → Postgres `:5432` (bound to 1
 - Transfers are created only with `POST /transactions/transfers`: two legs (`type = transfer`, shared `transferGroupId`; negative on the source account, positive on the destination), written in one statement. Both accounts must be owned, different and not archived; the amounts must be equal when the currencies are equal. Legs are not editable, and deleting either leg deletes both. Deleting an account leaves the other account's leg behind as a lone leg.
 - Transfer legs have no category (`categoryId` null). Categories are only for `expense` and/or `income`.
 - Accounts are archived and unarchived via `PATCH {"isArchived": bool}`. `DELETE /accounts/:id` permanently deletes an owned account and all its transactions, including archived accounts. `DELETE /categories/:id` and `DELETE /transactions/:id` permanently remove the row; deleting a category sets `categoryId = null` on its transactions. `DELETE /auth/me` permanently deletes the authenticated profile and cascades to accounts (including archived), categories, transactions, and sessions in one atomic statement, then clears the cookie. Transaction account and creator foreign keys use `ON DELETE CASCADE`. Users have no soft-delete field.
-- Archived accounts are hidden from lists but readable by ID, and can't receive new transactions. Existing transactions remain editable and deletable without restoring the account; account detail edits still require restoration.
+- Archived accounts are hidden from `GET /accounts` (only `?archived=true` lists them) but readable by ID and included in `GET /transactions` without `accountId`, and can't receive new transactions. Existing transactions remain editable and deletable without restoring the account; account detail edits still require restoration.
 - Text fields: all free text goes through `parseRequiredText` (required: trimmed, non-blank) or `parseOptionalText` (optional: blank or `null` is stored as `null`) from `srcs/validation.ts`. Max lengths live only in `TEXT_LIMITS` there (the frontend mirrors them in `lib/validation.ts`). Lengths count UTF-16 units after trimming. Lowering an existing limit could reject data users already have.
 - `bookedOn` is a `YYYY-MM-DD` date (filters and reports). `occurredAt` is an optional ISO 8601 timestamp.
 - Enum-like columns are plain `text`. Allowed values are `as const` arrays plus type guards at the top of each router (`ACCOUNT_TYPES`, `CATEGORY_TYPES`, `TRANSACTION_TYPES`), so adding a value needs no migration.
