@@ -11,7 +11,7 @@ import {
   findOwnedTransaction,
   insertTransaction,
   insertTransferLegs,
-  listTransactionsByAccount,
+  listTransactions,
   summarizeTransactionsByCategory,
   updateTransaction,
   deleteTransaction,
@@ -97,20 +97,15 @@ export const transactionsRouter = Router();
 transactionsRouter.use(requireAuthenticatedUser);
 
 /**
- * Lists transactions for one account owned by the authenticated user.
+ * Lists transactions for one account owned by the authenticated user, or without accountId for all
+ * of the user's accounts (archived ones included).
  *
- * Required query parameter: accountId
- * Optional query parameters: limit (default 50), offset (default 0), from, to
+ * Optional query parameters: accountId, limit (default 50), offset (default 0), from, to
  */
 transactionsRouter.get("/", async (req, res) => {
-  const accountId = typeof req.query.accountId === "string" ? req.query.accountId : undefined;
+  const { accountId } = req.query;
 
-  if (!accountId) {
-    res.status(400).json({ error: "accountId is required" });
-    return;
-  }
-
-  if (!isUuid(accountId)) {
+  if (accountId !== undefined && !isUuid(accountId)) {
     res.status(400).json({ error: "accountId must be a valid UUID" });
     return;
   }
@@ -136,14 +131,17 @@ transactionsRouter.get("/", async (req, res) => {
     return;
   }
 
-  const account = await findOwnedAccount(accountId, res.locals.userId);
-
-  if (!account) {
-    res.status(404).json({ error: "Account not found" });
-    return;
+  let owner: { accountId: string } | { userId: string } = { userId: res.locals.userId };
+  if (accountId !== undefined) {
+    const account = await findOwnedAccount(accountId, res.locals.userId);
+    if (!account) {
+      res.status(404).json({ error: "Account not found" });
+      return;
+    }
+    owner = { accountId: account.id };
   }
 
-  const result = await listTransactionsByAccount(account.id, {
+  const result = await listTransactions(owner, {
     limit,
     offset,
     ...(from === undefined ? {} : { from }),
