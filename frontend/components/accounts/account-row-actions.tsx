@@ -21,7 +21,15 @@ export const iconButtonClasses =
  * Rendered inside the row's flex container, so the form can take a full line.
  * `headingId` is where focus goes after archiving, since this row disappears.
  */
-export function AccountRowActions({ account, headingId }: { account: Account; headingId: string }) {
+export function AccountRowActions({
+  account,
+  minorUnit,
+  headingId,
+}: {
+  account: Account;
+  minorUnit: number;
+  headingId: string;
+}) {
   const t = useTranslations("accounts");
   const [panel, setPanel] = useState<"none" | "edit" | "archive">("none");
   const editButtonRef = useRef<HTMLButtonElement>(null);
@@ -79,7 +87,9 @@ export function AccountRowActions({ account, headingId }: { account: Account; he
         </div>
       )}
 
-      {panel === "edit" && <AccountForm mode="edit" account={account} onClose={() => close("edit")} />}
+      {panel === "edit" && (
+        <AccountForm mode="edit" account={account} minorUnit={minorUnit} onClose={() => close("edit")} />
+      )}
 
       {/* Mounted only while open, so a previous failure's error doesn't reappear. */}
       {panel === "archive" && (

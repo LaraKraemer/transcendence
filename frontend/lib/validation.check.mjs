@@ -8,10 +8,10 @@ import {
   MAX_NOTES_LENGTH,
   changedCategoryFields,
   changedFields,
+  amountInputValue,
   contrastRatio,
   readableOn,
   filterAmountInput,
-  amountInputValue,
   toMinorUnits,
   toPositiveMinorUnits,
 } from "./validation.ts";
@@ -128,3 +128,21 @@ assert.equal(amountInputValue(5, 3), "0.005");
 assert.equal(amountInputValue(1500, 0), "1500");
 assert.equal(amountInputValue(Number.MAX_SAFE_INTEGER, 3), "9007199254740.991");
 assert.equal(toPositiveMinorUnits(amountInputValue(-1250, 2), 2), 1250);
+// Opening balances round-trip exactly and PATCH comparisons use minor units.
+for (const minorUnit of [0, 2, 3]) {
+  for (const openingBalanceMinor of [0, 1250, -1250, Number.MAX_SAFE_INTEGER, Number.MIN_SAFE_INTEGER]) {
+    const input = amountInputValue(openingBalanceMinor, minorUnit, true);
+    assert.equal(toMinorUnits(input, minorUnit), openingBalanceMinor);
+    const opened = { ...original, openingBalanceMinor };
+    assert.deepEqual(changedFields(opened, { ...original, openingBalanceMinor: toMinorUnits(input, minorUnit) }), {});
+  }
+}
+const openedAccount = { ...original, openingBalanceMinor: -1250 };
+assert.deepEqual(changedFields(openedAccount, { ...original, openingBalanceMinor: 0 }), { openingBalanceMinor: 0 });
+assert.deepEqual(changedFields(openedAccount, { ...original, openingBalanceMinor: 1250 }), {
+  openingBalanceMinor: 1250,
+});
+assert.equal(toMinorUnits("90071992547409.92", 2), "amountTooLarge");
+assert.equal(toMinorUnits("-9007199254740.992", 3), "amountTooLarge");
+assert.equal(toMinorUnits("", 2), "amountInvalid");
+console.log("opening balance editing: ok");
