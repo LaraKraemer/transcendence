@@ -105,7 +105,7 @@ export type Category = {
   createdAt: string;
 };
 
-/** Currency reference data from `GET /currencies`. `minorUnit` is the number of decimals (JPY 0, KWD 3, most 2). */
+/** Currency reference data from `GET /currencies`. `minorUnit` is the number of decimals (2 for all catalogue currencies). */
 export type Currency = {
   code: string;
   name: string;
