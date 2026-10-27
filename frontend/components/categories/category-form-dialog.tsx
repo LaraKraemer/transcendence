@@ -17,6 +17,8 @@ import {
   CATEGORY_TYPES,
   HEX_COLOR_PATTERN,
   MAX_CATEGORY_NAME_LENGTH,
+  hslToHex,
+  hueAndLightness,
   isCategoryErrorCode,
   readableOn,
   type CategoryErrorCode,
@@ -24,8 +26,13 @@ import {
 } from "@/lib/validation";
 
 // Seven colours picked to be easy to tell apart: the closest pair is ΔE 53 in CIELAB
-// (above ~25 reads as clearly different at a glance). The last circle in the row
-// opens the system palette for any other colour.
+// (above ~25 reads as clearly different at a glance). The last circle picks any other
+// colour with hue and lightness sliders.
+// Not the native <input type="color">: it opens the browser's or the OS's own colour window
+// (in Safari and Firefox a separate system window), which lives outside the page. The page
+// has no API to close it (showPicker() can only open it), it ignores clicks on the page, and
+// it stays open after the dialog closes; clicking outside to dismiss it would also land on
+// the dialog's backdrop. Range inputs live inside the dialog and close with it.
 const SWATCHES = [
   { name: "red", hex: "#DC2626" },
   { name: "yellow", hex: "#FACC15" },
@@ -36,6 +43,18 @@ const SWATCHES = [
   { name: "slate", hex: "#334155" },
 ] as const;
 const DEFAULT_COLOR = "#8B5CF6";
+const isPresetColor = (color: string) => SWATCHES.some((swatch) => swatch.hex === color.toUpperCase());
+
+// The custom colour keeps one saturation, so two sliders reach every hue from dark to pastel.
+const CUSTOM_SATURATION = 70;
+const MIN_CUSTOM_LIGHTNESS = 15;
+const MAX_CUSTOM_LIGHTNESS = 85;
+// Teal: a first custom colour that none of the presets already covers.
+const DEFAULT_CUSTOM = { hue: 180, lightness: 45 };
+const HUE_STOPS = [0, 60, 120, 180, 240, 300, 360];
+// A white thumb with a dark outline stays visible on every part of both tracks.
+const sliderClasses =
+  "h-2.5 w-full cursor-pointer appearance-none rounded-full ring-1 ring-foreground/15 ring-inset focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card focus-visible:outline-none [&::-webkit-slider-thumb]:size-5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-[0_0_0_1px_rgba(8,14,25,.45),0_1px_3px_rgba(8,14,25,.35)] [&::-moz-range-thumb]:size-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:shadow-[0_0_0_1px_rgba(8,14,25,.45),0_1px_3px_rgba(8,14,25,.35)]";
 
 // Shared by the preset circles and the custom one; the selection ring uses the
 // text colour, because a ring in the circle's own colour vanishes on a dark card.
@@ -118,6 +137,14 @@ export function CategoryForm({
   const [values, setValues] = useState(opened);
   const set = (field: "name" | "icon" | "color") => (value: string) =>
     setValues((prev) => ({ ...prev, [field]: value }));
+  // Slider positions, kept while a preset is selected so switching back restores the last custom colour.
+  const [customColor, setCustomColor] = useState(() =>
+    isPresetColor(opened.color) ? DEFAULT_CUSTOM : hueAndLightness(opened.color),
+  );
+  const pickCustomColor = (next: typeof customColor) => {
+    setCustomColor(next);
+    set("color")(hslToHex(next.hue, CUSTOM_SATURATION, next.lightness));
+  };
   const toggleType = (type: CategoryType) =>
     setValues((prev) => ({
       ...prev,
@@ -168,7 +195,7 @@ export function CategoryForm({
 
   const errorText = (code?: CategoryErrorCode) => code && t(`errors.${code}`, { max: MAX_CATEGORY_NAME_LENGTH });
   const previewColor = HEX_COLOR_PATTERN.test(values.color) ? values.color : undefined;
-  const isCustomColor = !SWATCHES.some((swatch) => swatch.hex === values.color.toUpperCase());
+  const isCustomColor = !isPresetColor(values.color);
 
   return (
     <form onSubmit={handleSubmit} noValidate>
@@ -280,18 +307,24 @@ export function CategoryForm({
                 </label>
               );
             })}
-            {/* Custom colour: the browser's own picker (no library), stretched invisibly over a circle
-                that shows a rainbow until a custom colour is chosen, then that colour with a check. */}
-            <label
-              title={t("form.customColor")}
-              className="relative flex justify-center rounded-full has-[input:focus-visible]:ring-2 has-[input:focus-visible]:ring-ring has-[input:focus-visible]:ring-offset-2 has-[input:focus-visible]:ring-offset-card"
-            >
+            {/* Custom colour: a rainbow until it is selected, then the chosen colour with a check
+                and the sliders below. */}
+            <label title={t("form.customColor")} className="flex justify-center">
+              <input
+                type="radio"
+                name="color-swatch"
+                value="custom"
+                checked={isCustomColor}
+                onChange={() => pickCustomColor(customColor)}
+                aria-label={t("form.customColor")}
+                data-field={`${idPrefix}-color`}
+                className="peer sr-only"
+              />
               <span
-                aria-hidden
-                className={circleClasses}
+                className={`${circleClasses} cursor-pointer peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-card`}
                 style={
-                  isCustomColor
-                    ? { backgroundColor: values.color, color: readableOn(values.color), boxShadow: selectedRing }
+                  isCustomColor && previewColor
+                    ? { backgroundColor: previewColor, color: readableOn(previewColor), boxShadow: selectedRing }
                     : {
                         backgroundImage:
                           "conic-gradient(#ef4444, #f59e0b, #eab308, #22c55e, #06b6d4, #3b82f6, #8b5cf6, #ec4899, #ef4444)",
@@ -300,17 +333,43 @@ export function CategoryForm({
               >
                 {isCustomColor && <Check size={14} aria-hidden />}
               </span>
-              <input
-                type="color"
-                // The picker needs a lowercase #rrggbb value.
-                value={values.color.toLowerCase()}
-                onChange={(e) => set("color")(e.target.value.toUpperCase())}
-                aria-label={t("form.customColor")}
-                data-field={`${idPrefix}-color`}
-                className="absolute inset-0 size-full cursor-pointer opacity-0"
-              />
             </label>
           </div>
+          {isCustomColor && (
+            <div className="mt-4 grid gap-3 text-[13px] font-medium text-muted-foreground">
+              <label className="grid gap-2">
+                {t("form.hue")}
+                {/* ltr even in RTL locales, so the thumb moves the same way as the gradient. */}
+                <input
+                  type="range"
+                  dir="ltr"
+                  min={0}
+                  max={359}
+                  value={customColor.hue}
+                  onChange={(e) => pickCustomColor({ ...customColor, hue: Number(e.target.value) })}
+                  className={sliderClasses}
+                  style={{
+                    backgroundImage: `linear-gradient(to right, ${HUE_STOPS.map((hue) => `hsl(${hue} ${CUSTOM_SATURATION}% ${customColor.lightness}%)`).join(", ")})`,
+                  }}
+                />
+              </label>
+              <label className="grid gap-2">
+                {t("form.lightness")}
+                <input
+                  type="range"
+                  dir="ltr"
+                  min={MIN_CUSTOM_LIGHTNESS}
+                  max={MAX_CUSTOM_LIGHTNESS}
+                  value={customColor.lightness}
+                  onChange={(e) => pickCustomColor({ ...customColor, lightness: Number(e.target.value) })}
+                  className={sliderClasses}
+                  style={{
+                    backgroundImage: `linear-gradient(to right, ${[MIN_CUSTOM_LIGHTNESS, 50, MAX_CUSTOM_LIGHTNESS].map((lightness) => `hsl(${customColor.hue} ${CUSTOM_SATURATION}% ${lightness}%)`).join(", ")})`,
+                  }}
+                />
+              </label>
+            </div>
+          )}
         </ChoiceGroup>
 
         <div className="mt-2 flex gap-3">

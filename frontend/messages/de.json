@@ -321,7 +321,9 @@
       "cancel": "Abbrechen",
       "submit": "Kategorie speichern",
       "submitting": "Wird gespeichert…",
-      "customColor": "Eigene Farbe"
+      "customColor": "Eigene Farbe",
+      "hue": "Farbton",
+      "lightness": "Helligkeit"
     },
     "icons": {
       "shopping-cart": "Einkaufswagen",

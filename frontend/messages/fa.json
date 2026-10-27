@@ -321,7 +321,9 @@
       "cancel": "انصراف",
       "submit": "ذخیره دسته‌بندی",
       "submitting": "در حال ذخیره…",
-      "customColor": "رنگ دلخواه"
+      "customColor": "رنگ دلخواه",
+      "hue": "فام",
+      "lightness": "روشنایی"
     },
     "icons": {
       "shopping-cart": "خرید",

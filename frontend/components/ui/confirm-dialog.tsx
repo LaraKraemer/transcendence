@@ -36,7 +36,7 @@ export function ConfirmDialog({
   const descriptionId = useId();
   return (
     // Described by its text: focus starts on Cancel, so a screen reader could otherwise skip what the action does.
-    <Modal open={open} title={title} onClose={onCancel} busy={pending} describedBy={descriptionId}>
+    <Modal open={open} title={title} onClose={onCancel} busy={pending} describedBy={descriptionId} closeOnBackdropClick>
       <div id={descriptionId} className="mb-6 text-sm text-muted-foreground">
         {children}
       </div>
