@@ -20,7 +20,6 @@ body:json {
     "type": "expense",
     "categoryId": "{{expenseCategoryId}}",
     "amountMinor": -4250,
-    "description": "Groceries",
     "notes": "Created by the Bruno collection",
     "bookedOn": "2026-08-25"
   }
@@ -30,6 +29,7 @@ tests {
   test("expense transaction is created", function () {
     expect(res.getStatus()).to.equal(201);
     const body = res.getBody();
+    expect(body.description).to.equal(null);
     expect(body.amountMinor).to.equal(-4250);
     bru.setVar("transactionId", body.id);
   });

@@ -69,7 +69,7 @@ export type Transaction = {
   /** List responses only: the account of the transfer's other leg (null when that leg was deleted). */
   transferAccountId?: string | null;
   amountMinor: number;
-  description: string;
+  description: string | null;
   merchant: string | null;
   notes: string | null;
   bookedOn: string;

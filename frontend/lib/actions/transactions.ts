@@ -1,6 +1,7 @@
 "use server";
 
 import { refresh } from "next/cache";
+import { getLocale } from "next-intl/server";
 import { z } from "zod";
 
 import { backendFailure } from "@/lib/action-errors";
@@ -24,7 +25,6 @@ const CreateTransactionSchema = z.object({
   description: z
     .string()
     .trim()
-    .min(1, { error: "descriptionRequired" satisfies TransactionErrorCode })
     .max(MAX_TRANSACTION_DESCRIPTION_LENGTH, { error: "descriptionTooLong" satisfies TransactionErrorCode }),
   bookedOn: z.iso.date({ error: "dateInvalid" satisfies TransactionErrorCode }),
   categoryId: z.union([z.literal(""), z.uuid()], { error: "categoryInvalid" satisfies TransactionErrorCode }),
@@ -58,7 +58,7 @@ export async function createTransaction(accountId: string, data: CreateTransacti
   try {
     const [account, currencies] = await Promise.all([getAccount(accountId), getCurrencies()]);
     const minorUnit = currencies.find((c) => c.code === account.currencyCode)?.minorUnit ?? 2;
-    const amount = toPositiveMinorUnits(String(data.amount), minorUnit);
+    const amount = toPositiveMinorUnits(String(data.amount), minorUnit, await getLocale());
     if (typeof amount === "string") errors.amount = [amount];
     if (!parsed.success || typeof amount === "string") return { success: false, message: "Validation failed", errors };
     amountMinor = amount;
@@ -95,11 +95,11 @@ const UpdateTransactionSchema = CreateTransactionSchema.pick({ description: true
   merchant: CreateTransactionSchema.shape.merchant.transform((value) => value || null),
 });
 
-export type UpdateTransactionInput = Record<keyof z.input<typeof UpdateTransactionSchema>, string>;
+export type UpdateTransactionInput = Record<"amount" | keyof z.input<typeof UpdateTransactionSchema>, string>;
 
 export async function updateTransaction(
   transactionId: string,
-  opened: EditableTransactionFields,
+  opened: EditableTransactionFields & { amountMinor: number },
   data: UpdateTransactionInput,
 ): Promise<ActionResponse> {
   if (!z.uuid().safeParse(transactionId).success) {
@@ -120,13 +120,26 @@ export async function updateTransaction(
     };
   }
 
-  const updates = changedFields(opened, parsed.data);
-  if (Object.keys(updates).length === 0) return { success: true, message: "No changes" };
-
+  const { amountMinor: originalAmountMinor, ...originalFields } = opened;
+  const updates = changedFields(originalFields, parsed.data);
   try {
+    const transaction = await fetchApiServer<Transaction>(`/transactions/${transactionId}`);
+    const [account, currencies, locale] = await Promise.all([
+      getAccount(transaction.accountId),
+      getCurrencies(),
+      getLocale(),
+    ]);
+    const minorUnit = currencies.find((currency) => currency.code === account.currencyCode)?.minorUnit ?? 2;
+    const amount = toPositiveMinorUnits(String(data.amount), minorUnit, locale);
+    if (typeof amount === "string") {
+      return { success: false, message: "Validation failed", errors: { amount: [amount] } };
+    }
+    const amountMinor = transaction.type === "expense" ? -amount : amount;
+    const body = { ...updates, ...(amountMinor === originalAmountMinor ? {} : { amountMinor }) };
+    if (Object.keys(body).length === 0) return { success: true, message: "No changes" };
     await fetchApiServer<Transaction>(`/transactions/${transactionId}`, {
       method: "PATCH",
-      body: JSON.stringify(updates),
+      body: JSON.stringify(body),
     });
   } catch (error) {
     return transactionFailure(error, typeof updates.categoryId === "string", "updateTransaction");
@@ -196,12 +209,13 @@ export async function createTransfer(fromAccountId: string, data: CreateTransfer
     ]);
     if (parsed.success && !toAccount) errors.toAccountId = ["toAccountInvalid"];
     const minorUnitOf = (currencyCode: string) => currencies.find((c) => c.code === currencyCode)?.minorUnit ?? 2;
-    const fromAmount = toPositiveMinorUnits(String(data.amount), minorUnitOf(fromAccount.currencyCode));
+    const locale = await getLocale();
+    const fromAmount = toPositiveMinorUnits(String(data.amount), minorUnitOf(fromAccount.currencyCode), locale);
     if (typeof fromAmount === "string") errors.amount = [fromAmount];
     const sameCurrency = !toAccount || toAccount.currencyCode === fromAccount.currencyCode;
     const toAmount = sameCurrency
       ? fromAmount
-      : toPositiveMinorUnits(String(data.toAmount), minorUnitOf(toAccount.currencyCode));
+      : toPositiveMinorUnits(String(data.toAmount), minorUnitOf(toAccount.currencyCode), locale);
     if (typeof toAmount === "string" && !sameCurrency) errors.toAmount = [toAmount];
     if (
       !parsed.success ||

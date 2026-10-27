@@ -2,7 +2,7 @@
 //   node --experimental-strip-types lib/format.check.mjs
 import assert from "node:assert/strict";
 
-import { formatAmount } from "./format.ts";
+import { formatAmount, transactionLabel } from "./format.ts";
 
 const NBSP = "\u00a0"; // Intl puts a no-break space between a code/symbol and the number
 
@@ -16,3 +16,8 @@ assert.equal(formatAmount(1250, "EUR", 2, "de-DE"), `12,50${NBSP}€`); // local
 assert.equal(formatAmount(123456789, "EUR", 2, "de-DE"), `1.234.567,89${NBSP}€`);
 assert.equal(formatAmount(1250, "EUR", 2, "en-US", "exceptZero"), "+€12.50");
 console.log("formatAmount: ok");
+
+assert.equal(transactionLabel({ description: "Lunch", merchant: "Cafe" }, "Food", "Expense"), "Lunch");
+assert.equal(transactionLabel({ description: null, merchant: "Cafe" }, "Food", "Expense"), "Cafe");
+assert.equal(transactionLabel({ description: null, merchant: null }, "Food", "Expense"), "Food");
+assert.equal(transactionLabel({ description: null, merchant: null }, undefined, "Transfer"), "Transfer");

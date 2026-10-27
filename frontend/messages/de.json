@@ -273,7 +273,7 @@
       "amount": "Betrag ({currency})",
       "amountSent": "Gesendeter Betrag ({currency})",
       "amountReceived": "Erhaltener Betrag ({currency})",
-      "description": "Beschreibung",
+      "description": "Beschreibung (optional)",
       "descriptionPlaceholder": "z. B. Wocheneinkauf",
       "merchant": "Händler (optional)",
       "date": "Datum",

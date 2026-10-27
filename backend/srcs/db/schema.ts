@@ -78,7 +78,7 @@ export const transactions = pgTable(
     // Negative values are expenses; positive values are income. A transfer leg is negative on the source account and positive on the destination.
     amountMinor: bigint("amount_minor", { mode: "number" }).notNull(),
 
-    description: text("description").notNull(),
+    description: text("description"),
     notes: text("notes"),
     merchant: text("merchant_name"),
 
