@@ -9,7 +9,15 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { NewTransactionFab } from "@/components/transactions/new-transaction-fab";
 import { UserAvatar } from "@/components/user-avatar";
 
-export function Avatar({ displayName, avatarUrl, label }: { displayName: string; avatarUrl: string | null; label: string }) {
+export function Avatar({
+  displayName,
+  avatarUrl,
+  label,
+}: {
+  displayName: string;
+  avatarUrl: string | null;
+  label: string;
+}) {
   return (
     <Link
       href="/profile"
