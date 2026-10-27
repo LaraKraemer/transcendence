@@ -78,14 +78,22 @@ export function isAccountErrorCode(value: unknown): value is AccountErrorCode {
   return typeof value === "string" && (accountErrorCodes as readonly string[]).includes(value);
 }
 
-/** Filters typing and pasted text; opening balances may also have a leading minus. */
-export function filterAmountInput(amount: string, minorUnit: number, allowNegative = false): string {
+/** Formats the unsigned edit value without floating-point rounding. */
+export function amountInputValue(amountMinor: number, minorUnit: number): string {
+  const digits = Math.abs(amountMinor)
+    .toString()
+    .padStart(minorUnit + 1, "0");
+  return minorUnit === 0 ? digits : `${digits.slice(0, -minorUnit)}.${digits.slice(-minorUnit)}`;
+}
+
+/** Keeps separators for validation, even for JPY, so filtering cannot multiply a pasted amount. */
+export function filterAmountInput(amount: string, allowNegative = false): string {
   let hasSeparator = false;
-  return Array.from(amount)
+  return Array.from(amount.trim().replaceAll("−", "-"))
     .filter((character, index) => {
       if (character >= "0" && character <= "9") return true;
       if (allowNegative && character === "-" && index === 0) return true;
-      if (minorUnit > 0 && (character === "." || character === ",") && !hasSeparator) {
+      if ((character === "." || character === ",") && !hasSeparator) {
         hasSeparator = true;
         return true;
       }
@@ -103,8 +111,11 @@ export function filterAmountInput(amount: string, minorUnit: number, allowNegati
 export function toMinorUnits(
   amount: string,
   minorUnit: number,
+  locale = "en",
 ): number | "amountInvalid" | "amountDecimals" | "amountTooLarge" {
-  const match = /^(-?)(\d*)(?:\.(\d*))?$/.exec(amount.trim().replace(",", "."));
+  const acceptsComma = ["de", "uk"].includes(locale.split("-")[0]);
+  const normalized = acceptsComma ? amount.trim().replace(",", ".") : amount.trim();
+  const match = /^(-?)(\d*)(?:\.(\d*))?$/.exec(normalized);
   const [, sign = "", whole = "", fraction = ""] = match ?? [];
   if (!match || whole.length + fraction.length === 0) return "amountInvalid";
   if (fraction.length > minorUnit) return "amountDecimals";
@@ -148,11 +159,12 @@ export function isTransactionErrorCode(value: unknown): value is TransactionErro
 export function toPositiveMinorUnits(
   amount: string,
   minorUnit: number,
+  locale = "en",
 ): number | "amountRequired" | "amountNotPositive" | "amountInvalid" | "amountDecimals" | "amountTooLarge" {
   const trimmed = amount.trim();
   if (trimmed === "") return "amountRequired";
   if (trimmed.startsWith("-")) return "amountNotPositive";
-  const minor = toMinorUnits(trimmed, minorUnit);
+  const minor = toMinorUnits(trimmed, minorUnit, locale);
   if (typeof minor === "string") return minor;
   return minor === 0 ? "amountNotPositive" : minor;
 }
@@ -165,7 +177,7 @@ export type EditableAccountFields = {
   accountRef: string | null;
 };
 
-/** The transaction fields the edit form can change (not the amount, type or account). */
+/** The transaction fields the edit form can change (type and account stay fixed). */
 export type EditableTransactionFields = {
   description: string | null;
   merchant: string | null;

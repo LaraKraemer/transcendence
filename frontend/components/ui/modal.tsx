@@ -6,7 +6,7 @@ import { useEffect, useId, useRef, type ReactNode } from "react";
 
 type ModalProps = {
   open: boolean;
-  title: string;
+  title: ReactNode;
   onClose: () => void;
   /** While true (e.g. a request is running), Esc, the backdrop and ✕ don't close it. */
   busy?: boolean;

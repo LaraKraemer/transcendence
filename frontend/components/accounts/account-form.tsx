@@ -126,7 +126,7 @@ export function AccountForm(props: AccountFormProps) {
     onChange: (e: { target: { value: string } }) =>
       setValues((prev) => ({
         ...prev,
-        [name]: name === "openingBalance" ? filterAmountInput(e.target.value, minorUnit, true) : e.target.value,
+        [name]: name === "openingBalance" ? filterAmountInput(e.target.value, true) : e.target.value,
       })),
   });
 

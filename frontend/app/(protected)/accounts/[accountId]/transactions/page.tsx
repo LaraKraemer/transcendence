@@ -231,7 +231,7 @@ export default async function AccountTransactionsPage({
                         <div className="font-semibold break-words">
                           <bdi>{description}</bdi>
                         </div>
-                        {tx.merchant && (
+                        {tx.description && tx.merchant && (
                           <div className="flex items-center gap-1 text-xs break-words text-muted-foreground sm:text-[13px]">
                             <Store size={12} aria-hidden className="shrink-0" />
                             <span className="sr-only">{t("merchant")}: </span>
