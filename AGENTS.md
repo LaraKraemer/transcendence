@@ -68,7 +68,7 @@ docker compose exec backend npm run db:generate   # after editing srcs/db/schema
 docker compose exec db psql -U expense -d expense_tracker
 ```
 
-The server applies migrations on startup. The currency table's creation migration also inserts 19 global reference currencies.
+The server applies migrations on startup. Migrations leave 17 global reference currencies; JPY and KWD are removed by `0016_remove_jpy_kwd` without changing existing ledger data.
 
 API smoke test (CI runs it too): copy `backend/bruno/.env.example` to `backend/bruno/.env`, set `TEST_PASSWORD` (at least 12 chars), then `cd backend/bruno && npx bru run --env local` with the stack running.
 
@@ -98,7 +98,7 @@ Browser → Next.js `:3000` → Express `:3001` → Postgres `:5432` (bound to 1
 ## Domain rules (enforced across routers, keep them consistent)
 
 - Money is integer minor units (`amountMinor`, `openingBalanceMinor`), validated with `Number.isSafeInteger`. Postgres aggregates return strings, so wrap them with `Number(...)` or `.mapWith(Number)`.
-- Currency reference data provides `code`, `name`, `symbol`, and `minorUnit` (JPY: 0, KWD: 3, others: 2). It has no foreign keys to ledger tables; account currency validation checks only the three-uppercase-letter format.
+- Currency reference data provides `code`, `name`, `symbol`, and `minorUnit` (2 for all catalogue currencies). It has no foreign keys to ledger tables; account currency validation checks only the three-uppercase-letter format.
 - A transaction has a `type` (`expense|income|transfer`) and a signed `amountMinor` whose sign must match it: expense negative, income positive, transfer either. Zero is rejected. The app and DB CHECKs enforce both.
 - A category has `types`, a non-empty subset of `expense|income` (multi-select, editable via PATCH), and is unique per `(user, name)` (409). A transaction's category must allow its type, and this is checked only when the transaction is created or its `type`/`categoryId` is sent in a PATCH. Editing or deleting a category never touches transactions, except that deletion nulls `categoryId`.
 - Transfers are created only with `POST /transactions/transfers`: two legs (`type = transfer`, shared `transferGroupId`; negative on the source account, positive on the destination), written in one statement. Both accounts must be owned, different and not archived; the amounts must be equal when the currencies are equal. Legs are not editable, and deleting either leg deletes both. Deleting an account leaves the other account's leg behind as a lone leg.
