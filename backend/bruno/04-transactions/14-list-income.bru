@@ -1,0 +1,21 @@
+meta {
+  name: 14 - List account income
+  type: http
+  seq: 15
+}
+
+get {
+  url: {{baseUrl}}/transactions?accountId={{accountId}}&type=income
+  body: none
+  auth: none
+}
+
+tests {
+  test("only the income is listed, not the account's transfer leg", function () {
+    expect(res.getStatus()).to.equal(200);
+    const { items, total } = res.getBody();
+    expect(total).to.equal(1);
+    expect(items.map((transaction) => transaction.id)).to.deep.equal([bru.getVar("incomeTransactionId")]);
+    expect(items.map((transaction) => transaction.id)).to.not.include(bru.getVar("transferSourceLegId"));
+  });
+}

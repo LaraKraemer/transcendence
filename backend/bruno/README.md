@@ -7,15 +7,16 @@ and set a local test password of at least 12 characters. The `.env` file is
 ignored by Git.
 
 Backend startup applies migrations and populates the currency catalog.
-The collection checks all 19 currencies.
+The collection checks all 17 currencies.
 
 Run requests in numeric order. The collection creates a disposable user and
 captures account, category, and transaction IDs as Bruno runtime variables.
 Bruno keeps the session cookie after registration, so the following protected
 requests run as that user.
 
-The collection lists transactions across all accounts, archives the savings account
-and checks that only it appears in `GET /accounts?archived=true`.
+The collection lists transactions across all accounts, where a transfer is one item,
+and filters one account's transactions by type: the income is listed, the transfer leg is not.
+It archives the savings account and checks that only it appears in `GET /accounts?archived=true`.
 
 The collection deletes the created transaction, then permanently deletes the account,
 and checks that fetching each deleted resource returns 404.
