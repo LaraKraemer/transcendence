@@ -232,6 +232,7 @@
     "showingRange": "نمایش {from, number} تا {to, number} از {total, plural, other {# تراکنش}}",
     "pagination": "صفحه‌های تراکنش",
     "newer": "جدیدتر",
+    "pageOf": "صفحهٔ {page, number} از {pages, number}",
     "older": "قدیمی‌تر",
     "delete": "حذف «{description}»",
     "edit": "ویرایش «{description}»",

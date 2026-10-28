@@ -232,6 +232,7 @@
     "showingRange": "Показано {from, number}–{to, number} з {total, plural, one {# транзакції} few {# транзакцій} many {# транзакцій} other {# транзакції}}",
     "pagination": "Сторінки транзакцій",
     "newer": "Новіші",
+    "pageOf": "Сторінка {page, number} з {pages, number}",
     "older": "Старіші",
     "delete": "Видалити «{description}»",
     "edit": "Редагувати «{description}»",

@@ -194,6 +194,9 @@ export default async function TransactionsPage({ searchParams }: SearchParams) {
   });
   const newerOffset = offset > 0 ? Math.max(offset - PAGE_SIZE, 0) : undefined;
   const olderOffset = offset + items.length < total ? offset + items.length : undefined;
+  // Counted from the offset, so a hand-edited `?offset=` that is not a multiple of PAGE_SIZE still adds up.
+  const pageNumber = Math.ceil(offset / PAGE_SIZE) + 1;
+  const pageCount = pageNumber + Math.ceil(Math.max(total - offset - items.length, 0) / PAGE_SIZE);
 
   return (
     <div className="mx-auto w-full max-w-5xl pt-2">
@@ -465,14 +468,14 @@ export default async function TransactionsPage({ searchParams }: SearchParams) {
             </table>
           )}
 
-          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-border px-4 py-3 sm:px-6 sm:py-4">
+          <div className="flex flex-col items-center gap-x-4 gap-y-2 border-t border-border px-4 py-3 sm:flex-row sm:flex-wrap sm:justify-between sm:px-6 sm:py-4">
             <p aria-live="polite" className="text-xs text-muted-foreground sm:text-[13px]">
               {items.length === 0
                 ? t("showing", { shown: 0, total })
                 : t("showingRange", { from: offset + 1, to: offset + items.length, total })}
             </p>
             {(newerOffset !== undefined || olderOffset !== undefined) && (
-              <nav aria-label={t("pagination")} className="flex gap-2">
+              <nav aria-label={t("pagination")} className="flex items-center gap-2">
                 <PageLink
                   href={transactionsHref(account?.id, filter, newerOffset ?? offset)}
                   disabled={newerOffset === undefined}
@@ -480,6 +483,9 @@ export default async function TransactionsPage({ searchParams }: SearchParams) {
                   <ChevronLeft size={14} aria-hidden className="shrink-0 rtl:-scale-x-100" />
                   {t("newer")}
                 </PageLink>
+                <span className="px-1 text-xs whitespace-nowrap text-muted-foreground sm:text-[13px]">
+                  {t("pageOf", { page: pageNumber, pages: pageCount })}
+                </span>
                 <PageLink
                   href={transactionsHref(account?.id, filter, olderOffset ?? offset)}
                   disabled={olderOffset === undefined}

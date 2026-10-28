@@ -232,6 +232,7 @@
     "showingRange": "{from, number}–{to, number} von {total, plural, one {# Transaktion} other {# Transaktionen}}",
     "pagination": "Transaktionsseiten",
     "newer": "Neuere",
+    "pageOf": "Seite {page, number} von {pages, number}",
     "older": "Ältere",
     "delete": "{description} löschen",
     "edit": "{description} bearbeiten",
