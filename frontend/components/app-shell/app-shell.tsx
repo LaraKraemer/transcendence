@@ -9,7 +9,15 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { NewTransactionFab } from "@/components/transactions/new-transaction-fab";
 import { UserAvatar } from "@/components/user-avatar";
 
-export function Avatar({ displayName, avatarUrl, label }: { displayName: string; avatarUrl: string | null; label: string }) {
+export function Avatar({
+  displayName,
+  avatarUrl,
+  label,
+}: {
+  displayName: string;
+  avatarUrl: string | null;
+  label: string;
+}) {
   return (
     <Link
       href="/profile"
@@ -64,11 +72,23 @@ export async function AppShell({
         </div>
 
         <div className="mt-auto flex items-center gap-2.5 rounded-xl bg-muted px-3 py-2.5">
-          <Avatar displayName={displayName} avatarUrl={avatarUrl} label={t("profile")} />
-          <div className="min-w-0 flex-1 leading-[1.3]">
-            <div className="truncate text-[13px] font-semibold">{displayName}</div>
-            <div className="truncate text-xs text-muted-foreground">{email}</div>
-          </div>
+          {/* One link for avatar and text; the logout button stays outside it. */}
+          <Link
+            href="/profile"
+            aria-label={`${displayName}, ${t("profile")}`}
+            className="-m-1.5 flex min-w-0 flex-1 items-center gap-2.5 rounded-[9px] p-1.5 transition-colors hover:bg-card focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+          >
+            <UserAvatar
+              displayName={displayName}
+              avatarUrl={avatarUrl}
+              alt=""
+              className="size-9 bg-primary text-[13px] font-semibold text-primary-foreground"
+            />
+            <div className="min-w-0 flex-1 leading-[1.3]">
+              <div className="truncate text-[13px] font-semibold">{displayName}</div>
+              <div className="truncate text-xs text-muted-foreground">{email}</div>
+            </div>
+          </Link>
           <LogoutButton />
         </div>
       </aside>
