@@ -385,5 +385,150 @@
       "retry": "Erneut versuchen",
       "reference": "Referenzcode: {code}"
     }
+  },
+  "legal": {
+    "navLabel": "Rechtliches",
+    "privacyLink": "Datenschutzerklärung",
+    "termsLink": "Nutzungsbedingungen",
+    "lastUpdated": "Zuletzt aktualisiert: <time>{date}</time>",
+    "privacy": {
+      "title": "Datenschutzerklärung",
+      "intro": "Poolaki ist eine Ausgaben-App, die ein Team von Studierenden als Abschlussprojekt an der 42 Berlin entwickelt hat. Diese Erklärung beschreibt, welche personenbezogenen Daten Poolaki speichert, wozu Poolaki sie braucht und wie sie gelöscht werden.",
+      "sections": {
+        "collected": {
+          "title": "Welche Daten wir erheben",
+          "items": [
+            "Profil: deine E-Mail-Adresse, dein vollständiger Name und dein Passwort. Das Passwort wird nie so gespeichert, wie du es eingegeben hast, sondern nur als bcrypt-Hash, aus dem sich das Passwort nicht zurückgewinnen lässt.",
+            "Profilfoto: Wenn du eines hochlädst, wird das JPEG- oder PNG-Bild (bis 5 MB) auf unserem Server gespeichert.",
+            "Finanzdaten: die Konten, Kategorien, Transaktionen und Umbuchungen, die du eingibst, mit Beträgen, Daten und Währungen sowie optionalen Texten wie Institut, Kontoreferenz, Beschreibung, Händler oder Notizen.",
+            "Anmeldungen: für jede Sitzung, wann sie begonnen hat und wann sie abläuft, der User-Agent deines Browsers (welchen Browser und welches Betriebssystem du nutzt) und deine IP-Adresse.",
+            "Einstellungen: deine Sprache, dein helles oder dunkles Design und das Konto, dessen Transaktionen du zuletzt geöffnet hast. Diese liegen in Cookies auf deinem Gerät."
+          ]
+        },
+        "purpose": {
+          "title": "Wozu wir sie nutzen",
+          "paragraphs": [
+            "Wir nutzen deine Daten nur, um Poolaki für dich bereitzustellen: um dein Profil anzulegen, dich anzumelden und angemeldet zu halten, deine Salden und Übersichten anzuzeigen und deine Einstellungen zu merken. Das ist für den Dienst, für den du dich registriert hast, erforderlich (Art. 6 Abs. 1 lit. b DSGVO).",
+            "Den User-Agent und die IP-Adresse jeder Sitzung speichern wir, damit Anmeldungen bei deinem Profil im Fall eines Missbrauchs nachvollzogen werden können (berechtigtes Interesse an einem sicheren Dienst, Art. 6 Abs. 1 lit. f DSGVO).",
+            "Wir nutzen deine Daten nicht für Werbung oder Profiling, verkaufen sie nicht und geben sie an niemanden weiter. Poolaki verwendet keine Analyse- oder Tracking-Werkzeuge und lädt keine Skripte oder Schriften von anderen Diensten."
+          ]
+        },
+        "cookies": {
+          "title": "Cookies",
+          "paragraphs": [
+            "Poolaki setzt nur eigene Cookies und nur für Funktionen, die es zum Arbeiten braucht. Es gibt keine Werbe- oder Tracking-Cookies."
+          ],
+          "items": [
+            "session: hält dich angemeldet. Es ist HTTP-only, Skripte auf der Seite können es also nicht lesen. Es endet, wenn du dich abmeldest, oder nach 30 Tagen. Unsere Datenbank speichert nur einen SHA-256-Hash seines Werts, nie den Wert selbst.",
+            "locale: merkt sich ein Jahr lang die Sprache, die du gewählt hast.",
+            "theme: merkt sich ein Jahr lang das helle oder dunkle Design, das du gewählt hast.",
+            "lastAccountId: merkt sich ein Jahr lang das Konto, dessen Transaktionen du zuletzt geöffnet hast, damit die Seite „Transaktionen“ dieses Konto wieder öffnen kann."
+          ]
+        },
+        "security": {
+          "title": "Wie wir deine Daten schützen",
+          "paragraphs": [
+            "Deine Daten sind nur für dich sichtbar. Jede Anfrage wird anhand deiner Sitzung geprüft, und Poolaki gibt nur Daten zurück, die zu deinem Profil gehören.",
+            "Passwörter werden als bcrypt-Hashes und Sitzungstoken als SHA-256-Hashes gespeichert. Selbst wer die Datenbank lesen könnte, könnte sich damit also nicht als du anmelden."
+          ]
+        },
+        "retention": {
+          "title": "Wie lange wir sie speichern",
+          "items": [
+            "Dein Profil und deine Daten bleiben gespeichert, bis du sie löschst oder dein Profil gelöscht wird.",
+            "Ein archiviertes Konto wird nur ausgeblendet. Das Konto und seine Transaktionen bleiben gespeichert, und du kannst es wiederherstellen.",
+            "Sitzungsdaten, einschließlich User-Agent und IP-Adresse, werden sieben Tage nach Ablauf der Sitzung oder nach deiner Abmeldung gelöscht.",
+            "Wenn du dein Profilfoto entfernst oder ersetzt, wird die alte Bilddatei gelöscht."
+          ]
+        },
+        "deletion": {
+          "title": "Deine Daten löschen",
+          "paragraphs": [
+            "Du kannst einzelne Transaktionen und Kategorien jederzeit löschen und dein Profilfoto auf der Profilseite entfernen. Wenn du eine Kategorie löschst, bleiben ihre Transaktionen ohne Kategorie erhalten. Wenn du eine Seite einer Umbuchung löschst, werden beide Seiten gelöscht.",
+            "Wird ein Profil gelöscht, entfernt Poolaki es zusammen mit allen Konten (auch archivierten), Kategorien, Transaktionen, Sitzungen und dem Profilfoto dauerhaft in einem Schritt. Es wird keine Kopie aufbewahrt, und die Daten lassen sich nicht wiederherstellen.",
+            "Dein ganzes Profil oder ein Konto mit allen Transaktionen zu löschen, ist in der App noch nicht möglich."
+          ]
+        },
+        "rights": {
+          "title": "Deine Rechte",
+          "paragraphs": [
+            "Nach der DSGVO hast du das Recht auf Auskunft über deine Daten, auf ihre Berichtigung oder Löschung, auf Einschränkung der Verarbeitung, auf Widerspruch gegen die Verarbeitung und darauf, deine Daten in einem übertragbaren Format zu erhalten. Außerdem hast du das Recht, dich bei einer Datenschutz-Aufsichtsbehörde zu beschweren.",
+            "Alle deine Daten kannst du jederzeit in der App ansehen, und deinen Namen und dein Profilfoto kannst du auf der Profilseite ändern."
+          ]
+        },
+        "changes": {
+          "title": "Änderungen dieser Erklärung",
+          "paragraphs": [
+            "Wenn Poolaki Daten anders verarbeitet als bisher, aktualisieren wir diese Erklärung und das Datum oben auf dieser Seite."
+          ]
+        }
+      }
+    },
+    "terms": {
+      "title": "Nutzungsbedingungen",
+      "intro": "Diese Bedingungen gelten, wenn du Poolaki nutzt, eine Ausgaben-App, die ein Team von Studierenden als Abschlussprojekt an der 42 Berlin entwickelt hat. Mit dem Anlegen eines Profils stimmst du ihnen zu.",
+      "sections": {
+        "service": {
+          "title": "Der Dienst",
+          "paragraphs": [
+            "Poolaki hilft dir, den Überblick über deine persönlichen Finanzen zu behalten. Du legst deine Konten an, ordnest Einnahmen und Ausgaben Kategorien zu und erfasst Transaktionen und Umbuchungen zwischen deinen Konten. Poolaki zeigt dir dann deine Salden und Übersichten.",
+            "Poolaki speichert nur, was du eingibst. Es verbindet sich nicht mit Banken, bewegt kein Geld und wickelt keine Zahlungen ab.",
+            "Poolaki ist kostenlos und wird so bereitgestellt, wie es ist. Funktionen können sich ändern, und der Dienst kann unterbrochen oder eingestellt werden."
+          ]
+        },
+        "profile": {
+          "title": "Dein Profil",
+          "items": [
+            "Für die Registrierung brauchst du eine gültige E-Mail-Adresse und ein Passwort mit mindestens 12 Zeichen.",
+            "Mach korrekte Angaben und lege ein Profil nur für dich selbst an.",
+            "Halte dein Passwort geheim und melde dich auf Geräten ab, die auch andere Personen nutzen.",
+            "Du bist dafür verantwortlich, was mit deinem Profil geschieht."
+          ]
+        },
+        "content": {
+          "title": "Deine Daten",
+          "paragraphs": [
+            "Die Daten, die du eingibst, gehören dir, und du bist dafür verantwortlich, dass sie stimmen. Poolaki nutzt sie nur so, wie es die Datenschutzerklärung beschreibt."
+          ]
+        },
+        "acceptableUse": {
+          "title": "Zulässige Nutzung",
+          "paragraphs": ["Wenn du Poolaki nutzt, darfst du nicht:"],
+          "items": [
+            "versuchen, auf Profile oder Daten anderer Personen zuzugreifen;",
+            "den Dienst ausspähen, angreifen oder überlasten, zum Beispiel mit automatisierten Massenanfragen, oder versuchen, seine Sicherheitsmaßnahmen zu umgehen;",
+            "ein Profilfoto hochladen oder Text eingeben, das bzw. der rechtswidrig oder anstößig ist oder Rechte anderer verletzt;",
+            "dich mit der E-Mail-Adresse einer anderen Person registrieren oder dich als jemand anderes ausgeben;",
+            "Poolaki für rechtswidrige Zwecke nutzen."
+          ]
+        },
+        "noAdvice": {
+          "title": "Keine Finanzberatung",
+          "paragraphs": [
+            "Salden und Übersichten werden nur aus deinen Eingaben berechnet. Poolaki bietet keine Finanz-, Steuer- oder Rechtsberatung. Für Steuererklärungen und andere offizielle Zwecke nutze deine Kontoauszüge und Belege, nicht Poolaki."
+          ]
+        },
+        "liability": {
+          "title": "Verfügbarkeit und Haftung",
+          "paragraphs": [
+            "Wir bemühen uns, Poolaki am Laufen und deine Daten sicher zu halten, können aber nicht garantieren, dass der Dienst immer verfügbar oder fehlerfrei ist. Bewahre eigene Kopien von Daten auf, die dir wichtig sind.",
+            "Soweit gesetzlich zulässig, haften wir nicht für Schäden, die durch die Nutzung von Poolaki, durch Unterbrechungen oder durch Datenverlust entstehen. Das schränkt die Haftung für Vorsatz und grobe Fahrlässigkeit sowie jede andere Haftung, die gesetzlich nicht ausgeschlossen werden kann, nicht ein."
+          ]
+        },
+        "ending": {
+          "title": "Nutzung beenden",
+          "paragraphs": [
+            "Du kannst Poolaki jederzeit nicht mehr nutzen. Die Datenschutzerklärung beschreibt, wie deine Daten gelöscht werden.",
+            "Wir können ein Profil sperren oder löschen, das gegen diese Bedingungen verstößt."
+          ]
+        },
+        "changes": {
+          "title": "Änderungen dieser Bedingungen",
+          "paragraphs": [
+            "Wir können diese Bedingungen aktualisieren. Das Datum oben auf dieser Seite zeigt, wann sie zuletzt geändert wurden. Wenn du Poolaki nach einer Änderung weiter nutzt, gelten die aktualisierten Bedingungen."
+          ]
+        }
+      }
+    }
   }
 }

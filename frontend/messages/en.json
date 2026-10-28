@@ -385,5 +385,150 @@
       "retry": "Try again",
       "reference": "Reference code: {code}"
     }
+  },
+  "legal": {
+    "navLabel": "Legal",
+    "privacyLink": "Privacy Policy",
+    "termsLink": "Terms of Service",
+    "lastUpdated": "Last updated: <time>{date}</time>",
+    "privacy": {
+      "title": "Privacy Policy",
+      "intro": "Poolaki is an expense tracker built by a team of students as their final group project at 42 Berlin. This policy explains which personal data Poolaki stores, why it needs that data, and how the data is deleted.",
+      "sections": {
+        "collected": {
+          "title": "Data we collect",
+          "items": [
+            "Profile: your email address, your full name and your password. The password is never stored as you typed it, only as a bcrypt hash that cannot be turned back into the password.",
+            "Profile photo: if you upload one, the JPEG or PNG image (up to 5 MB) is stored on our server.",
+            "Financial records: the accounts, categories, transactions and transfers you enter, with their amounts, dates and currencies, and optional text such as an institution, an account reference, a description, a merchant or notes.",
+            "Sign-ins: for each session, when it started and when it expires, your browser's user agent (which browser and operating system you use) and your IP address.",
+            "Settings: your language, your light or dark theme and the last account whose transactions you opened. These are kept in cookies on your device."
+          ]
+        },
+        "purpose": {
+          "title": "Why we use it",
+          "paragraphs": [
+            "We use your data only to run Poolaki for you: to create your profile, to sign you in and keep you signed in, to show your balances and summaries, and to remember your settings. This is necessary to provide the service you signed up for (Article 6(1)(b) GDPR).",
+            "We store the user agent and IP address of each session so that sign-ins to your profile can be traced if it is misused (legitimate interest in keeping the service secure, Article 6(1)(f) GDPR).",
+            "We do not use your data for advertising or profiling, we do not sell it, and we do not share it with anyone. Poolaki has no analytics or tracking, and it does not load scripts or fonts from other services."
+          ]
+        },
+        "cookies": {
+          "title": "Cookies",
+          "paragraphs": [
+            "Poolaki sets only its own cookies, and only for features it needs to work. There are no advertising or tracking cookies."
+          ],
+          "items": [
+            "session: keeps you signed in. It is HTTP-only, so scripts on the page cannot read it. It ends when you log out or after 30 days. Our database stores only a SHA-256 hash of its value, never the value itself.",
+            "locale: remembers the language you chose, for one year.",
+            "theme: remembers the light or dark theme you chose, for one year.",
+            "lastAccountId: remembers the account whose transactions you opened last, for one year, so the Transactions page can open that account again."
+          ]
+        },
+        "security": {
+          "title": "How we protect your data",
+          "paragraphs": [
+            "Your records are visible only to you. Every request is checked against your session, and Poolaki returns only records that belong to your profile.",
+            "Passwords are stored as bcrypt hashes and session tokens as SHA-256 hashes, so even someone who could read the database could not use them to sign in as you."
+          ]
+        },
+        "retention": {
+          "title": "How long we keep it",
+          "items": [
+            "Your profile and records are kept until you delete them or your profile is deleted.",
+            "Archiving an account only hides it. The account and its transactions are kept, and you can restore it.",
+            "Session records, including the user agent and IP address, are deleted seven days after the session expires or after you log out.",
+            "When you remove or replace your profile photo, the old image file is deleted."
+          ]
+        },
+        "deletion": {
+          "title": "Deleting your data",
+          "paragraphs": [
+            "You can delete single transactions and categories at any time, and remove your profile photo on the Profile page. When you delete a category, its transactions are kept without a category. When you delete one side of a transfer, both sides are deleted.",
+            "When a profile is deleted, Poolaki permanently removes it together with all its accounts (archived ones too), categories, transactions, sessions and profile photo, in a single step. No copy is kept, and the data cannot be restored.",
+            "Deleting your whole profile, or an account with all its transactions, is not yet possible in the app."
+          ]
+        },
+        "rights": {
+          "title": "Your rights",
+          "paragraphs": [
+            "Under the GDPR, you have the right to access your data, to have it corrected or deleted, to restrict or object to its processing, and to receive it in a portable format. You also have the right to lodge a complaint with a data protection supervisory authority.",
+            "You can see all your records in the app at any time, and change your name and profile photo on the Profile page."
+          ]
+        },
+        "changes": {
+          "title": "Changes to this policy",
+          "paragraphs": [
+            "When Poolaki starts to handle data differently, we update this policy and the date at the top of this page."
+          ]
+        }
+      }
+    },
+    "terms": {
+      "title": "Terms of Service",
+      "intro": "These terms apply when you use Poolaki, an expense tracker built by a team of students as their final group project at 42 Berlin. By creating a profile, you agree to them.",
+      "sections": {
+        "service": {
+          "title": "The service",
+          "paragraphs": [
+            "Poolaki helps you keep track of your personal finances. You add your accounts, sort income and expenses into categories, and record transactions and transfers between your accounts. Poolaki then shows your balances and summaries.",
+            "Poolaki only keeps records of what you enter. It does not connect to banks, move money or process payments.",
+            "Poolaki is free of charge and is provided as it is. Features can change, and the service can be interrupted or shut down."
+          ]
+        },
+        "profile": {
+          "title": "Your profile",
+          "items": [
+            "To sign up, you need a valid email address and a password of at least 12 characters.",
+            "Give accurate details, and create a profile only for yourself.",
+            "Keep your password secret, and log out on devices that other people use.",
+            "You are responsible for what is done with your profile."
+          ]
+        },
+        "content": {
+          "title": "Your records",
+          "paragraphs": [
+            "The records you enter belong to you, and you are responsible for keeping them correct. Poolaki uses them only as the Privacy Policy describes."
+          ]
+        },
+        "acceptableUse": {
+          "title": "Acceptable use",
+          "paragraphs": ["When you use Poolaki, you must not:"],
+          "items": [
+            "try to access other people's profiles or records;",
+            "probe, attack or overload the service, for example with automated mass requests, or try to get around its security;",
+            "upload a profile photo or enter text that is illegal, offensive or infringes the rights of others;",
+            "sign up with someone else's email address or pretend to be someone else;",
+            "use Poolaki for any illegal purpose."
+          ]
+        },
+        "noAdvice": {
+          "title": "No financial advice",
+          "paragraphs": [
+            "Balances and summaries are calculated only from what you enter. Poolaki does not give financial, tax or legal advice. For tax returns and other official purposes, use your bank statements and receipts, not Poolaki."
+          ]
+        },
+        "liability": {
+          "title": "Availability and liability",
+          "paragraphs": [
+            "We try to keep Poolaki running and your data safe, but we cannot guarantee that it is always available or free of errors. Keep your own copies of records that are important to you.",
+            "As far as the law allows, we are not liable for losses caused by using Poolaki, by interruptions or by lost data. This does not limit liability for intent or gross negligence, or any other liability that the law does not allow to be excluded."
+          ]
+        },
+        "ending": {
+          "title": "Ending your use",
+          "paragraphs": [
+            "You can stop using Poolaki at any time. The Privacy Policy explains how your data is deleted.",
+            "We can suspend or delete a profile that breaks these terms."
+          ]
+        },
+        "changes": {
+          "title": "Changes to these terms",
+          "paragraphs": [
+            "We can update these terms. The date at the top of this page shows when they last changed. If you continue to use Poolaki after a change, the updated terms apply."
+          ]
+        }
+      }
+    }
   }
 }
