@@ -16,15 +16,15 @@ import type { AccountType } from "@/lib/validation";
 // worse than none in a money app, so the UI says "unavailable" instead.
 // Focus lands on the list heading after an archived or restored row disappears.
 const ACCOUNTS_HEADING_ID = "accounts-heading";
-// Badge colours for archived rows.
-const ARCHIVED_STYLE = "bg-muted text-muted-foreground";
+// Neutral badge colours, used by cash accounts and archived rows.
+const MUTED_STYLE = "bg-muted text-muted-foreground";
 
 type AccountWithBalance = Account & { balanceMinor: number | null };
 
 const TYPE_STYLE: Record<AccountType, { icon: LucideIcon; className: string }> = {
   checking: { icon: Wallet, className: "bg-accent text-primary dark:text-accent-foreground" },
   savings: { icon: PiggyBank, className: "bg-success-bg text-success" },
-  cash: { icon: Banknote, className: "bg-muted text-muted-foreground" },
+  cash: { icon: Banknote, className: MUTED_STYLE },
 };
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -182,7 +182,7 @@ async function AccountRow({
       className="flex flex-wrap items-center gap-x-3.5 gap-y-2 border-b border-border py-3.5 last:border-b-0"
     >
       <span
-        className={`flex size-9.5 shrink-0 items-center justify-center rounded-[10px] ${archived ? ARCHIVED_STYLE : className}`}
+        className={`flex size-9.5 shrink-0 items-center justify-center rounded-[10px] ${archived ? MUTED_STYLE : className}`}
       >
         <Icon size={17} aria-hidden />
       </span>
@@ -196,7 +196,7 @@ async function AccountRow({
             {account.name}
           </Link>
           <span
-            className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold tracking-wide uppercase ${archived ? ARCHIVED_STYLE : className}`}
+            className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold tracking-wide uppercase ${archived ? MUTED_STYLE : className}`}
           >
             {archived ? t("archived") : t(`types.${account.type}`)}
           </span>
