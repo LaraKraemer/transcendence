@@ -72,7 +72,7 @@ The server applies migrations on startup. Migrations leave 17 global reference c
 
 API smoke test (CI runs it too): copy `backend/bruno/.env.example` to `backend/bruno/.env`, set `TEST_PASSWORD` (at least 12 chars), then `cd backend/bruno && npx bru run --env local` with the stack running.
 
-Frontend (`cd frontend`): `npm run lint && npm run check:format && npm run check:transactions && npm run build` (matches CI). Format money with `formatAmount` from `lib/format.ts`; `check:format` is its self-check, and `check:transactions` checks the transfer grouping in `lib/transactions.ts`.
+Frontend (`cd frontend`): `npm run lint && npm run check:format && npm run check:transactions && npm run build` (matches CI). Format money with `formatAmount` from `lib/format.ts`; `check:format` is its self-check, and `check:transactions` checks the transfer grouping in `lib/transactions.ts`. `npm run check:a11y` (also in CI) runs axe on every page and the main dialogs; it needs the running stack and `npx playwright install chromium`. Add new pages and dialogs to its lists in `a11y.check.mjs`.
 
 ## Architecture
 
