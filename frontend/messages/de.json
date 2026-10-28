@@ -85,13 +85,6 @@
     "skipToContent": "Zum Inhalt springen",
     "more": "Mehr",
     "theme": "Design",
-    "accounts": "Konten",
-    "categories": "Kategorien",
-    "transactions": "Transaktionen",
-    "logout": "Abmelden",
-    "skipToContent": "Zum Inhalt springen",
-    "more": "Mehr",
-    "theme": "Design",
     "profile": "Profil",
     "back": "Zurück"
   },
@@ -137,7 +130,11 @@
       "photoType": "Wähle ein JPEG- oder PNG-Bild",
       "photoTooLarge": "Das Foto darf höchstens 5 MB groß sein",
       "network": "Der Server ist nicht erreichbar. Bitte versuche es später erneut."
-    }
+    },
+    "photoPreview": "Vorschau des ausgewählten Fotos",
+    "uploadPhoto": "Hochladen",
+    "replaceSelection": "Auswahl ersetzen",
+    "savingPhoto": "Foto wird gespeichert…"
   },
   "accounts": {
     "title": "Konten",
@@ -410,6 +407,27 @@
       "retry": "Erneut versuchen",
       "reference": "Referenzcode: {code}"
     }
+  },
+  "transactionImport": {
+    "title": "JSON importieren",
+    "account": "Zielkonto",
+    "file": "JSON-Datei",
+    "help": "Bis zu 5 MiB und 1.000 Ausgaben/Einnahmen. Nur JSON Version 1. Kategorie optional: Name einer vorhandenen Kategorie, die zum Buchungstyp passt.",
+    "preview": "Vorschau ({count} Buchungen)",
+    "date": "Datum",
+    "description": "Beschreibung",
+    "amount": "Betrag",
+    "warning": "Die gesamte Datei importieren? Ein erneuter Import erzeugt Duplikate. Es erfolgt keine Duplikaterkennung.",
+    "confirm": "Alle importieren",
+    "reading": "Datei wird gelesen…",
+    "importing": "Buchungen werden importiert…",
+    "success": "{count} Buchungen importiert.",
+    "tooLarge": "Die Datei darf höchstens 5 MiB groß sein.",
+    "invalid": "Ungültiger JSON-Import. Verwende Version 1, einen Währungscode aus drei Großbuchstaben und 1–1.000 Ausgaben/Einnahmen.",
+    "invalidRow": "Zeile {row}: ungültige Felder. Verwende expense/income, eine ganze Zahl ungleich null für amountMinor und ein bookedOn-Datum.",
+    "readError": "Die Datei konnte nicht gelesen werden. Bitte erneut auswählen.",
+    "currencyMismatch": "Die Dateiwährung muss mit dem Zielkonto übereinstimmen.",
+    "network": "Der Server ist nicht erreichbar. Prüfe vor einem erneuten Versuch die Buchungsliste: Der Import könnte bereits abgeschlossen sein."
   },
   "legal": {
     "navLabel": "Rechtliches",
