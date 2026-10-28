@@ -4,6 +4,7 @@ import { Suspense, type ReactNode } from "react";
 
 import { LogoutButton } from "@/components/app-shell/logout-button";
 import { NavLinks } from "@/components/app-shell/nav-links";
+import { LegalFooter } from "@/components/legal/legal-footer";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { NewTransactionFab } from "@/components/transactions/new-transaction-fab";
@@ -103,10 +104,11 @@ export async function AppShell({
         <main
           id="main"
           tabIndex={-1}
-          className="flex flex-1 flex-col px-4 pt-4 pb-40 outline-none sm:pb-24 lg:px-8 lg:pt-0 lg:pb-12"
+          className="flex flex-1 flex-col px-4 pt-4 pb-8 outline-none lg:px-8 lg:pt-0"
         >
           {children}
         </main>
+        <LegalFooter className="px-20 pb-24 lg:px-4 lg:pb-3" />
       </div>
 
       <div className="fixed inset-x-0 bottom-0 z-10 border-t border-border bg-card lg:hidden">
