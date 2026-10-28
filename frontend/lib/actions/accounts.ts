@@ -151,23 +151,25 @@ export async function updateAccount(
 }
 
 /**
- * Archives an account with `PATCH { isArchived: true }`. Not `DELETE`: that
+ * Archives or restores an account with `PATCH { isArchived }`. Not `DELETE`: that
  * route is reserved for permanently deleting an account and its transactions
- * (issue #48). Archived accounts drop out of the list; transactions are kept.
+ * (issue #48). Archived accounts move to the Archived list; transactions are kept.
  */
-export async function archiveAccount(accountId: string): Promise<ActionResponse> {
+export async function setAccountArchived(accountId: string, isArchived: boolean): Promise<ActionResponse> {
   if (!accountIdSchema.safeParse(accountId).success) {
     return { success: false, message: "Account not found", status: 404 };
   }
+  // Action arguments come from the client, so check the type before sending it on.
+  if (typeof isArchived !== "boolean") return { success: false, message: "Validation failed", status: 400 };
   try {
     await fetchApiServer<Account>(`/accounts/${accountId}`, {
       method: "PATCH",
-      body: JSON.stringify({ isArchived: true }),
+      body: JSON.stringify({ isArchived }),
     });
   } catch (error) {
-    return backendFailure(error, "archiveAccount");
+    return backendFailure(error, "setAccountArchived");
   }
 
   refresh();
-  return { success: true, message: "Account archived" };
+  return { success: true, message: isArchived ? "Account archived" : "Account restored" };
 }

@@ -175,9 +175,14 @@
       "generic": "مشکلی پیش آمد. لطفاً دوباره تلاش کنید."
     },
     "balanceUnavailable": "موجودی در دسترس نیست",
+    "archivedTitle": "بایگانی‌شده ({count})",
+    "archived": "بایگانی‌شده",
+    "unarchive": "بازگردانی",
+    "unarchiving": "در حال بازگردانی…",
     "actions": {
       "edit": "ویرایش «{name}»",
-      "archive": "بایگانی «{name}»"
+      "archive": "بایگانی «{name}»",
+      "unarchive": "بازگردانی {name}"
     },
     "archiveDialog": {
       "title": "«{name}» بایگانی شود؟",
@@ -188,7 +193,8 @@
     "announcements": {
       "created": "«{name}» ساخته شد",
       "saved": "«{name}» ذخیره شد",
-      "archived": "«{name}» بایگانی شد"
+      "archived": "«{name}» بایگانی شد",
+      "restored": "«{name}» بازگردانده شد"
     }
   },
   "transactions": {

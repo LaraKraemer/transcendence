@@ -175,9 +175,14 @@
       "generic": "Something went wrong. Please try again."
     },
     "balanceUnavailable": "Balance unavailable",
+    "archivedTitle": "Archived ({count})",
+    "archived": "Archived",
+    "unarchive": "Unarchive",
+    "unarchiving": "Restoring…",
     "actions": {
       "edit": "Edit {name}",
-      "archive": "Archive {name}"
+      "archive": "Archive {name}",
+      "unarchive": "Unarchive {name}"
     },
     "archiveDialog": {
       "title": "Archive “{name}”?",
@@ -188,7 +193,8 @@
     "announcements": {
       "created": "“{name}” created",
       "saved": "“{name}” saved",
-      "archived": "“{name}” archived"
+      "archived": "“{name}” archived",
+      "restored": "“{name}” restored"
     }
   },
   "transactions": {

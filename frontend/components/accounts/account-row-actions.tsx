@@ -1,6 +1,6 @@
 "use client";
 
-import { Archive, Pencil } from "lucide-react";
+import { Archive, ArchiveRestore, Pencil } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { startTransition, useActionState, useEffect, useRef, useState } from "react";
 
@@ -8,7 +8,7 @@ import { AccountForm } from "@/components/accounts/account-form";
 import { formErrorFor } from "@/components/auth/form-parts";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useAnnounce } from "@/components/ui/live-status";
-import { archiveAccount } from "@/lib/actions/accounts";
+import { setAccountArchived } from "@/lib/actions/accounts";
 import type { Account } from "@/lib/types";
 
 /** Small row action button; the transactions list uses it too, so both lists look alike. */
@@ -103,6 +103,59 @@ export function AccountRowActions({
   );
 }
 
+/**
+ * Unarchive for one archived account row. No confirmation: restoring loses nothing.
+ * On success the row moves to the active list, so focus goes to `headingId`.
+ */
+export function UnarchiveButton({ account, headingId }: { account: Account; headingId: string }) {
+  const t = useTranslations("accounts");
+  const announce = useAnnounce();
+
+  // Same as archiving: the row unmounts after the refresh, so focus moves in the cleanup.
+  const wasRestored = useRef(false);
+  useEffect(
+    () => () => {
+      if (wasRestored.current) document.getElementById(headingId)?.focus();
+    },
+    [headingId],
+  );
+
+  const [restoreError, runRestore, isRestoring] = useActionState(async (): Promise<"network" | "generic" | null> => {
+    try {
+      const result = await setAccountArchived(account.id, false);
+      if (result.success) {
+        announce(t("announcements.restored", { name: account.name }));
+        wasRestored.current = true;
+        return null;
+      }
+      return formErrorFor(result) === "network" ? "network" : "generic";
+    } catch {
+      return "network";
+    }
+  }, null);
+
+  return (
+    <div className="flex basis-full flex-wrap items-center justify-end gap-x-3 gap-y-1 sm:basis-auto">
+      {restoreError && (
+        <p role="alert" className="text-[13px] text-destructive">
+          {t(`errors.${restoreError}`)}
+        </p>
+      )}
+      {/* aria-disabled, not disabled: a disabled button loses keyboard focus. */}
+      <button
+        type="button"
+        onClick={() => !isRestoring && startTransition(() => runRestore())}
+        aria-disabled={isRestoring}
+        aria-label={t("actions.unarchive", { name: account.name })}
+        className="flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-[9px] bg-muted px-3 text-[13px] font-semibold text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none aria-disabled:cursor-wait aria-disabled:opacity-60"
+      >
+        <ArchiveRestore size={15} aria-hidden />
+        {isRestoring ? t("unarchiving") : t("unarchive")}
+      </button>
+    </div>
+  );
+}
+
 function ArchiveDialog({
   account,
   onArchived,
@@ -116,7 +169,7 @@ function ArchiveDialog({
   const announce = useAnnounce();
   const [archiveError, runArchive, isArchiving] = useActionState(async (): Promise<"network" | "generic" | null> => {
     try {
-      const result = await archiveAccount(account.id);
+      const result = await setAccountArchived(account.id, true);
       if (result.success) {
         // Focus moves to the heading, which says nothing about the result, so say it here.
         announce(t("announcements.archived", { name: account.name }));
