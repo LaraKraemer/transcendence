@@ -52,10 +52,20 @@ export function ProfileDetails({ user }: { user: User }) {
   const [isSavingName, setIsSavingName] = useState(false);
   const [photoError, setPhotoError] = useState<PhotoError | null>(null);
   const [isPhotoPending, startPhotoTransition] = useTransition();
+  const [selectedPhoto, setSelectedPhoto] = useState<{ file: File; url: string } | null>(null);
+  const photoSubmittingRef = useRef(false);
+  useEffect(
+    () => () => {
+      if (selectedPhoto) URL.revokeObjectURL(selectedPhoto.url);
+    },
+    [selectedPhoto],
+  );
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraButtonRef = useRef<HTMLButtonElement>(null);
 
   function runPhotoAction(action: () => Promise<ActionResponse>, doneMessage: string) {
+    if (photoSubmittingRef.current) return;
+    photoSubmittingRef.current = true;
     setPhotoError(null);
     startPhotoTransition(async () => {
       let result: ActionResponse;
@@ -65,21 +75,29 @@ export function ProfileDetails({ user }: { user: User }) {
         // The action call itself failed (offline, Next server down).
         result = { success: false, message: "" };
       }
+      photoSubmittingRef.current = false;
       if (!result.success) {
         setPhotoError(photoErrorFor(result));
         return;
       }
+      setSelectedPhoto(null);
       announce(doneMessage);
       // "Remove photo" disappears with the photo, so focus needs a new home.
       cameraButtonRef.current?.focus();
     });
   }
 
-  function uploadPhoto(file: File) {
+  function selectPhoto(file: File) {
     if (!AVATAR_TYPES.includes(file.type)) return setPhotoError({ code: "photoType" });
     if (file.size > MAX_AVATAR_BYTES) return setPhotoError({ code: "photoTooLarge" });
+    setPhotoError(null);
+    setSelectedPhoto({ file, url: URL.createObjectURL(file) });
+  }
+
+  function confirmPhoto() {
+    if (!selectedPhoto) return;
     const formData = new FormData();
-    formData.set("photo", file);
+    formData.set("photo", selectedPhoto.file);
     runPhotoAction(() => uploadAvatar(formData), t("profile.announcements.photoUpdated"));
   }
 
@@ -141,7 +159,7 @@ export function ProfileDetails({ user }: { user: User }) {
                 const file = event.target.files?.[0];
                 // Cleared, so picking the same file again after an error fires onChange again.
                 event.target.value = "";
-                if (file) uploadPhoto(file);
+                if (file) selectPhoto(file);
               }}
             />
           </div>
@@ -150,7 +168,7 @@ export function ProfileDetails({ user }: { user: User }) {
             <div className="mt-0.5 truncate text-xs text-muted-foreground lg:mt-[5px] lg:text-sm">
               <bdi>{user.email}</bdi>
             </div>
-            {user.avatarUrl && (
+            {user.avatarUrl && !selectedPhoto && (
               <button
                 type="button"
                 aria-disabled={isPhotoPending}
@@ -160,6 +178,50 @@ export function ProfileDetails({ user }: { user: User }) {
                 {t("profile.removePhoto")}
               </button>
             )}
+            {selectedPhoto && (
+              <div className="mt-3 space-y-3">
+                {/* Local object URL; this preview never uploads the file. */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={selectedPhoto.url}
+                  alt={t("profile.photoPreview")}
+                  className="size-28 rounded-full object-cover"
+                />
+                <div className="flex flex-wrap gap-2">
+                  <Button className="w-auto" disabled={isPhotoPending} onClick={confirmPhoto}>
+                    {t("profile.uploadPhoto")}
+                  </Button>
+                  <Button
+                    className="w-auto"
+                    variant="outline"
+                    disabled={isPhotoPending}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    {t("profile.replaceSelection")}
+                  </Button>
+                  <Button
+                    className="w-auto"
+                    variant="outline"
+                    disabled={isPhotoPending}
+                    onClick={() => {
+                      setSelectedPhoto(null);
+                      setPhotoError(null);
+                      cameraButtonRef.current?.focus();
+                    }}
+                  >
+                    {t("common.cancel")}
+                  </Button>
+                </div>
+              </div>
+            )}
+            <div role="status">
+              {isPhotoPending && (
+                <>
+                  <progress className="mt-3" aria-label={t("profile.savingPhoto")} />
+                  <p className="text-sm">{t("profile.savingPhoto")}</p>
+                </>
+              )}
+            </div>
             {photoError && (
               <div className="mt-3">
                 <FormAlert

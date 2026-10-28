@@ -616,3 +616,10 @@ New team members should be able to:
 3. Run `make build`
 4. Run `make up`
 5. Start developing
+
+
+## Avatar upload preview
+
+Avatar selection now opens a local preview: **Upload** saves it, **Replace selection**
+chooses another file and **Cancel** leaves the current avatar untouched. Saving uses
+an indeterminate progress indicator; JPEG/PNG and the 5 MiB limit are unchanged.
