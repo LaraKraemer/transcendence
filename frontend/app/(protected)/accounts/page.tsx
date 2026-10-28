@@ -16,7 +16,7 @@ import type { AccountType } from "@/lib/validation";
 // worse than none in a money app, so the UI says "unavailable" instead.
 // Focus lands on the list heading after an archived or restored row disappears.
 const ACCOUNTS_HEADING_ID = "accounts-heading";
-// Badge colours for archived rows, shared with the "Archived" badge on /transactions.
+// Badge colours for archived rows.
 const ARCHIVED_STYLE = "bg-muted text-muted-foreground";
 
 type AccountWithBalance = Account & { balanceMinor: number | null };
