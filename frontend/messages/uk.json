@@ -321,7 +321,9 @@
       "cancel": "Скасувати",
       "submit": "Зберегти категорію",
       "submitting": "Збереження…",
-      "customColor": "Власний колір"
+      "customColor": "Власний колір",
+      "hue": "Відтінок",
+      "lightness": "Яскравість"
     },
     "icons": {
       "shopping-cart": "Покупки",

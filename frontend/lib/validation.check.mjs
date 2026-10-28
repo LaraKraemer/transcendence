@@ -11,6 +11,8 @@ import {
   amountInputValue,
   contrastRatio,
   readableOn,
+  hslToHex,
+  hueAndLightness,
   filterAmountInput,
   toMinorUnits,
   toPositiveMinorUnits,
@@ -105,6 +107,25 @@ for (let i = 0; i < 4096; i++) {
   assert.ok(contrastRatio(hex, readableOn(hex)) >= 4.5, `${hex} on ${readableOn(hex)}`);
 }
 console.log("readableOn: ok");
+
+// The custom colour sliders: hue and lightness convert to hex and back.
+assert.equal(hslToHex(0, 100, 50), "#FF0000");
+assert.equal(hslToHex(120, 100, 25), "#008000");
+assert.equal(hslToHex(240, 100, 50), "#0000FF");
+assert.equal(hslToHex(0, 0, 100), "#FFFFFF");
+assert.deepEqual(hueAndLightness("#FF0000"), { hue: 0, lightness: 50 });
+assert.deepEqual(hueAndLightness("#008000"), { hue: 120, lightness: 25 });
+assert.deepEqual(hueAndLightness("#FF00FF"), { hue: 300, lightness: 50 });
+assert.deepEqual(hueAndLightness("#808080"), { hue: 0, lightness: 50 });
+// 8 bits per channel can shift the round trip by 1, which a slider never shows.
+for (let hue = 0; hue < 360; hue += 5) {
+  for (const lightness of [15, 50, 85]) {
+    const back = hueAndLightness(hslToHex(hue, 70, lightness));
+    const hueShift = Math.min(Math.abs(back.hue - hue), 360 - Math.abs(back.hue - hue));
+    assert.ok(hueShift <= 1 && Math.abs(back.lightness - lightness) <= 1, `hsl(${hue} 70% ${lightness}%)`);
+  }
+}
+console.log("hslToHex/hueAndLightness: ok");
 
 // Keep separators until locale/currency validation; never silently multiply money.
 assert.equal(filterAmountInput("abc12,50xyz"), "12,50");

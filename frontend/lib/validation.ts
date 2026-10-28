@@ -281,3 +281,30 @@ export function contrastRatio(a: string, b: string): number {
 export function readableOn(hex: string): typeof LIGHT_ON_COLOR | typeof DARK_ON_COLOR {
   return contrastRatio(hex, LIGHT_ON_COLOR) >= contrastRatio(hex, DARK_ON_COLOR) ? LIGHT_ON_COLOR : DARK_ON_COLOR;
 }
+
+/** `#RRGGBB` for an HSL colour: hue 0–360, saturation and lightness 0–100. */
+export function hslToHex(hue: number, saturation: number, lightness: number): string {
+  const s = saturation / 100;
+  const l = lightness / 100;
+  const chroma = s * Math.min(l, 1 - l);
+  const channel = (n: number) => {
+    const k = (n + hue / 30) % 12;
+    const value = l - chroma * Math.max(-1, Math.min(k - 3, 9 - k, 1));
+    return Math.round(value * 255)
+      .toString(16)
+      .padStart(2, "0");
+  };
+  return `#${channel(0)}${channel(8)}${channel(4)}`.toUpperCase();
+}
+
+/** Hue (0–360) and lightness (0–100) of a #RRGGBB colour, rounded: the custom colour sliders' positions. */
+export function hueAndLightness(hex: string): { hue: number; lightness: number } {
+  const channel = (offset: number) => parseInt(hex.slice(offset, offset + 2), 16) / 255;
+  const [r, g, b] = [channel(1), channel(3), channel(5)];
+  const max = Math.max(r, g, b);
+  const delta = max - Math.min(r, g, b);
+  const lightness = Math.round((max * 2 - delta) * 50);
+  if (delta === 0) return { hue: 0, lightness };
+  const sector = max === r ? (g - b) / delta : max === g ? (b - r) / delta + 2 : (r - g) / delta + 4;
+  return { hue: Math.round((sector * 60 + 360) % 360), lightness };
+}

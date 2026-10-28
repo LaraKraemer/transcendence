@@ -12,6 +12,8 @@ type ModalProps = {
   busy?: boolean;
   /** Id of the text that explains the dialog, for `aria-describedby`. */
   describedBy?: string;
+  /** Close on a backdrop click. Off by default so a stray click can't throw away a filled-in form. */
+  closeOnBackdropClick?: boolean;
   children: ReactNode;
 };
 
@@ -20,7 +22,7 @@ type ModalProps = {
  * inert, and returns focus to the opener on close. Focus starts on the element
  * marked `data-autofocus`. Styled after the modal in docs/design/desktop/categories.html.
  */
-export function Modal({ open, title, onClose, busy, describedBy, children }: ModalProps) {
+export function Modal({ open, title, onClose, busy, describedBy, closeOnBackdropClick = false, children }: ModalProps) {
   const t = useTranslations("common");
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
@@ -65,7 +67,7 @@ export function Modal({ open, title, onClose, busy, describedBy, children }: Mod
       onClick={(event) => {
         const isBackdropClick = pressStartedOnBackdrop.current && event.target === event.currentTarget;
         pressStartedOnBackdrop.current = false;
-        if (isBackdropClick && !busy) onClose();
+        if (isBackdropClick && closeOnBackdropClick && !busy) onClose();
       }}
       className="m-auto max-h-[calc(100%-2rem)] w-[460px] max-w-[calc(100%-2rem)] overflow-hidden rounded-[18px] border border-border bg-card p-0 text-foreground shadow-[0_24px_60px_rgba(8,14,25,.3)] open:flex open:flex-col backdrop:bg-[rgba(8,14,25,.55)] backdrop:backdrop-blur-[2px]"
     >

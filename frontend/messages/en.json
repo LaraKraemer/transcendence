@@ -321,7 +321,9 @@
       "cancel": "Cancel",
       "submit": "Save category",
       "submitting": "Saving…",
-      "customColor": "Custom colour"
+      "customColor": "Custom colour",
+      "hue": "Hue",
+      "lightness": "Lightness"
     },
     "icons": {
       "shopping-cart": "Shopping cart",
