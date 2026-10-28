@@ -9,8 +9,7 @@ import { getCategories } from "@/lib/dal";
 import { HEX_COLOR_PATTERN, readableOn, type CategoryType } from "@/lib/validation";
 
 const TYPE_BADGE: Record<CategoryType, string> = {
-  // The light-mode red on its tint is 3.95:1 at this size; red-700 is 5.3:1 (dark mode passes as is).
-  expense: "bg-danger-bg text-red-700 dark:text-destructive",
+  expense: "bg-danger-bg text-destructive",
   income: "bg-success-bg text-success",
 };
 

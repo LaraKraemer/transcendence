@@ -8,21 +8,22 @@
   --card: #ffffff;
   --card-foreground: #0f1b2d;
   --border: #e7ecf2;
-  --input: #e7ecf2;
+  /* Field borders and the focus ring are UI components: at least 3:1 on cards and fields (WCAG 1.4.11). */
+  --input: #7d8ba1;
   --primary: #1e3352;
   --primary-foreground: #ffffff;
   --muted: #f1f5f9;
   --muted-foreground: #5e6e84;
   --accent: #eef2f7;
   --accent-foreground: #1e3352;
-  --ring: #94a3b8;
-  --destructive: #dc2626;
+  --ring: #64748b;
+  /* Red-700, so error text stays 4.5:1 on its own --danger-bg tint too. */
+  --destructive: #b91c1c;
 
   /* No shadcn/ui equivalent — custom tokens. */
   --success: #15803d;
   --success-bg: #dcfce7;
   --danger-bg: #fee2e2;
-  --danger-fg: #b91c1c;
   --navy: #152238;
   --field: #f6f8fb;
   /* Angles are tokens so RTL can mirror them: green always starts at inline-start. */
@@ -58,7 +59,6 @@
   --success: #22c55e;
   --success-bg: #0e2a1b;
   --danger-bg: #361619;
-  --danger-fg: #f05252;
   --navy: #0d1626;
   --field: #111c31;
   --grad: linear-gradient(var(--grad-angle), #125a2d 0%, #182b47 55%, #0d1626 100%);
@@ -88,7 +88,6 @@
   --color-success: var(--success);
   --color-success-bg: var(--success-bg);
   --color-danger-bg: var(--danger-bg);
-  --color-danger-fg: var(--danger-fg);
   --color-navy: var(--navy);
   --color-field: var(--field);
 

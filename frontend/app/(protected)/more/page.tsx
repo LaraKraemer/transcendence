@@ -46,7 +46,7 @@ export default async function MorePage() {
       {/* Hover lays 10% black over the gradient, so the text only gains contrast (opacity let the page show through). */}
       <Link
         href="/profile"
-        className="flex items-center gap-3 rounded-(--radius) bg-(image:--grad) p-4 text-[#e6ecf5] hover:bg-[linear-gradient(rgb(0_0_0/0.1),rgb(0_0_0/0.1)),var(--grad)] focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none"
+        className="flex items-center gap-3 rounded-(--radius) bg-(image:--grad) p-4 text-white hover:bg-[linear-gradient(rgb(0_0_0/0.1),rgb(0_0_0/0.1)),var(--grad)] focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none"
       >
         {/* Decorative: the name is right next to it. */}
         <UserAvatar

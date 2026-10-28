@@ -18,7 +18,7 @@ type ButtonProps = ComponentProps<"button"> & {
 /** The button's classes, so a link that navigates can look like a button. */
 export function buttonClassName(variant: ButtonVariant = "primary", className = ""): string {
   // Hover darkens only the background with a 10% black layer. hover:opacity-90 also let the
-  // page show through, which dropped white on green to 4.18:1 and white on red to 4.32:1.
+  // page show through, which dropped white on green to 4.18:1.
   return `flex w-full cursor-pointer items-center justify-center gap-2.5 rounded-[11px] border font-semibold not-disabled:hover:bg-[linear-gradient(rgb(0_0_0/0.1),rgb(0_0_0/0.1))] focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60 ${variantClasses[variant]} ${className}`;
 }
 
