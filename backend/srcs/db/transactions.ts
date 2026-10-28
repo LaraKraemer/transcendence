@@ -1,4 +1,4 @@
-import { and, count, desc, eq, getTableColumns, gte, inArray, lte, ne, sql } from "drizzle-orm";
+import { and, count, desc, eq, getTableColumns, gte, inArray, isNull, lt, lte, ne, or, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 
 import { db } from "./client.ts";
@@ -30,18 +30,26 @@ export async function findCategoryTypes(categoryId: string, userId: string) {
 
 /**
  * Lists one page of transactions, newest first, plus the total number of matches. The owner is one
- * account, or a user: then the transactions of all their accounts, archived ones included.
+ * account, or a user: then the transactions of all their accounts, archived ones included. Across all
+ * accounts a transfer is one item: its source leg, with the other leg's account and amount.
  */
 export async function listTransactions(
   owner: { accountId: string } | { userId: string },
   options: {
     limit: number;
     offset: number;
+    type?: string;
     from?: string;
     to?: string;
   },
 ) {
-  const { limit, offset, from, to } = options;
+  const { limit, offset, type, from, to } = options;
+  // The other leg of a transfer: it names the account the money came from or went to.
+  const otherLeg = alias(transactions, "other_leg");
+  const otherLegJoin = and(
+    eq(otherLeg.transferGroupId, transactions.transferGroupId),
+    ne(otherLeg.id, transactions.id),
+  );
   const whereClause = and(
     "accountId" in owner
       ? eq(transactions.accountId, owner.accountId)
@@ -49,24 +57,26 @@ export async function listTransactions(
           transactions.accountId,
           db.select({ id: accounts.id }).from(accounts).where(eq(accounts.userId, owner.userId)),
         ),
+    type === undefined ? undefined : eq(transactions.type, type),
     from === undefined ? undefined : gte(transactions.bookedOn, from),
     to === undefined ? undefined : lte(transactions.bookedOn, to),
+    // Both legs are in the all-accounts list, so the destination leg is left out. A lone leg stays.
+    "accountId" in owner ? undefined : or(isNull(otherLeg.id), lt(transactions.amountMinor, 0)),
   );
-  // The other leg of a transfer, so a one-account list can name the account the money came from or went to.
-  const otherLeg = alias(transactions, "other_leg");
   const [items, totals] = await Promise.all([
     db
-      .select({ ...getTableColumns(transactions), transferAccountId: otherLeg.accountId })
+      .select({
+        ...getTableColumns(transactions),
+        transferAccountId: otherLeg.accountId,
+        transferAmountMinor: otherLeg.amountMinor,
+      })
       .from(transactions)
-      .leftJoin(
-        otherLeg,
-        and(eq(otherLeg.transferGroupId, transactions.transferGroupId), ne(otherLeg.id, transactions.id)),
-      )
+      .leftJoin(otherLeg, otherLegJoin)
       .where(whereClause)
       .orderBy(desc(transactions.bookedOn), desc(transactions.createdAt))
       .limit(limit)
       .offset(offset),
-    db.select({ total: count() }).from(transactions).where(whereClause),
+    db.select({ total: count() }).from(transactions).leftJoin(otherLeg, otherLegJoin).where(whereClause),
   ]);
 
   return { items, total: totals[0]!.total };

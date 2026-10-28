@@ -91,15 +91,19 @@ transactionsRouter.use(requireAuthenticatedUser);
 
 /**
  * Lists transactions for one account owned by the authenticated user, or without accountId for all
- * of the user's accounts (archived ones included).
+ * of the user's accounts (archived ones included), where a transfer is one item.
  *
- * Optional query parameters: accountId, limit (default 50), offset (default 0), from, to
+ * Optional query parameters: accountId, type, limit (default 50), offset (default 0), from, to
  */
 transactionsRouter.get("/", async (req, res) => {
-  const { accountId } = req.query;
+  const { accountId, type } = req.query;
 
   if (accountId !== undefined && !isUuid(accountId)) {
     res.status(400).json({ error: "accountId must be a valid UUID" });
+    return;
+  }
+  if (type !== undefined && !isTransactionType(type)) {
+    res.status(400).json({ error: "type must be expense, income, or transfer" });
     return;
   }
 
@@ -137,6 +141,7 @@ transactionsRouter.get("/", async (req, res) => {
   const result = await listTransactions(owner, {
     limit,
     offset,
+    ...(type === undefined ? {} : { type }),
     ...(from === undefined ? {} : { from }),
     ...(to === undefined ? {} : { to }),
   });
