@@ -35,7 +35,7 @@ Final group project as part of the 42 curriculum, building a full-stack expense 
 | Frontend | TypeScript, Next.js |
 | Backend | TypeScript, Node.js, Express |
 | Database | PostgreSQL, Drizzle ORM |
-| Development Tools | Docker, Docker Compose, Makefile, GitHub Repository, GitHub Projects 
+| Development Tools | Docker, Docker Compose, Makefile, GitHub Repository, GitHub Projects
 
 <br>
 
@@ -91,7 +91,7 @@ https://github.com/nvm-sh/nvm
 Then:
 ```bash
 nvm install
-nvm use 
+nvm use
 ```
 
 The repository contains an `.nvmrc` file specifying the required Node version.
@@ -141,7 +141,7 @@ make build
 make up
 ```
 
-### Or Two Commands combined in One: 
+### Or Two Commands combined in One:
 ```bash
 make rebuild
 ```
@@ -351,7 +351,7 @@ It also checks the currency catalog populated by migrations.
 
 4. Open the `backend/bruno/` folder as a collection in the Bruno desktop app,
    choose the `local` environment, and run requests in numerical order.
-  
+
 	OR run bruno test from CLI
 
 	```bash
@@ -388,7 +388,7 @@ with `TEST_DATABASE_URL` set using
 API startup applies migrations; CI waits for `/health`, then runs requests and
 prints the API log if a step fails.
 
-From `frontend/`, run `npm ci`, `npm run lint`, `npm run check:format`, `npm run check:transactions` and `npm run build`.
+From `frontend/`, run `npm ci`, `npm run lint`, `npm run check:format` and `npm run build`.
 Frontend CI runs lint, the `formatAmount` self-check and build. Both workflows run on relevant pull requests and pushes to
 `main`, with read-only repository permissions and cancellation of superseded runs.
 
@@ -531,7 +531,7 @@ make rebuild
 
 Uninstall dependencies:
 ```bash
-cd backend 
+cd backend
 rm -rf node_modules package-lock.json
 npm install
 ```
