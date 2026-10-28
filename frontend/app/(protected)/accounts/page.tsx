@@ -139,7 +139,7 @@ export default async function AccountsPage() {
                         {/* Wraps the badge under the name on narrow screens instead of squeezing the name. */}
                         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                           <Link
-                            href={`/accounts/${account.id}/transactions`}
+                            href={`/transactions?accountId=${account.id}`}
                             className="max-w-full truncate text-sm font-semibold hover:underline"
                           >
                             {account.name}

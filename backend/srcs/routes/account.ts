@@ -6,7 +6,7 @@ import {
   findOwnedAccount,
   hasTransactions,
   insertAccount,
-  listActiveAccounts,
+  listAccounts,
   sumTransactions,
   updateAccount,
 } from "../db/accounts.ts";
@@ -23,9 +23,15 @@ export const accountsRouter = Router();
 
 accountsRouter.use(requireAuthenticatedUser);
 
-/** Returns all non-archived accounts belonging to the authenticated user. */
-accountsRouter.get("/", async (_req, res) => {
-  const rows = await listActiveAccounts(res.locals.userId);
+/** Returns the authenticated user's active accounts, or only the archived ones with `?archived=true`. */
+accountsRouter.get("/", async (req, res) => {
+  const { archived } = req.query;
+  if (archived !== undefined && archived !== "true") {
+    res.status(400).json({ error: 'archived must be "true"' });
+    return;
+  }
+
+  const rows = await listAccounts(res.locals.userId, archived === "true");
   res.json(rows);
 });
 

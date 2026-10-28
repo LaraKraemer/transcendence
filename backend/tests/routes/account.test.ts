@@ -182,7 +182,7 @@ describe("GET /accounts/:accountId/balance", () => {
 // ─── GET / ────────────────────────────────────────────────────────────────────
 
 describe("GET /accounts", () => {
-  it("returns the list from listActiveAccounts", async () => {
+  it("returns the list from listAccounts", async () => {
     query.mockResolvedValueOnce({ rows: [accountRow()] });
     const result = await dispatch(accountsRouter, { url: "/" });
     expect(result.status).toBe(200);
@@ -195,6 +195,23 @@ describe("GET /accounts", () => {
     const sql: string = query.mock.calls[0]![0].text;
     expect(sql).toContain('"user_id"');
     expect(sql).toContain('"is_archived"');
+    expect(query.mock.calls[0]![1]).toEqual([userId, false]);
+  });
+
+  it("returns only archived accounts with archived=true", async () => {
+    query.mockResolvedValueOnce({ rows: [accountRow({ isArchived: true })] });
+    const result = await dispatch(accountsRouter, { url: "/", query: { archived: "true" } });
+    expect(result).toMatchObject({ status: 200, body: [{ id: accountId, isArchived: true }] });
+    expect(query.mock.calls[0]![0].text).toContain('"account"."is_archived" =');
+    expect(query.mock.calls[0]![1]).toEqual([userId, true]);
+  });
+
+  it.each(["false", "", "TRUE", ["true", "true"]])("rejects archived=%j before querying", async (archived) => {
+    expect(await dispatch(accountsRouter, { url: "/", query: { archived } })).toEqual({
+      status: 400,
+      body: { error: 'archived must be "true"' },
+    });
+    expect(query).not.toHaveBeenCalled();
   });
 
   it("converts opening_balance_minor bigint string to number", async () => {

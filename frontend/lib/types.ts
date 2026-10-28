@@ -66,6 +66,8 @@ export type Transaction = {
   createdById: string;
   type: TransactionType;
   transferGroupId: string | null;
+  /** List responses only: the account of the transfer's other leg (null when that leg was deleted). */
+  transferAccountId?: string | null;
   amountMinor: number;
   description: string | null;
   merchant: string | null;
@@ -103,7 +105,7 @@ export type Category = {
   createdAt: string;
 };
 
-/** Currency reference data from `GET /currencies`. `minorUnit` is the number of decimals (JPY 0, KWD 3, most 2). */
+/** Currency reference data from `GET /currencies`. `minorUnit` is the number of decimals (2 for all catalogue currencies). */
 export type Currency = {
   code: string;
   name: string;

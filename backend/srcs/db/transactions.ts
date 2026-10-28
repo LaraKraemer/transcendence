@@ -1,4 +1,5 @@
-import { and, count, desc, eq, getTableColumns, gte, lte, sql } from "drizzle-orm";
+import { and, count, desc, eq, getTableColumns, gte, inArray, lte, ne, sql } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 
 import { db } from "./client.ts";
 import { accounts, categories, transactions } from "./schema.ts";
@@ -27,8 +28,12 @@ export async function findCategoryTypes(categoryId: string, userId: string) {
   return category;
 }
 
-export async function listTransactionsByAccount(
-  accountId: string,
+/**
+ * Lists one page of transactions, newest first, plus the total number of matches. The owner is one
+ * account, or a user: then the transactions of all their accounts, archived ones included.
+ */
+export async function listTransactions(
+  owner: { accountId: string } | { userId: string },
   options: {
     limit: number;
     offset: number;
@@ -38,14 +43,25 @@ export async function listTransactionsByAccount(
 ) {
   const { limit, offset, from, to } = options;
   const whereClause = and(
-    eq(transactions.accountId, accountId),
+    "accountId" in owner
+      ? eq(transactions.accountId, owner.accountId)
+      : inArray(
+          transactions.accountId,
+          db.select({ id: accounts.id }).from(accounts).where(eq(accounts.userId, owner.userId)),
+        ),
     from === undefined ? undefined : gte(transactions.bookedOn, from),
     to === undefined ? undefined : lte(transactions.bookedOn, to),
   );
+  // The other leg of a transfer, so a one-account list can name the account the money came from or went to.
+  const otherLeg = alias(transactions, "other_leg");
   const [items, totals] = await Promise.all([
     db
-      .select()
+      .select({ ...getTableColumns(transactions), transferAccountId: otherLeg.accountId })
       .from(transactions)
+      .leftJoin(
+        otherLeg,
+        and(eq(otherLeg.transferGroupId, transactions.transferGroupId), ne(otherLeg.id, transactions.id)),
+      )
       .where(whereClause)
       .orderBy(desc(transactions.bookedOn), desc(transactions.createdAt))
       .limit(limit)

@@ -1,0 +1,23 @@
+meta {
+  name: 12 - List transactions of all accounts
+  type: http
+  seq: 13
+}
+
+get {
+  url: {{baseUrl}}/transactions
+  body: none
+  auth: none
+}
+
+tests {
+  test("both transfer legs are listed without accountId", function () {
+    expect(res.getStatus()).to.equal(200);
+    const accountIds = res.getBody().items.map((transaction) => transaction.accountId);
+    const ids = res.getBody().items.map((transaction) => transaction.id);
+    expect(ids).to.include(bru.getVar("transferSourceLegId"));
+    expect(ids).to.include(bru.getVar("transferDestinationLegId"));
+    expect(accountIds).to.include(bru.getVar("accountId"));
+    expect(accountIds).to.include(bru.getVar("savingsAccountId"));
+  });
+}

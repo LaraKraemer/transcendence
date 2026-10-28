@@ -256,18 +256,41 @@ describe("GET /transactions", () => {
     expect(query.mock.calls[1]![1]).toEqual([accountId, 50, 50]);
   });
 
-  it("returns 400 when accountId is missing", async () => {
+  it("lists the transactions of all the user's accounts, archived included, when accountId is missing", async () => {
+    query.mockResolvedValueOnce({ rows: [txRow(), txRow({ id: otherAccountId, accountId: otherAccountId })] });
+    query.mockResolvedValueOnce({ rows: [["2"]] });
     const result = await dispatch(transactionsRouter, { url: "/" });
-    expect(result).toEqual({ status: 400, body: { error: "accountId is required" } });
-    expect(query).not.toHaveBeenCalled();
+    expect(result).toMatchObject({
+      status: 200,
+      body: { items: [{ accountId }, { accountId: otherAccountId }], total: 2 },
+    });
+    for (const index of [0, 1]) {
+      const sql: string = query.mock.calls[index]![0].text;
+      expect(sql).toContain('"transaction"."account_id" in (select "id" from "account" where "account"."user_id" =');
+      expect(sql).not.toContain('"is_archived"');
+    }
+    expect(query.mock.calls[0]![0].text).toContain(
+      'order by "transaction"."booked_on" desc, "transaction"."created_at" desc',
+    );
+    expect(query.mock.calls[0]![1]).toEqual([userId, 50]);
+    expect(query.mock.calls[1]![1]).toEqual([userId]);
   });
 
-  it("returns 400 when accountId is an array (repeated param)", async () => {
+  it("applies limit, offset and dates without accountId", async () => {
+    query.mockResolvedValueOnce({ rows: [] });
+    query.mockResolvedValueOnce({ rows: [["0"]] });
     const result = await dispatch(transactionsRouter, {
       url: "/",
-      query: { accountId: [accountId, accountId] },
+      query: { from: "2025-01-01", to: "2025-03-31", limit: "20", offset: "20" },
     });
-    expect(result).toEqual({ status: 400, body: { error: "accountId is required" } });
+    expect(result).toEqual({ status: 200, body: { items: [], total: 0 } });
+    expect(query.mock.calls[0]![1]).toEqual([userId, "2025-01-01", "2025-03-31", 20, 20]);
+    expect(query.mock.calls[1]![1]).toEqual([userId, "2025-01-01", "2025-03-31"]);
+  });
+
+  it.each(["", [accountId, accountId]])("returns 400 for accountId %j", async (invalidAccountId) => {
+    const result = await dispatch(transactionsRouter, { url: "/", query: { accountId: invalidAccountId } });
+    expect(result).toEqual({ status: 400, body: { error: "accountId must be a valid UUID" } });
     expect(query).not.toHaveBeenCalled();
   });
 
@@ -279,7 +302,7 @@ describe("GET /transactions", () => {
 
   it("returns transaction list ordered by booked_on desc, created_at desc", async () => {
     query.mockResolvedValueOnce({ rows: [acctRow()] }); // findOwnedAccount
-    query.mockResolvedValueOnce({ rows: [txRow()] }); // listTransactionsByAccount
+    query.mockResolvedValueOnce({ rows: [txRow()] }); // listTransactions
     query.mockResolvedValueOnce({ rows: [["1"]] });
     const result = await dispatch(transactionsRouter, { url: "/", query: { accountId } });
     expect(result.status).toBe(200);
@@ -299,6 +322,19 @@ describe("GET /transactions", () => {
     expect(listSql).not.toContain('"is_archived"');
     const listParams: unknown[] = query.mock.calls[1]![1];
     expect(listParams).toEqual([accountId, 50]);
+  });
+
+  it("names the account of a transfer's other leg", async () => {
+    query.mockResolvedValueOnce({ rows: [acctRow()] });
+    query.mockResolvedValueOnce({
+      rows: [[...txRow({ type: "transfer", transferGroupId }).slice(0, 14), otherAccountId]],
+    });
+    query.mockResolvedValueOnce({ rows: [["1"]] });
+    const result = await dispatch(transactionsRouter, { url: "/", query: { accountId } });
+    expect(result.body).toMatchObject({ items: [{ transferGroupId, transferAccountId: otherAccountId }] });
+    expect(query.mock.calls[1]![0].text).toContain(
+      'left join "transaction" "other_leg" on ("other_leg"."transfer_group_id" = "transaction"."transfer_group_id" and "other_leg"."id" <> "transaction"."id")',
+    );
   });
 
   it("converts amountMinor bigint string to number", async () => {

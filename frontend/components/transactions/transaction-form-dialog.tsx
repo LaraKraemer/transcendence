@@ -3,7 +3,7 @@
 import { Check, Pencil, Plus, Wallet, X } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { startTransition, useActionState, useEffect, useId, useState, type FormEvent } from "react";
 import { flushSync } from "react-dom";
 
@@ -108,12 +108,15 @@ export function NewTransactionButton({
   const t = useTranslations("transactions");
   const tCommon = useTranslations("common");
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const pageUrl = `${pathname}?${searchParams}`;
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [opening, setOpening] = useState({ key: 0, today: "", accountId: "" });
-  const [added, setAdded] = useState<{ pathname: string; accountId: string; description: string } | null>(null);
+  const [added, setAdded] = useState<{ pageUrl: string; accountId: string; description: string } | null>(null);
 
-  const pageAccount = accounts.find((account) => pathname.startsWith(`/accounts/${account.id}/`));
+  const pageAccount =
+    pathname === "/transactions" ? accounts.find((account) => account.id === searchParams.get("accountId")) : undefined;
   const accountOptions = pageAccount ? [pageAccount] : accounts;
   const fixedAccountId = useId();
 
@@ -150,13 +153,13 @@ export function NewTransactionButton({
           defaultAccountId={opening.accountId}
           today={opening.today}
           onCreated={(accountId, description) => {
-            if (!pageAccount) setAdded({ pathname, accountId, description });
+            if (!pageAccount) setAdded({ pageUrl, accountId, description });
           }}
           onDone={() => setOpen(false)}
           onPendingChange={setSaving}
         />
       </Modal>
-      {added?.pathname === pathname && (
+      {added?.pageUrl === pageUrl && (
         <div className="absolute end-0 bottom-full mb-3 flex w-[min(22rem,calc(100vw-2rem))] items-start gap-3 rounded-[14px] border border-border bg-card p-3.5 text-sm text-foreground shadow-[0_12px_32px_rgba(8,14,25,.25)]">
           <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-success-bg text-success">
             <Check size={14} aria-hidden />
@@ -171,7 +174,7 @@ export function NewTransactionButton({
               })}
             </p>
             <Link
-              href={`/accounts/${added.accountId}/transactions`}
+              href={`/transactions?accountId=${added.accountId}`}
               className="mt-1 inline-block rounded-sm font-semibold underline hover:no-underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
             >
               {t("added.view")}

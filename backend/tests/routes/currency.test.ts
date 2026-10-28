@@ -20,8 +20,6 @@ describe("GET /currencies", () => {
   it("returns currency metadata with numeric minor-unit exponents", async () => {
     const currencyRecords = [
       { code: "EUR", name: "Euro", symbol: "€", minorUnit: 2 },
-      { code: "JPY", name: "Japanese Yen", symbol: "¥", minorUnit: 0 },
-      { code: "KWD", name: "Kuwaiti Dinar", symbol: "KD", minorUnit: 3 },
       { code: "UAH", name: "Ukrainian Hryvnia", symbol: "₴", minorUnit: 2 },
     ];
     query.mockResolvedValueOnce({ rows: currencyRecords.map((currency) => row(currencies, currency)) });
