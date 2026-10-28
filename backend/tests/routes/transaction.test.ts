@@ -274,7 +274,7 @@ describe("GET /transactions", () => {
       expect(sql).not.toContain('"is_archived"');
     }
     expect(query.mock.calls[0]![0].text).toContain(
-      'order by "transaction"."booked_on" desc, "transaction"."created_at" desc',
+      'order by "transaction"."booked_on" desc, "transaction"."created_at" desc, "transaction"."id" desc',
     );
     expect(query.mock.calls[0]![1]).toEqual([userId, 0, 50]);
     expect(query.mock.calls[1]![1]).toEqual([userId, 0]);
@@ -363,7 +363,9 @@ describe("GET /transactions", () => {
     const result = await dispatch(transactionsRouter, { url: "/", query: { accountId } });
     expect(result.status).toBe(200);
     const sql: string = query.mock.calls[1]![0].text;
-    expect(sql).toContain('order by "transaction"."booked_on" desc, "transaction"."created_at" desc');
+    expect(sql).toContain(
+      'order by "transaction"."booked_on" desc, "transaction"."created_at" desc, "transaction"."id" desc',
+    );
     expect(query.mock.calls[1]![1]).toEqual([accountId, 50]);
     expect(result.body).toMatchObject({ items: [{ id: transactionId }], total: 1 });
   });

@@ -73,7 +73,7 @@ export async function listTransactions(
       .from(transactions)
       .leftJoin(otherLeg, otherLegJoin)
       .where(whereClause)
-      .orderBy(desc(transactions.bookedOn), desc(transactions.createdAt))
+      .orderBy(desc(transactions.bookedOn), desc(transactions.createdAt), desc(transactions.id))
       .limit(limit)
       .offset(offset),
     db.select({ total: count() }).from(transactions).leftJoin(otherLeg, otherLegJoin).where(whereClause),
