@@ -147,7 +147,7 @@ export function ProfileDetails({ user }: { user: User }) {
           </div>
           <div className="min-w-0 flex-1 lg:pt-1.5">
             <div className="text-lg font-bold break-words lg:text-[22px]">{user.displayName}</div>
-            <div className="mt-0.5 truncate text-xs text-muted-foreground lg:mt-[5px] lg:text-sm">
+            <div className="mt-0.5 text-xs wrap-anywhere text-muted-foreground lg:mt-[5px] lg:text-sm">
               <bdi>{user.email}</bdi>
             </div>
             {user.avatarUrl && (
@@ -225,7 +225,7 @@ function InfoRow({ icon: Icon, label, children }: { icon: LucideIcon; label: str
       </span>
       <div className="min-w-0">
         <div className="text-[11px] font-semibold tracking-[.05em] text-muted-foreground uppercase">{label}</div>
-        <div className="mt-0.5 truncate text-[13px] font-medium lg:text-sm">{children}</div>
+        <div className="mt-0.5 text-[13px] font-medium wrap-anywhere lg:text-sm">{children}</div>
       </div>
     </div>
   );

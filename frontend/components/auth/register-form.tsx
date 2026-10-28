@@ -21,6 +21,7 @@ import { TextField } from "@/components/ui/text-field";
 import { useAuth } from "@/lib/auth-context";
 import {
   MAX_DISPLAY_NAME_LENGTH,
+  MIN_PASSWORD_LENGTH,
   validateRegister,
   type RegisterFields,
   type ValidationErrorCode,
@@ -118,6 +119,7 @@ export function RegisterForm() {
             type={showPassword ? "text" : "password"}
             dir="ltr"
             autoComplete="new-password"
+            hint={t("auth.passwordHint", { min: MIN_PASSWORD_LENGTH })}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             error={fieldErrors.password && errorText(fieldErrors.password)}

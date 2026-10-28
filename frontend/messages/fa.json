@@ -18,6 +18,7 @@
   "auth": {
     "continueWithGoogle": "ادامه با گوگل",
     "showPassword": "نمایش رمز عبور",
+    "passwordHint": "دست‌کم {min, number} نویسه",
     "fields": {
       "email": "نشانی ایمیل",
       "emailPlaceholder": "sara.mohammadi@email.com",

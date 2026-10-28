@@ -18,6 +18,7 @@
   "auth": {
     "continueWithGoogle": "Продовжити з Google",
     "showPassword": "Показати пароль",
+    "passwordHint": "Щонайменше {min, number} символів",
     "fields": {
       "email": "Електронна пошта",
       "emailPlaceholder": "olena.kovalenko@email.com",

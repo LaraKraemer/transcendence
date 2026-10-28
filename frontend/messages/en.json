@@ -18,6 +18,7 @@
   "auth": {
     "continueWithGoogle": "Continue with Google",
     "showPassword": "Show password",
+    "passwordHint": "At least {min, number} characters",
     "fields": {
       "email": "Email address",
       "emailPlaceholder": "jane.appleseed@email.com",
