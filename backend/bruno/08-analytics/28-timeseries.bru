@@ -1,0 +1,25 @@
+meta {
+  name: 28 - Analytics time series by currency
+  type: http
+  seq: 29
+}
+
+get {
+  url: {{baseUrl}}/analytics/timeseries?from=2025-01-01&to=2025-01-03&granularity=day
+  body: none
+  auth: none
+}
+
+tests {
+  test("currencies stay separate, archived income is included, transfer-only periods are zero", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody()).to.deep.equal([
+      { period: "2025-01-01", currencyCode: "EUR", incomeMinor: 0, expenseMinor: -1234 },
+      { period: "2025-01-01", currencyCode: "USD", incomeMinor: 0, expenseMinor: 0 },
+      { period: "2025-01-02", currencyCode: "EUR", incomeMinor: 0, expenseMinor: 0 },
+      { period: "2025-01-02", currencyCode: "USD", incomeMinor: 0, expenseMinor: 0 },
+      { period: "2025-01-03", currencyCode: "EUR", incomeMinor: 0, expenseMinor: 0 },
+      { period: "2025-01-03", currencyCode: "USD", incomeMinor: 2500, expenseMinor: 0 }
+    ]);
+  });
+}

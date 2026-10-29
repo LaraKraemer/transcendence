@@ -285,8 +285,9 @@ modify another user's financial data.
 |---|---|
 | Accounts | `GET`, `POST` `/accounts`; `GET`, `PATCH`, `DELETE` `/accounts/:accountId` |
 | Categories | `GET`, `POST` `/categories`; `GET`, `PATCH`, `DELETE` `/categories/:categoryId` |
-| Transactions | `GET`, `POST` `/transactions`; `POST` `/transactions/transfers`; `GET` `/transactions/count/:categoryId`; `GET`, `PATCH`, `DELETE` `/transactions/:transactionId` |
+| Transactions | `GET`, `POST` `/transactions`; `POST` `/transactions/transfers`; `GET` `/transactions/summary`; `GET` `/transactions/export`; `GET` `/transactions/count/:categoryId`; `GET`, `PATCH`, `DELETE` `/transactions/:transactionId` |
 | Currencies | `GET` `/currencies` |
+| Analytics | `GET` `/analytics/timeseries`; `GET` `/analytics/categories` |
 
 `DELETE /auth/me` requires an active session and permanently deletes the authenticated user, all their accounts (including archived accounts), categories, transactions, and sessions. Transactions cascade when their account or creator is deleted,
 following the account hard-delete policy from #48. Deletion is atomic, returns `204`, and clears the session cookie; all previous sessions then return `401`. The request cannot select another user. Deleted email addresses can be registered again.
@@ -325,6 +326,48 @@ category, deleted together.
 
 Transactions accept an optional `merchant` (max 100 trimmed characters); `null` or blank clears it.
 
+## Analytics and CSV export
+
+These authenticated routes include archived accounts and **exclude transfers**.
+Both `from` and `to` are required calendar dates (`YYYY-MM-DD`), inclusive, with
+`from <= to` and at most 1827 days between them (about five years). Invalid or
+repeated filter values return `400`; missing or foreign accounts/categories return
+`404`. Optional `type` is `expense` or `income`. Optional `accountId` restricts the
+result to one owned account; otherwise all owned accounts are included.
+
+| Endpoint | Additional query parameters | Response |
+|---|---|---|
+| `/analytics/timeseries` | Required `granularity=day\|week\|month`; optional `categoryId` | Array of `{ period, currencyCode, incomeMinor, expenseMinor }` |
+| `/analytics/categories` | Optional `categoryId` | Array of `{ categoryId, type, totalMinor, count, currencyCode }` |
+| `/transactions/export` | Required `format=csv`; optional `categoryId` | UTF-8 CSV attachment, `transactions.csv` |
+
+JSON amounts are integer minor units with their original signs: income positive,
+expense negative. Totals always remain separate per currency; there is no
+converted grand total. Category IDs can be `null` for uncategorized transactions.
+The existing `/transactions/summary?accountId=` response is unchanged.
+
+Time-series `period` is the bucket's start date: the date itself, Monday for
+weeks, or the first day for months. A first bucket may start before `from`, but
+its totals still include only transactions inside the requested dates. Rows are
+ordered by period then currency; missing buckets are zero-filled for every
+distinct currency of the selected accounts, even when no transactions match.
+A user with no accounts receives `[]`. Category rows are ordered by currency,
+type, then category ID; absent groups are omitted.
+
+```text
+GET /analytics/timeseries?from=2025-01-01&to=2025-01-03&granularity=day
+GET /analytics/categories?from=2025-01-01&to=2025-01-31&type=expense
+GET /transactions/export?format=csv&from=2025-01-01&to=2025-01-31
+```
+
+CSV columns are `account,currency,date,type,category,merchant,description,amount`,
+ordered by booked date, creation time, then transaction ID. Amounts use a decimal
+point and the reference currency's `minorUnit` (fallback `2` for currencies outside
+the catalog, matching the UI). Text is quoted, embedded quotes doubled, and
+formula-like cells prefixed with an apostrophe. A UTF-8 BOM helps spreadsheets
+recognize non-ASCII text. There is no pagination or silent truncation. Exports are
+buffered in memory; this is intended for personal-scale data, not bulk workloads.
+
 <br>
 
 # Local API Testing
@@ -333,6 +376,8 @@ The repository includes a Bruno collection for repeatable local API testing in
 `backend/bruno/`. It registers a disposable user, creates two accounts, a category,
 and a transaction, then updates and deletes that transaction, makes and deletes a transfer, and permanently deletes the account.
 It also checks the currency catalog populated by migrations.
+The final analytics requests verify two-currency totals, archived data,
+zero-filled periods, transfer exclusion, and spreadsheet-safe CSV.
 
 1. Start the services:
 
@@ -387,6 +432,10 @@ with `TEST_DATABASE_URL` set using
 `npx vitest run tests/db/user-deletion.integration.test.ts` from `backend/`.
 API startup applies migrations; CI waits for `/health`, then runs requests and
 prints the API log if a step fails.
+The API job also runs the analytics PostgreSQL integration checks. To run them
+locally after migrations, set `TEST_DATABASE_URL` and run
+`npm test -- tests/db/analytics.integration.test.ts` from `backend/`; all test data
+is rolled back.
 
 From `frontend/`, run `npm ci`, `npm run lint`, `npm run check:format` and `npm run build`.
 Frontend CI runs lint, the `formatAmount` self-check and build. Both workflows run on relevant pull requests and pushes to
@@ -418,6 +467,8 @@ Test files live in `backend/tests/`, mirroring `backend/srcs/`:
 | `tests/routes/category.test.ts` | category CRUD |
 | `tests/routes/currency.test.ts` | currency metadata, ordering, empty results, errors |
 | `tests/routes/transaction.test.ts` | transaction CRUD, type/sign and category rules, transfers |
+| `tests/routes/analytics.test.ts` | bounded filters, ownership, time series, category totals, safe CSV |
+| `tests/db/analytics.integration.test.ts` | PostgreSQL aggregation, zero filling, currency separation, export filters (opt-in) |
 | `tests/validation.test.ts` | isUuid, isCurrencyCode, isIsoTimestamp, isDateOnly, isHexColor |
 | `tests/db/accounts.test.ts` | findOwnedAccount ownership filter |
 | `tests/db/client.test.ts` | DATABASE_URL guard, pool error handler |

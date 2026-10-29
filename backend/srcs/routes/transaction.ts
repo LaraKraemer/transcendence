@@ -17,6 +17,7 @@ import {
   deleteTransaction,
 } from "../db/transactions.ts";
 import { isDateOnly, isIsoTimestamp, isUuid, parseOptionalText, TEXT_LIMITS } from "../validation.ts";
+import { exportTransactionsCsv } from "./analytics.ts";
 
 function parsePaginationInt(value: unknown, defaultValue: number): number | null {
   if (value === undefined) return defaultValue;
@@ -176,9 +177,19 @@ transactionsRouter.get("/summary", async (req, res) => {
     return;
   }
 
-  const rows = await summarizeTransactionsByCategory(account.id, from as string | undefined, to as string | undefined);
-  res.json(rows);
+  const rows = await summarizeTransactionsByCategory(
+    res.locals.userId,
+    {
+      accountId: account.id,
+      ...(from === undefined ? {} : { from }),
+      ...(to === undefined ? {} : { to }),
+    },
+    true,
+  );
+  res.json(rows.map(({ categoryId, type, totalMinor, count }) => ({ categoryId, type, totalMinor, count })));
 });
+
+transactionsRouter.get("/export", exportTransactionsCsv);
 
 /** Returns the number of transactions linked to a category. */
 transactionsRouter.get("/count/:categoryId", async (req, res, next) => {

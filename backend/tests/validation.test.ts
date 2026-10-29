@@ -78,10 +78,12 @@ describe("isDateOnly", () => {
     expect(isDateOnly(value)).toBe(false);
   });
 
-  it("accepts overflow dates like February 30 (Date.parse rolls over) — pin this", () => {
-    // Current behaviour: "2025-02-30" parses as March 2; the implementation doesn't
-    // validate calendar correctness, only format. Pin so this is deliberate.
-    expect(isDateOnly("2025-02-30")).toBe(true);
+  it.each(["2025-02-30", "2025-02-29", "2024-04-31", "0000-01-01"])("rejects invalid calendar date %s", (value) => {
+    expect(isDateOnly(value)).toBe(false);
+  });
+
+  it("accepts leap days", () => {
+    expect(isDateOnly("2024-02-29")).toBe(true);
   });
 });
 

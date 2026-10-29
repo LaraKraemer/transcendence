@@ -1,8 +1,9 @@
 import { and, count, desc, eq, getTableColumns, gte, inArray, isNull, lt, lte, ne, or, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 
+import type { AnalyticsFilters } from "../validation.ts";
 import { db } from "./client.ts";
-import { accounts, categories, transactions } from "./schema.ts";
+import { accounts, categories, currencies, transactions } from "./schema.ts";
 import type { NewTransaction, Transaction } from "./schema.ts";
 
 /** Finds a transaction only when its account belongs to the authenticated user, including archived accounts. */
@@ -82,23 +83,118 @@ export async function listTransactions(
   return { items, total: totals[0]!.total };
 }
 
-export async function summarizeTransactionsByCategory(accountId: string, from?: string, to?: string) {
+/** Builds user-scoped reporting conditions; only the legacy summary includes transfers. */
+function reportingConditions(userId: string, filters: Partial<AnalyticsFilters>, includeTransfers = false) {
+  return and(
+    eq(accounts.userId, userId),
+    filters.accountId === undefined ? undefined : eq(accounts.id, filters.accountId),
+    filters.categoryId === undefined ? undefined : eq(transactions.categoryId, filters.categoryId),
+    filters.type === undefined ? undefined : eq(transactions.type, filters.type),
+    filters.from === undefined ? undefined : gte(transactions.bookedOn, filters.from),
+    filters.to === undefined ? undefined : lte(transactions.bookedOn, filters.to),
+    includeTransfers ? undefined : inArray(transactions.type, ["income", "expense"]),
+  );
+}
+
+/** Totals by category, type and currency; preserves signed amounts and uncategorized entries. */
+export async function summarizeTransactionsByCategory(
+  userId: string,
+  filters: Partial<AnalyticsFilters>,
+  includeTransfers = false,
+) {
+  // ponytail: scans the user's transactions; use pre-aggregated totals if personal-scale reporting becomes slow.
   return db
     .select({
       categoryId: transactions.categoryId,
       type: transactions.type,
       totalMinor: sql<number>`SUM(${transactions.amountMinor})`.mapWith(Number),
       count: sql<number>`COUNT(*)`.mapWith(Number),
+      currencyCode: accounts.currencyCode,
     })
     .from(transactions)
-    .where(
-      and(
-        eq(transactions.accountId, accountId),
-        ...(from ? [gte(transactions.bookedOn, from)] : []),
-        ...(to ? [lte(transactions.bookedOn, to)] : []),
+    .innerJoin(accounts, eq(transactions.accountId, accounts.id))
+    .where(reportingConditions(userId, filters, includeTransfers))
+    .groupBy(transactions.categoryId, transactions.type, accounts.currencyCode)
+    .orderBy(accounts.currencyCode, transactions.type, transactions.categoryId);
+}
+
+/** Groups booked dates in SQL and zero-fills every period for the selected accounts' currencies. */
+export async function transactionTimeSeries(
+  userId: string,
+  filters: AnalyticsFilters,
+  granularity: "day" | "week" | "month",
+) {
+  const period = sql<string>`to_char(date_trunc(${granularity}, ${transactions.bookedOn}::timestamp), 'YYYY-MM-DD')`;
+  const totals = db.$with("totals").as(
+    db
+      .select({
+        period: period.as("total_period"),
+        currencyCode: accounts.currencyCode,
+        incomeMinor: sql<number>`sum(${transactions.amountMinor}) filter (where ${transactions.type} = 'income')`
+          .mapWith(Number)
+          .as("income_minor"),
+        expenseMinor: sql<number>`sum(${transactions.amountMinor}) filter (where ${transactions.type} = 'expense')`
+          .mapWith(Number)
+          .as("expense_minor"),
+      })
+      .from(transactions)
+      .innerJoin(accounts, eq(transactions.accountId, accounts.id))
+      .where(reportingConditions(userId, filters))
+      .groupBy(sql`"total_period"`, accounts.currencyCode),
+  );
+  const accountCurrencies = db.$with("account_currencies").as(
+    db
+      .selectDistinct({ currencyCode: accounts.currencyCode })
+      .from(accounts)
+      .where(
+        and(
+          eq(accounts.userId, userId),
+          filters.accountId === undefined ? undefined : eq(accounts.id, filters.accountId),
+        ),
       ),
-    )
-    .groupBy(transactions.categoryId, transactions.type);
+  );
+  const periods = db.$with("periods").as(
+    db.select({ period: sql<string>`to_char(series.period, 'YYYY-MM-DD')`.as("period") }).from(sql`generate_series(
+          date_trunc(${granularity}, ${filters.from}::date::timestamp),
+          date_trunc(${granularity}, ${filters.to}::date::timestamp),
+          ('1 ' || ${granularity})::interval
+        ) as series(period)`),
+  );
+  return db
+    .with(totals, accountCurrencies, periods)
+    .select({
+      period: periods.period,
+      currencyCode: accountCurrencies.currencyCode,
+      incomeMinor: sql<number>`coalesce(${totals.incomeMinor}, 0)`.mapWith(Number),
+      expenseMinor: sql<number>`coalesce(${totals.expenseMinor}, 0)`.mapWith(Number),
+    })
+    .from(periods)
+    .crossJoin(accountCurrencies)
+    .leftJoin(totals, and(eq(totals.period, periods.period), eq(totals.currencyCode, accountCurrencies.currencyCode)))
+    .orderBy(periods.period, accountCurrencies.currencyCode);
+}
+
+/** Lists all matching non-transfer entries, with display labels and the UI's currency precision. */
+export async function transactionsForExport(userId: string, filters: AnalyticsFilters) {
+  // ponytail: buffers the bounded export in memory; stream rows if personal-scale exports outgrow memory.
+  return db
+    .select({
+      account: accounts.name,
+      currencyCode: accounts.currencyCode,
+      bookedOn: transactions.bookedOn,
+      type: transactions.type,
+      category: categories.name,
+      merchant: transactions.merchant,
+      description: transactions.description,
+      amountMinor: transactions.amountMinor,
+      minorUnit: sql<number>`coalesce(${currencies.minorUnit}, 2)`.mapWith(Number),
+    })
+    .from(transactions)
+    .innerJoin(accounts, eq(transactions.accountId, accounts.id))
+    .leftJoin(categories, eq(transactions.categoryId, categories.id))
+    .leftJoin(currencies, eq(accounts.currencyCode, currencies.code))
+    .where(reportingConditions(userId, filters))
+    .orderBy(transactions.bookedOn, transactions.createdAt, transactions.id);
 }
 
 /** Returns the number of transactions linked to a category, scoped to the owning user via account join. */
