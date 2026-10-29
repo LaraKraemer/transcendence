@@ -14,6 +14,7 @@ type ModalProps = {
   describedBy?: string;
   /** Close on a backdrop click. Off by default so a stray click can't throw away a filled-in form. */
   closeOnBackdropClick?: boolean;
+  className?: string;
   children: ReactNode;
 };
 
@@ -22,7 +23,7 @@ type ModalProps = {
  * inert, and returns focus to the opener on close. Focus starts on the element
  * marked `data-autofocus`. Styled after the modal in docs/design/desktop/categories.html.
  */
-export function Modal({ open, title, onClose, busy, describedBy, closeOnBackdropClick = false, children }: ModalProps) {
+export function Modal({ open, title, onClose, busy, describedBy, closeOnBackdropClick = false, className = "", children }: ModalProps) {
   const t = useTranslations("common");
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
@@ -69,7 +70,7 @@ export function Modal({ open, title, onClose, busy, describedBy, closeOnBackdrop
         pressStartedOnBackdrop.current = false;
         if (isBackdropClick && closeOnBackdropClick && !busy) onClose();
       }}
-      className="m-auto max-h-[calc(100%-2rem)] w-[460px] max-w-[calc(100%-2rem)] overflow-hidden rounded-[18px] border border-border bg-card p-0 text-foreground shadow-[0_24px_60px_rgba(8,14,25,.3)] open:flex open:flex-col backdrop:bg-[rgba(8,14,25,.55)] backdrop:backdrop-blur-[2px]"
+      className={`m-auto max-h-[calc(100%-2rem)] w-[460px] max-w-[calc(100%-2rem)] overflow-hidden rounded-[18px] border border-border bg-card p-0 text-foreground shadow-[0_24px_60px_rgba(8,14,25,.3)] open:flex open:flex-col backdrop:bg-[rgba(8,14,25,.55)] backdrop:backdrop-blur-[2px] ${className}`}
     >
       <div className="flex min-h-0 flex-col py-3">
         <div className="min-h-0 overflow-y-auto px-7 py-4">

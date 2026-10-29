@@ -88,7 +88,9 @@ export function ImportTransactionsButton({
     <div>
       <Button
         variant="primary"
-        className="px-4 py-2.5! text-sm!"
+        className="size-10 w-10! p-0!"
+        aria-label={t("title")}
+        title={t("title")}
         disabled={accounts.length === 0}
         onClick={() => {
           setError(null);
@@ -98,7 +100,6 @@ export function ImportTransactionsButton({
         }}
       >
         <Upload size={16} aria-hidden className="shrink-0" />
-        {t("title")}
       </Button>
       <div role="status">
         {successCount !== null && (
@@ -108,6 +109,7 @@ export function ImportTransactionsButton({
         )}
       </div>
       <Modal
+        className="w-[45rem]!"
         open={open}
         title={t("title")}
         busy={busy}
