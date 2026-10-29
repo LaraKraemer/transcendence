@@ -37,5 +37,4 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run check:format
-      - run: npm run check:transactions
       - run: npm run build

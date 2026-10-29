@@ -1,4 +1,13 @@
-import { ArrowDownLeft, ArrowRight, ArrowUpRight, Store, Wallet, type LucideIcon } from "lucide-react";
+import {
+  ArrowDownLeft,
+  ArrowRight,
+  ArrowUpRight,
+  ChevronLeft,
+  ChevronRight,
+  Store,
+  Wallet,
+  type LucideIcon,
+} from "lucide-react";
 import type { Metadata } from "next";
 import { getFormatter, getLocale, getTranslations } from "next-intl/server";
 import { cookies } from "next/headers";
@@ -25,10 +34,11 @@ import {
 } from "@/lib/dal";
 import { formatAmount, transactionLabel } from "@/lib/format";
 import { LAST_ACCOUNT_COOKIE } from "@/lib/last-account";
-import { groupTransferLegs } from "@/lib/transactions";
 import type { Account, AccountBalance, Transaction, TransactionPage } from "@/lib/types";
 
-const TRANSACTIONS_LIMIT = 200;
+const PAGE_SIZE = 50;
+// Money in / Money out add up the newest transactions of the account, whatever the filter and page.
+const STATS_LIMIT = 200;
 
 const TYPE_FILTERS = ["all", "income", "expense", "transfer"] as const;
 type TypeFilter = (typeof TYPE_FILTERS)[number];
@@ -44,11 +54,16 @@ type SearchParams = { searchParams: Promise<{ [key: string]: string | string[] |
 const requestedAccountId = (accountId: string | string[] | undefined) =>
   typeof accountId === "string" && accountId !== "" ? accountId : undefined;
 
-/** This page for one account (or all accounts) with a type filter. */
-function transactionsHref(accountId: string | undefined, filter: TypeFilter) {
+/** The `?offset=` of the page; anything but a non-negative integer counts as the first page. */
+const requestedOffset = (offset: string | string[] | undefined) =>
+  typeof offset === "string" && /^\d+$/.test(offset) && Number.isSafeInteger(Number(offset)) ? Number(offset) : 0;
+
+/** This page for one account (or all accounts) with a type filter, from the transaction at `offset` on. */
+function transactionsHref(accountId: string | undefined, filter: TypeFilter, offset = 0) {
   const query = new URLSearchParams({
     ...(accountId === undefined ? {} : { accountId }),
     ...(filter === "all" ? {} : { type: filter }),
+    ...(offset === 0 ? {} : { offset: String(offset) }),
   }).toString();
   return query ? `/transactions?${query}` : "/transactions";
 }
@@ -67,9 +82,20 @@ export async function generateMetadata({ searchParams }: SearchParams): Promise<
  * last used account (the lastAccountId cookie, written by the account switcher), otherwise all accounts.
  */
 export default async function TransactionsPage({ searchParams }: SearchParams) {
-  const { accountId, type } = await searchParams;
+  const { accountId, type, offset: offsetParam } = await searchParams;
   const filter: TypeFilter = type === "income" || type === "expense" || type === "transfer" ? type : "all";
   const selectedAccountId = requestedAccountId(accountId);
+  const requestedPageOffset = requestedOffset(offsetParam);
+  const accountQuery: Record<string, string> = selectedAccountId === undefined ? {} : { accountId: selectedAccountId };
+  const transactionPage = (pageOffset: number) =>
+    fetchApiServer<TransactionPage>(
+      `/transactions?${new URLSearchParams({
+        ...accountQuery,
+        ...(filter === "all" ? {} : { type: filter }),
+        limit: String(PAGE_SIZE),
+        offset: String(pageOffset),
+      })}`,
+    );
 
   if (selectedAccountId === undefined) {
     const [cookieStore, activeAccounts, archivedAccounts] = await Promise.all([
@@ -89,7 +115,8 @@ export default async function TransactionsPage({ searchParams }: SearchParams) {
     format,
     locale,
     account,
-    { items, total },
+    requestedPage,
+    overview,
     activeCategories,
     currencies,
     activeAccounts,
@@ -100,10 +127,13 @@ export default async function TransactionsPage({ searchParams }: SearchParams) {
     getFormatter(),
     getLocale(),
     selectedAccountId === undefined ? undefined : getAccount(selectedAccountId),
+    transactionPage(requestedPageOffset),
+    // Unfiltered, so the subtitle and the stat cards don't change with the filter or the page. All accounts
+    // have no stat cards and need only the total.
     fetchApiServer<TransactionPage>(
       `/transactions?${new URLSearchParams({
-        ...(selectedAccountId === undefined ? {} : { accountId: selectedAccountId }),
-        limit: String(TRANSACTIONS_LIMIT),
+        ...accountQuery,
+        limit: String(selectedAccountId === undefined ? 1 : STATS_LIMIT),
       })}`,
     ),
     getCategories(),
@@ -117,6 +147,13 @@ export default async function TransactionsPage({ searchParams }: SearchParams) {
           () => null,
         ),
   ]).catch(notFoundOnMissingResource);
+  // Past the last page (e.g. its only row was deleted) the last page is shown. A redirect would unmount the
+  // deleted row's button before it moves the focus to the list heading.
+  const lastPageOffset = Math.floor(Math.max(requestedPage.total - 1, 0) / PAGE_SIZE) * PAGE_SIZE;
+  const offset =
+    requestedPage.items.length === 0 ? Math.min(requestedPageOffset, lastPageOffset) : requestedPageOffset;
+  const { items, total } =
+    offset === requestedPageOffset ? requestedPage : await transactionPage(offset).catch(notFoundOnMissingResource);
   const categories = new Map(activeCategories.map((c) => [c.id, c]));
   // Transfer legs have no category, so they are labelled by their type instead of "Uncategorised".
   const noCategoryLabel = (tx: Transaction) => (tx.type === "transfer" ? t("form.types.transfer") : t("uncategorised"));
@@ -141,20 +178,25 @@ export default async function TransactionsPage({ searchParams }: SearchParams) {
   const bookedOn = (date: string) =>
     format.dateTime(new Date(date), { dateStyle: "medium", timeZone: "UTC", calendar: "gregory" });
 
-  const moneyInMinor = items.reduce((sum, tx) => (tx.amountMinor > 0 ? sum + tx.amountMinor : sum), 0);
-  const moneyOutMinor = items.reduce((sum, tx) => (tx.amountMinor < 0 ? sum + tx.amountMinor : sum), 0);
-  const statNote = total > items.length ? t("latestOnly", { count: items.length }) : undefined;
+  const moneyInMinor = overview.items.reduce((sum, tx) => (tx.amountMinor > 0 ? sum + tx.amountMinor : sum), 0);
+  const moneyOutMinor = overview.items.reduce((sum, tx) => (tx.amountMinor < 0 ? sum + tx.amountMinor : sum), 0);
+  const statNote = overview.total > overview.items.length ? t("latestOnly", { count: overview.items.length }) : undefined;
 
-  // Only all accounts contain both legs of a transfer; they are shown as one row. A row whose account is
-  // missing (created after the account lists were loaded) is skipped until the next load.
-  const hasAccount = (tx: Transaction | undefined) => tx === undefined || accountOptions.has(tx.accountId);
-  const rows = groupTransferLegs(items).filter(
-    ({ transaction, transferTo }) => hasAccount(transaction) && hasAccount(transferTo),
-  );
-  // ponytail: total counts each leg, so when the list is cut at TRANSACTIONS_LIMIT, transfers that were
-  // not loaded still count twice. Upgrade path: let the backend count a transfer group once.
-  const rowTotal = total - (items.length - rows.length);
-  const visible = filter === "all" ? rows : rows.filter(({ transaction }) => transaction.type === filter);
+  // Across all accounts a transfer is one item: its source leg, with the other leg's account and amount.
+  const transferTo = (tx: Transaction) =>
+    !account && tx.transferAccountId && tx.transferAmountMinor != null
+      ? { account: accountOptions.get(tx.transferAccountId), amountMinor: tx.transferAmountMinor }
+      : undefined;
+  // A row whose account is missing (created after the account lists were loaded) is skipped until the next load.
+  const visible = items.filter((tx) => {
+    const to = transferTo(tx);
+    return accountOptions.has(tx.accountId) && (to === undefined || to.account !== undefined);
+  });
+  const newerOffset = offset > 0 ? Math.max(offset - PAGE_SIZE, 0) : undefined;
+  const olderOffset = offset + items.length < total ? offset + items.length : undefined;
+  // Counted from the offset, so a hand-edited `?offset=` that is not a multiple of PAGE_SIZE still adds up.
+  const pageNumber = Math.ceil(offset / PAGE_SIZE) + 1;
+  const pageCount = pageNumber + Math.ceil(Math.max(total - offset - items.length, 0) / PAGE_SIZE);
 
   return (
     <div className="mx-auto w-full max-w-5xl pt-2">
@@ -176,8 +218,8 @@ export default async function TransactionsPage({ searchParams }: SearchParams) {
           </div>
           <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
             {account
-              ? t("subtitle", { count: total, currency: account.currencyCode })
-              : t("allSubtitle", { count: rowTotal })}
+              ? t("subtitle", { count: overview.total, currency: account.currencyCode })
+              : t("allSubtitle", { count: overview.total })}
           </p>
         </div>
         {!account?.isArchived && activeAccountOptions.length > 0 && (
@@ -260,7 +302,7 @@ export default async function TransactionsPage({ searchParams }: SearchParams) {
 
           {visible.length === 0 ? (
             <p className="px-4 py-8 text-center text-[13px] text-muted-foreground sm:px-6 sm:py-10 sm:text-sm">
-              {total > 0 ? t("emptyFiltered", { filter }) : account ? t("empty") : t("emptyAll")}
+              {filter !== "all" ? t("emptyFiltered", { filter }) : account ? t("empty") : t("emptyAll")}
             </p>
           ) : (
             <table className="w-full text-[13px] sm:text-sm">
@@ -292,15 +334,16 @@ export default async function TransactionsPage({ searchParams }: SearchParams) {
                 </tr>
               </thead>
               <tbody>
-                {visible.map(({ transaction: tx, transferTo }) => {
+                {visible.map((tx) => {
                   const category = tx.categoryId === null ? undefined : categories.get(tx.categoryId);
                   const description = transactionLabel(tx, category?.name, t(`form.types.${tx.type}`));
                   // Both are present: rows of unknown accounts were skipped above.
                   const txAccount = accountOptions.get(tx.accountId)!;
-                  const toAccount = transferTo && accountOptions.get(transferTo.accountId)!;
-                  // A transfer leg shown alone (one account's list) names the account on the other side.
+                  const transfer = transferTo(tx);
+                  const toAccount = transfer?.account;
+                  // A transfer leg in one account's list names the account on the other side.
                   const otherLegAccount =
-                    !transferTo && tx.transferAccountId ? accountOptions.get(tx.transferAccountId) : undefined;
+                    account && tx.transferAccountId ? accountOptions.get(tx.transferAccountId) : undefined;
                   const accountLabel = toAccount ? (
                     <TransferRoute
                       label={t("transferRoute", { from: txAccount.name, to: toAccount.name })}
@@ -379,22 +422,22 @@ export default async function TransactionsPage({ searchParams }: SearchParams) {
                       </td>
                       <td
                         className={`px-2 py-[11px] text-end font-semibold sm:px-3 sm:py-3.5 tabular-nums ${
-                          transferTo ? "" : tx.amountMinor > 0 ? "text-success" : "text-destructive"
+                          toAccount ? "" : tx.amountMinor > 0 ? "text-success" : "text-destructive"
                         }`}
                       >
                         {/* A transfer moves money between accounts, so its amount has no sign or colour. */}
-                        {!transferTo || !toAccount ? (
+                        {!transfer || !toAccount ? (
                           <span className="whitespace-nowrap">{money(tx.amountMinor, txAccount, "exceptZero")}</span>
                         ) : txAccount.currencyCode === toAccount.currencyCode ? (
-                          <span className="whitespace-nowrap">{money(transferTo.amountMinor, toAccount)}</span>
+                          <span className="whitespace-nowrap">{money(transfer.amountMinor, toAccount)}</span>
                         ) : (
                           <TransferRoute
                             label={t("transferRoute", {
                               from: money(-tx.amountMinor, txAccount),
-                              to: money(transferTo.amountMinor, toAccount),
+                              to: money(transfer.amountMinor, toAccount),
                             })}
                             from={<span className="whitespace-nowrap">{money(-tx.amountMinor, txAccount)}</span>}
-                            to={<span className="whitespace-nowrap">{money(transferTo.amountMinor, toAccount)}</span>}
+                            to={<span className="whitespace-nowrap">{money(transfer.amountMinor, toAccount)}</span>}
                             className="justify-end"
                           />
                         )}
@@ -425,12 +468,34 @@ export default async function TransactionsPage({ searchParams }: SearchParams) {
             </table>
           )}
 
-          <p
-            aria-live="polite"
-            className="border-t border-border px-4 py-3 text-xs text-muted-foreground sm:px-6 sm:py-4 sm:text-[13px]"
-          >
-            {t("showing", { shown: visible.length, total: rowTotal })}
-          </p>
+          <div className="flex flex-col items-center gap-x-4 gap-y-2 border-t border-border px-4 py-3 sm:flex-row sm:flex-wrap sm:justify-between sm:px-6 sm:py-4">
+            <p aria-live="polite" className="text-xs text-muted-foreground sm:text-[13px]">
+              {items.length === 0
+                ? t("showing", { shown: 0, total })
+                : t("showingRange", { from: offset + 1, to: offset + items.length, total })}
+            </p>
+            {(newerOffset !== undefined || olderOffset !== undefined) && (
+              <nav aria-label={t("pagination")} className="flex items-center gap-2">
+                <PageLink
+                  href={transactionsHref(account?.id, filter, newerOffset ?? offset)}
+                  disabled={newerOffset === undefined}
+                >
+                  <ChevronLeft size={14} aria-hidden className="shrink-0 rtl:-scale-x-100" />
+                  {t("newer")}
+                </PageLink>
+                <span className="px-1 text-xs whitespace-nowrap text-muted-foreground sm:text-[13px]">
+                  {t("pageOf", { page: pageNumber, pages: pageCount })}
+                </span>
+                <PageLink
+                  href={transactionsHref(account?.id, filter, olderOffset ?? offset)}
+                  disabled={olderOffset === undefined}
+                >
+                  {t("older")}
+                  <ChevronRight size={14} aria-hidden className="shrink-0 rtl:-scale-x-100" />
+                </PageLink>
+              </nav>
+            )}
+          </div>
         </section>
       </LiveStatusProvider>
     </div>
@@ -501,6 +566,23 @@ function TransferRoute({
         {to}
       </span>
     </>
+  );
+}
+
+/**
+ * "Newer" or "Older". On the first or last page it stays a link marked as disabled instead of disappearing,
+ * so the focus stays on it after the click that reached that page.
+ */
+function PageLink({ href, disabled, children }: { href: string; disabled: boolean; children: ReactNode }) {
+  return (
+    <Link
+      href={href}
+      aria-disabled={disabled || undefined}
+      tabIndex={disabled ? -1 : undefined}
+      className={`inline-flex min-h-9 items-center gap-1 rounded-[8px] border border-border px-3 text-[13px] font-medium hover:bg-muted aria-disabled:pointer-events-none aria-disabled:opacity-50 ${focusRing}`}
+    >
+      {children}
+    </Link>
   );
 }
 

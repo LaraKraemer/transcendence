@@ -1,0 +1,36 @@
+meta {
+  name: 13 - Create income transaction
+  type: http
+  seq: 14
+}
+
+post {
+  url: {{baseUrl}}/transactions
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "accountId": "{{accountId}}",
+    "type": "income",
+    "amountMinor": 10000,
+    "description": "Salary",
+    "bookedOn": "2026-08-26"
+  }
+}
+
+tests {
+  test("income transaction is created without a category", function () {
+    expect(res.getStatus()).to.equal(201);
+    const body = res.getBody();
+    expect(body.type).to.equal("income");
+    expect(body.amountMinor).to.equal(10000);
+    expect(body.categoryId).to.equal(null);
+    bru.setVar("incomeTransactionId", body.id);
+  });
+}

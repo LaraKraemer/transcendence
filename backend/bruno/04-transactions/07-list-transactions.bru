@@ -5,15 +5,17 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/transactions?accountId={{accountId}}
+  url: {{baseUrl}}/transactions?accountId={{accountId}}&type=expense
   body: none
   auth: none
 }
 
 tests {
-  test("created transaction is listed", function () {
+  test("created expense is listed under the expense filter", function () {
     expect(res.getStatus()).to.equal(200);
-    const ids = res.getBody().items.map((transaction) => transaction.id);
-    expect(ids).to.include(bru.getVar("transactionId"));
+    const { items, total } = res.getBody();
+    expect(items.map((transaction) => transaction.id)).to.include(bru.getVar("transactionId"));
+    expect(items.every((transaction) => transaction.type === "expense")).to.equal(true);
+    expect(total).to.equal(items.length);
   });
 }

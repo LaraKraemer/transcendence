@@ -66,8 +66,9 @@ export type Transaction = {
   createdById: string;
   type: TransactionType;
   transferGroupId: string | null;
-  /** List responses only: the account of the transfer's other leg (null when that leg was deleted). */
+  /** List responses only: the account and amount of the transfer's other leg (null when that leg was deleted). */
   transferAccountId?: string | null;
+  transferAmountMinor?: number | null;
   amountMinor: number;
   description: string | null;
   merchant: string | null;
@@ -78,7 +79,10 @@ export type Transaction = {
   updatedAt: string;
 };
 
-/** Response body of `GET /transactions?accountId=`: one page, newest first, plus the account's total count. */
+/**
+ * Response body of `GET /transactions`: one page, newest first, plus the number of matches. Without
+ * `accountId` a transfer is one item: its source leg, with `transferAccountId` and `transferAmountMinor`.
+ */
 export type TransactionPage = {
   items: Transaction[];
   total: number;

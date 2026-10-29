@@ -5,19 +5,21 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/transactions
+  url: {{baseUrl}}/transactions?type=transfer
   body: none
   auth: none
 }
 
 tests {
-  test("both transfer legs are listed without accountId", function () {
+  test("a transfer is one item without accountId: its source leg", function () {
     expect(res.getStatus()).to.equal(200);
-    const accountIds = res.getBody().items.map((transaction) => transaction.accountId);
-    const ids = res.getBody().items.map((transaction) => transaction.id);
-    expect(ids).to.include(bru.getVar("transferSourceLegId"));
-    expect(ids).to.include(bru.getVar("transferDestinationLegId"));
-    expect(accountIds).to.include(bru.getVar("accountId"));
-    expect(accountIds).to.include(bru.getVar("savingsAccountId"));
+    const { items, total } = res.getBody();
+    expect(total).to.equal(1);
+    expect(items).to.have.length(1);
+    expect(items[0].id).to.equal(bru.getVar("transferSourceLegId"));
+    expect(items[0].accountId).to.equal(bru.getVar("accountId"));
+    expect(items[0].amountMinor).to.equal(-2500);
+    expect(items[0].transferAccountId).to.equal(bru.getVar("savingsAccountId"));
+    expect(items[0].transferAmountMinor).to.equal(2500);
   });
 }
