@@ -70,7 +70,18 @@ export function ImportTransactionsButton({
       try {
         const result = await importTransactions(formData);
         if (!result.success) {
-          setError(result.status === 413 ? t("tooLarge") : result.status ? result.message : t("network"));
+          const row = result.message.match(/^Row (\d+):/)?.[1];
+          setError(
+            result.status === 413
+              ? t("tooLarge")
+              : result.status === 409
+                ? transactions("errors.accountArchived")
+                : row
+                  ? t("invalidRow", { row: Number(row) })
+                  : result.status
+                    ? t("invalid")
+                    : t("network"),
+          );
           return;
         }
         setSuccessCount(result.imported ?? selection.document.transactions.length);

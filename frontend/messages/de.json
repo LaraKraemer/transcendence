@@ -424,7 +424,7 @@
     "success": "{count} Buchungen importiert.",
     "tooLarge": "Die Datei darf höchstens 5 MiB groß sein.",
     "invalid": "Ungültiger JSON-Import. Verwende Version 1, einen Währungscode aus drei Großbuchstaben und 1–1.000 Ausgaben/Einnahmen.",
-    "invalidRow": "Zeile {row}: ungültige Felder. Verwende expense/income, eine ganze Zahl ungleich null für amountMinor und ein bookedOn-Datum.",
+    "invalidRow": "Zeile {row}: ungültige Buchungsdaten. Prüfe Buchungstyp, Betrag, Datum, Kategorie und optionale Textfelder.",
     "readError": "Die Datei konnte nicht gelesen werden. Bitte erneut auswählen.",
     "currencyMismatch": "Die Dateiwährung muss mit dem Zielkonto übereinstimmen.",
     "network": "Der Server ist nicht erreichbar. Prüfe vor einem erneuten Versuch die Buchungsliste: Der Import könnte bereits abgeschlossen sein."
