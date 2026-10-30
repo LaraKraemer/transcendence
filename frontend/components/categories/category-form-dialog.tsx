@@ -6,6 +6,7 @@ import { startTransition, useActionState, useEffect, useId, useState, type FormE
 
 import { FormAlert, formErrorFor } from "@/components/auth/form-parts";
 import { CATEGORY_ICON_KEYS, CategoryIcon } from "@/components/categories/category-icon";
+import { AddButton } from "@/components/ui/add-button";
 import { Button } from "@/components/ui/button";
 import { ChoiceGroup } from "@/components/ui/choice-group";
 import { useAnnounce } from "@/components/ui/live-status";
@@ -84,23 +85,27 @@ export function NewCategoryButton({ variant }: { variant: "header" | "tile" }) {
   // stays mounted, so closing it returns focus to this button.
   const [formKey, setFormKey] = useState(0);
 
+  function openForm() {
+    setFormKey((key) => key + 1);
+    setOpen(true);
+  }
+
   return (
     <>
-      <button
-        type="button"
-        onClick={() => {
-          setFormKey((key) => key + 1);
-          setOpen(true);
-        }}
-        className={
-          variant === "header"
-            ? "flex shrink-0 cursor-pointer items-center gap-[7px] rounded-[10px] bg-primary px-[18px] py-[11px] text-sm font-semibold text-primary-foreground hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none"
-            : "flex min-h-[66px] cursor-pointer items-center justify-center gap-[7px] rounded-xl border-[1.5px] border-dashed border-border p-3.5 text-[13px] font-semibold text-muted-foreground hover:border-ring hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-        }
-      >
-        <Plus size={variant === "header" ? 16 : 15} aria-hidden />
-        {variant === "header" ? t("newCategory") : t("addCategory")}
-      </button>
+      {variant === "header" ? (
+        <AddButton label={t("newCategory")} onClick={openForm} />
+      ) : (
+        <button
+          type="button"
+          onClick={openForm}
+          aria-label={t("addCategory")}
+          title={t("addCategory")}
+          className="flex min-h-[66px] cursor-pointer items-center justify-center gap-[7px] rounded-xl border-[1.5px] border-dashed border-border p-3.5 text-[13px] font-semibold text-muted-foreground hover:border-ring hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+        >
+          <Plus size={15} aria-hidden />
+          {t("addCategory")}
+        </button>
+      )}
       <Modal open={open} title={t("form.title")} onClose={() => setOpen(false)} busy={saving}>
         <CategoryForm
           key={formKey}

@@ -38,17 +38,17 @@ export default async function CategoriesPage() {
         <div className="mb-6 flex flex-wrap items-start gap-4">
           <div className="min-w-0">
             {/* tabIndex -1: focus lands here after a deleted tile disappears. */}
-            <h1
-              id={CATEGORIES_HEADING_ID}
-              tabIndex={-1}
-              className="text-[26px] font-bold tracking-[-0.02em] outline-none"
-            >
-              {t("title")}
-            </h1>
+            <div className="flex flex-wrap items-center gap-3">
+              <h1
+                id={CATEGORIES_HEADING_ID}
+                tabIndex={-1}
+                className="text-[26px] font-bold tracking-[-0.02em] outline-none"
+              >
+                {t("title")}
+              </h1>
+              <NewCategoryButton variant="header" />
+            </div>
             <p className="mt-1 text-sm text-muted-foreground">{t("subtitle", { count: categories.length })}</p>
-          </div>
-          <div className="ms-auto">
-            <NewCategoryButton variant="header" />
           </div>
         </div>
 
