@@ -163,6 +163,101 @@ describe("GET /transactions/summary", () => {
 // ─── GET / ────────────────────────────────────────────────────────────────────
 
 describe("GET /transactions", () => {
+  it.each([
+    { q: ["caf", "tea"] },
+    { q: "x".repeat(501) },
+    { categoryId: "invalid" },
+    { categoryId: [categoryId] },
+    ...["minAmountMinor", "maxAmountMinor"].flatMap((field) =>
+      ["-1", "1.5", "", "9007199254740992", "1e3", ["1", "2"]].map((value) => ({ [field]: value })),
+    ),
+    { minAmountMinor: "2", maxAmountMinor: "1" },
+    { sort: "invalid" },
+    { sort: ["bookedOn"] },
+    { order: "ASC" },
+    { order: ["asc"] },
+  ])("rejects invalid search parameters %j before querying", async (params) => {
+    const result = await dispatch(transactionsRouter, { url: "/", query: params });
+    expect(result).toMatchObject({ status: 400, body: { error: expect.any(String) } });
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  it("returns 404 for a missing or foreign category", async () => {
+    query.mockResolvedValueOnce({ rows: [] });
+    expect(await dispatch(transactionsRouter, { url: "/", query: { categoryId } })).toEqual({
+      status: 404,
+      body: { error: "Category not found" },
+    });
+    expect(query.mock.calls[0]![1]).toEqual([categoryId, userId, 1]);
+  });
+
+  it.each(["caf", "%", "_", "\\", "a%_\\b"])("escapes and trims q=%s in both queries", async (term) => {
+    query.mockResolvedValueOnce({ rows: [] });
+    query.mockResolvedValueOnce({ rows: [["0"]] });
+    await dispatch(transactionsRouter, { url: "/", query: { q: `  ${term}  ` } });
+    const pattern = `%${term.replace(/[\\%_]/g, "\\$&")}%`;
+    for (const index of [0, 1]) {
+      expect(query.mock.calls[index]![1]).toEqual(expect.arrayContaining([pattern, pattern, pattern]));
+      for (const field of ["description", "merchant_name", "notes"])
+        expect(query.mock.calls[index]![0].text).toContain(`"transaction"."${field}" ilike`);
+    }
+  });
+
+  it("treats blank search as no filter", async () => {
+    query.mockResolvedValueOnce({ rows: [] });
+    query.mockResolvedValueOnce({ rows: [["0"]] });
+    await dispatch(transactionsRouter, { url: "/", query: { q: "   " } });
+    expect(query.mock.calls[0]![0].text).not.toContain("ilike");
+  });
+
+  it.each(["bookedOn", "amountMinor", "createdAt"])(
+    "sorts %s in either direction with an id tiebreaker",
+    async (sort) => {
+      for (const order of ["asc", "desc"]) {
+        query.mockReset();
+        query.mockResolvedValueOnce({ rows: [] });
+        query.mockResolvedValueOnce({ rows: [["0"]] });
+        await dispatch(transactionsRouter, { url: "/", query: { sort, order } });
+        const column = { bookedOn: "booked_on", amountMinor: "amount_minor", createdAt: "created_at" }[sort];
+        expect(query.mock.calls[0]![0].text).toContain(`order by "transaction"."${column}" ${order}`);
+        expect(query.mock.calls[0]![0].text).toContain(`"transaction"."id" ${order}`);
+      }
+    },
+  );
+
+  it.each([categoryId, "none"])("combines category %s with text, amount, type and date filters", async (category) => {
+    if (category !== "none")
+      query.mockResolvedValueOnce({
+        rows: [[categoryId, userId, "Food", null, null, ["expense"], new Date().toISOString()]],
+      });
+    query.mockResolvedValueOnce({ rows: [] });
+    query.mockResolvedValueOnce({ rows: [["3"]] });
+    const result = await dispatch(transactionsRouter, {
+      url: "/",
+      query: {
+        categoryId: category,
+        q: "caf",
+        type: "expense",
+        minAmountMinor: "0",
+        maxAmountMinor: "500",
+        from: "2025-01-01",
+        to: "2025-12-31",
+        limit: "1",
+        offset: "4",
+      },
+    });
+    expect(result).toEqual({ status: 200, body: { items: [], total: 3 } });
+    const calls = query.mock.calls.slice(-2);
+    expect(calls[0]![1].slice(0, -2)).toEqual(calls[1]![1]);
+    for (const call of calls) {
+      expect(call[0].text).toContain(
+        category === "none" ? '"transaction"."category_id" is null' : '"transaction"."category_id" =',
+      );
+      expect(call[0].text).toContain('abs("transaction"."amount_minor") >=');
+      expect(call[0].text).toContain('abs("transaction"."amount_minor") <=');
+    }
+  });
+
   it("rejects an invalid accountId before querying the database", async () => {
     expect(await dispatch(transactionsRouter, { url: "/", query: { accountId: "invalid" } })).toEqual({
       status: 400,
