@@ -2,7 +2,7 @@
 
 import { Plus } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
-import { startTransition, useActionState, useEffect, useId, useRef, useState, type FormEvent } from "react";
+import { startTransition, useActionState, useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from "react";
 
 import { FormAlert, formErrorFor } from "@/components/auth/form-parts";
 import { Button } from "@/components/ui/button";
@@ -60,10 +60,11 @@ export function CreateAccountForm({ currencies }: { currencies: Currency[] }) {
           }
         }}
         onClick={() => setIsOpen(true)}
-        className="ms-auto flex cursor-pointer items-center gap-1.5 rounded-[8px] bg-success-bg px-3 py-1.75 text-[13px] font-semibold text-success transition-colors hover:bg-success hover:text-white dark:hover:text-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+        aria-label={t("newAccount")}
+        title={t("newAccount")}
+        className="ms-auto flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-[8px] bg-success-bg text-success transition-colors hover:bg-success hover:text-white dark:hover:text-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
       >
-        <Plus size={14} aria-hidden />
-        {t("newAccount")}
+        <Plus size={18} aria-hidden />
       </button>
     );
   }
@@ -82,7 +83,7 @@ export function CreateAccountForm({ currencies }: { currencies: Currency[] }) {
 }
 
 type AccountFormProps = { onClose: () => void } & (
-  { mode: "create"; currencies: Currency[] } | { mode: "edit"; account: Account; minorUnit: number }
+  { mode: "create"; currencies: Currency[] } | { mode: "edit"; account: Account; minorUnit: number; editActions?: ReactNode }
 );
 
 /**
@@ -218,9 +219,12 @@ export function AccountForm(props: AccountFormProps) {
       className="mt-2 basis-full rounded-[11px] border border-border bg-card p-5"
     >
       <fieldset disabled={isPending}>
-        <h3 id={headingId} className="mb-4 text-sm font-semibold">
-          {mode === "create" ? t("form.title") : t("form.editTitle")}
-        </h3>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <h3 id={headingId} className="text-sm font-semibold">
+            {mode === "create" ? t("form.title") : t("form.editTitle")}
+          </h3>
+          {mode === "edit" && props.editActions}
+        </div>
         <FormAlert message={error && t(`errors.${error}`)} />
 
         <TextField

@@ -9,7 +9,7 @@ import { Modal } from "@/components/ui/modal";
 
 type ConfirmDialogProps = {
   open: boolean;
-  title: string;
+  title: ReactNode;
   children: ReactNode;
   confirmLabel: string;
   onConfirm: () => void;
