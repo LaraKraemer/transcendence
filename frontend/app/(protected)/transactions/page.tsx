@@ -237,7 +237,7 @@ export default async function TransactionsPage({ searchParams }: SearchParams) {
 
       {activeAccountOptions.length > 0 && (
         <div className="mb-4 w-fit">
-          <ImportTransactionsButton accounts={activeAccountOptions} selectedAccountId={account?.isArchived ? undefined : account?.id} />
+          <ImportTransactionsButton key={account?.id ?? "all"} accounts={activeAccountOptions} selectedAccountId={account?.isArchived ? undefined : account?.id} />
         </div>
       )}
 
