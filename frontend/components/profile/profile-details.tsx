@@ -188,22 +188,27 @@ export function ProfileDetails({ user }: { user: User }) {
                   className="size-28 rounded-full object-cover"
                 />
                 <div className="flex flex-wrap gap-2">
-                  <Button className="w-auto" disabled={isPhotoPending} onClick={confirmPhoto}>
+                  <Button
+                    className="w-auto aria-disabled:cursor-wait aria-disabled:opacity-60"
+                    aria-disabled={isPhotoPending}
+                    onClick={() => !isPhotoPending && confirmPhoto()}
+                  >
                     {t("profile.uploadPhoto")}
                   </Button>
                   <Button
-                    className="w-auto"
+                    className="w-auto aria-disabled:cursor-wait aria-disabled:opacity-60"
                     variant="outline"
-                    disabled={isPhotoPending}
-                    onClick={() => fileInputRef.current?.click()}
+                    aria-disabled={isPhotoPending}
+                    onClick={() => !isPhotoPending && fileInputRef.current?.click()}
                   >
                     {t("profile.replaceSelection")}
                   </Button>
                   <Button
-                    className="w-auto"
+                    className="w-auto aria-disabled:cursor-wait aria-disabled:opacity-60"
                     variant="outline"
-                    disabled={isPhotoPending}
+                    aria-disabled={isPhotoPending}
                     onClick={() => {
+                      if (isPhotoPending) return;
                       setSelectedPhoto(null);
                       setPhotoError(null);
                       cameraButtonRef.current?.focus();
