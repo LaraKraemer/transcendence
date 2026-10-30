@@ -72,7 +72,7 @@ The server applies migrations on startup. Migrations leave 17 global reference c
 
 API smoke test (CI runs it too): copy `backend/bruno/.env.example` to `backend/bruno/.env`, set `TEST_PASSWORD` (at least 12 chars), then `cd backend/bruno && npx bru run --env local` with the stack running.
 
-Frontend (`cd frontend`): `npm run lint && npm run check:format && npm run build` (matches CI). Format money with `formatAmount` from `lib/format.ts`; `check:format` is its self-check.
+Frontend (`cd frontend`): `npm run lint && npm run check:format && npm run check:import && npm run build` (matches CI). Format money with `formatAmount` from `lib/format.ts`; `check:format` is its self-check; `check:import` checks JSON import preview parsing.
 
 ## Architecture
 
@@ -93,7 +93,7 @@ Browser → Next.js `:3000` → Express `:3001` → Postgres `:5432` (bound to 1
 | `/accounts` | `GET /?archived=true`, `POST /`, `GET /:accountId`, `PATCH /:accountId`, `DELETE /:accountId`, `GET /:accountId/balance` |
 | `/categories` | `GET /`, `POST /`, `GET /:categoryId`, `PATCH /:categoryId`, `DELETE /:categoryId` |
 | `/currencies` | `GET /` (authenticated, global reference data ordered by code) |
-| `/transactions` | `GET /?accountId=&type=&limit=&offset=&from=&to=` (without `accountId`: all of the user's accounts, a transfer with both legs listed is one item: its source leg with `transferAccountId` and `transferAmountMinor`), `GET /summary?accountId=&from=&to=`, `GET /export?format=csv&from=&to=&accountId=&categoryId=&type=`, `GET /count/:categoryId`, `POST /`, `POST /transfers`, `GET /:transactionId`, `PATCH /:transactionId`, `DELETE /:transactionId` |
+| `/transactions` | `GET /?accountId=&type=&limit=&offset=&from=&to=` (without `accountId`: all of the user's accounts, a transfer with both legs listed is one item: its source leg with `transferAccountId` and `transferAmountMinor`), `GET /summary?accountId=&from=&to=`, `GET /export?format=csv&from=&to=&accountId=&categoryId=&type=`, `GET /count/:categoryId`, `POST /`, `POST /transfers`, `POST /import?accountId=`, `GET /:transactionId`, `PATCH /:transactionId`, `DELETE /:transactionId` |
 | `/analytics` | `GET /timeseries?from=&to=&granularity=day\|week\|month&accountId=&categoryId=&type=`, `GET /categories?from=&to=&type=&accountId=&categoryId=` |
 
 ## Domain rules (enforced across routers, keep them consistent)

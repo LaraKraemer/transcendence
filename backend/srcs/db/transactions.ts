@@ -2,6 +2,7 @@ import { and, count, desc, eq, getTableColumns, gte, inArray, isNull, lt, lte, n
 import { alias } from "drizzle-orm/pg-core";
 
 import type { AnalyticsFilters } from "../validation.ts";
+import type { TransactionImport } from "../transaction-import.ts";
 import { db } from "./client.ts";
 import { accounts, categories, currencies, transactions } from "./schema.ts";
 import type { NewTransaction, Transaction } from "./schema.ts";
@@ -235,4 +236,46 @@ export async function deleteTransaction({ id, transferGroupId }: Pick<Transactio
   await db
     .delete(transactions)
     .where(transferGroupId === null ? eq(transactions.id, id) : eq(transactions.transferGroupId, transferGroupId));
+}
+
+/** Locks the destination against concurrent archive/currency edits, then inserts the batch in one statement. */
+export async function importTransactions(
+  accountId: string,
+  userId: string,
+  document: TransactionImport,
+): Promise<{ imported: number } | { status: number; error: string }> {
+  return db.transaction(async (transaction) => {
+    const [account] = await transaction
+      .select()
+      .from(accounts)
+      .where(and(eq(accounts.id, accountId), eq(accounts.userId, userId)))
+      .limit(1)
+      .for("update");
+    if (!account) return { status: 404, error: "Account not found" };
+    if (account.isArchived) return { status: 409, error: "Account is archived. Restore it before making changes." };
+    if (account.currencyCode !== document.currency)
+      return { status: 400, error: "Import currency must match the destination account" };
+    const categoryNames = [
+      ...new Set(document.transactions.flatMap((entry) => (entry.category ? [entry.category] : []))),
+    ];
+    const matchingCategories =
+      categoryNames.length === 0
+        ? []
+        : await transaction
+            .select({ id: categories.id, name: categories.name, types: categories.types })
+            .from(categories)
+            .where(and(eq(categories.userId, userId), inArray(categories.name, categoryNames)))
+            .for("share");
+    const categoriesByName = new Map(matchingCategories.map((category) => [category.name, category]));
+    const entries: NewTransaction[] = [];
+    for (const [index, { category: categoryName, ...entry }] of document.transactions.entries()) {
+      const category = categoryName ? categoriesByName.get(categoryName) : undefined;
+      if (categoryName && !category) return { status: 400, error: `Row ${index + 1}: category not found` };
+      if (category && !category.types.includes(entry.type))
+        return { status: 400, error: `Row ${index + 1}: category does not allow ${entry.type}` };
+      entries.push({ ...entry, accountId: account.id, createdById: userId, categoryId: category?.id ?? null });
+    }
+    const inserted = await transaction.insert(transactions).values(entries).returning({ id: transactions.id });
+    return { imported: inserted.length };
+  });
 }

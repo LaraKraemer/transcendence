@@ -123,3 +123,35 @@ export function parseRequiredText(value: unknown, maxLength: number): string | u
   const text = value.trim();
   return text === "" || text.length > maxLength ? undefined : text;
 }
+
+/** Returns an error message when the sign of the amount contradicts an expense or income type. */
+export function signError(type: string, amountMinor: number): string | undefined {
+  if (type === "expense" && amountMinor > 0) return "amountMinor must be negative for an expense";
+  if (type === "income" && amountMinor < 0) return "amountMinor must be positive for an income";
+  return undefined;
+}
+
+/**
+ * Validates the fields shared by regular transactions and transfers. Returns an error message, or the
+ * trimmed optional `description` and `notes` (omitted values are stored as null).
+ */
+export function parseEntryFields({
+  description,
+  bookedOn,
+  notes,
+  occurredAt,
+}: Record<string, unknown>): { error: string } | { description: string | null; notes: string | null } {
+  const descriptionText = parseOptionalText(description ?? null, TEXT_LIMITS.description);
+  if (descriptionText === undefined) {
+    return { error: `description must be a string of at most ${TEXT_LIMITS.description} characters or null` };
+  }
+  if (!isDateOnly(bookedOn)) return { error: "bookedOn must use YYYY-MM-DD format" };
+  const notesText = parseOptionalText(notes ?? null, TEXT_LIMITS.notes);
+  if (notesText === undefined) {
+    return { error: `notes must be a string of at most ${TEXT_LIMITS.notes} characters or null` };
+  }
+  if (occurredAt !== undefined && occurredAt !== null && !isIsoTimestamp(occurredAt)) {
+    return { error: "occurredAt must be a valid ISO 8601 timestamp or null" };
+  }
+  return { description: descriptionText, notes: notesText };
+}
