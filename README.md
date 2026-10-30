@@ -349,10 +349,7 @@ The existing `/transactions/summary?accountId=` response is unchanged.
 Time-series `period` is the bucket's start date: the date itself, Monday for
 weeks, or the first day for months. A first bucket may start before `from`, but
 its totals still include only transactions inside the requested dates. Rows are
-ordered by period then currency; missing buckets are zero-filled for every
-distinct currency of the selected accounts, even when no transactions match.
-A user with no accounts receives `[]`. Category rows are ordered by currency,
-type, then category ID; absent groups are omitted.
+ordered by period then currency.
 
 ```text
 GET /analytics/timeseries?from=2025-01-01&to=2025-01-03&granularity=day
@@ -363,10 +360,7 @@ GET /transactions/export?format=csv&from=2025-01-01&to=2025-01-31
 CSV columns are `account,currency,date,type,category,merchant,description,amount`,
 ordered by booked date, creation time, then transaction ID. Amounts use a decimal
 point and the reference currency's `minorUnit` (fallback `2` for currencies outside
-the catalog, matching the UI). Text is quoted, embedded quotes doubled, and
-formula-like cells prefixed with an apostrophe. A UTF-8 BOM helps spreadsheets
-recognize non-ASCII text. There is no pagination or silent truncation. Exports are
-buffered in memory; this is intended for personal-scale data, not bulk workloads.
+the catalog, matching the UI).
 
 <br>
 
@@ -432,10 +426,6 @@ with `TEST_DATABASE_URL` set using
 `npx vitest run tests/db/user-deletion.integration.test.ts` from `backend/`.
 API startup applies migrations; CI waits for `/health`, then runs requests and
 prints the API log if a step fails.
-The API job also runs the analytics PostgreSQL integration checks. To run them
-locally after migrations, set `TEST_DATABASE_URL` and run
-`npm test -- tests/db/analytics.integration.test.ts` from `backend/`; all test data
-is rolled back.
 
 From `frontend/`, run `npm ci`, `npm run lint`, `npm run check:format` and `npm run build`.
 Frontend CI runs lint, the `formatAmount` self-check and build. Both workflows run on relevant pull requests and pushes to
