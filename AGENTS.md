@@ -93,7 +93,7 @@ Browser → Next.js `:3000` → Express `:3001` → Postgres `:5432` (bound to 1
 | `/accounts` | `GET /?archived=true`, `POST /`, `GET /:accountId`, `PATCH /:accountId`, `DELETE /:accountId`, `GET /:accountId/balance` |
 | `/categories` | `GET /`, `POST /`, `GET /:categoryId`, `PATCH /:categoryId`, `DELETE /:categoryId` |
 | `/currencies` | `GET /` (authenticated, global reference data ordered by code) |
-| `/transactions` | `GET /?accountId=&type=&limit=&offset=&from=&to=` (without `accountId`: all of the user's accounts, a transfer with both legs listed is one item: its source leg with `transferAccountId` and `transferAmountMinor`), `GET /summary?accountId=&from=&to=`, `GET /count/:categoryId`, `POST /`, `POST /transfers`, `POST /import?accountId=`, `GET /:transactionId`, `PATCH /:transactionId`, `DELETE /:transactionId` |
+| `/transactions` | `GET /?accountId=&q=&categoryId=&type=&minAmountMinor=&maxAmountMinor=&sort=&order=&limit=&offset=&from=&to=` (without `accountId`: all of the user's accounts, a transfer with both legs listed is one item: its source leg with `transferAccountId` and `transferAmountMinor`), `GET /summary?accountId=&from=&to=`, `GET /count/:categoryId`, `POST /`, `POST /transfers`, `POST /import?accountId=`, `GET /:transactionId`, `PATCH /:transactionId`, `DELETE /:transactionId` |
 
 ## Domain rules (enforced across routers, keep them consistent)
 

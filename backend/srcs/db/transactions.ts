@@ -1,4 +1,20 @@
-import { and, count, desc, eq, getTableColumns, gte, inArray, isNull, lt, lte, ne, or, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  getTableColumns,
+  gte,
+  ilike,
+  inArray,
+  isNull,
+  lt,
+  lte,
+  ne,
+  or,
+  sql,
+} from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 
 import type { TransactionImport } from "../transaction-import.ts";
@@ -30,7 +46,7 @@ export async function findCategoryTypes(categoryId: string, userId: string) {
 }
 
 /**
- * Lists one page of transactions, newest first, plus the total number of matches. The owner is one
+ * Lists one filtered, sorted page of transactions, plus the total number of matches. The owner is one
  * account, or a user: then the transactions of all their accounts, archived ones included. Across all
  * accounts a transfer is one item: its source leg, with the other leg's account and amount.
  */
@@ -40,11 +56,37 @@ export async function listTransactions(
     limit: number;
     offset: number;
     type?: string;
+    searchTerm?: string;
+    categoryId?: string;
+    minAmountMinor?: number;
+    maxAmountMinor?: number;
+    sort?: "bookedOn" | "amountMinor" | "createdAt";
+    order?: "asc" | "desc";
     from?: string;
     to?: string;
   },
 ) {
-  const { limit, offset, type, from, to } = options;
+  const {
+    limit,
+    offset,
+    type,
+    from,
+    to,
+    searchTerm,
+    categoryId,
+    minAmountMinor,
+    maxAmountMinor,
+    sort = "bookedOn",
+    order = "desc",
+  } = options;
+  const direction = order === "asc" ? asc : desc;
+  const sortColumn = {
+    bookedOn: transactions.bookedOn,
+    amountMinor: transactions.amountMinor,
+    createdAt: transactions.createdAt,
+  }[sort];
+  const searchPattern = searchTerm === undefined ? undefined : `%${searchTerm.replace(/[\\%_]/g, "\\$&")}%`;
+  const absoluteAmount = sql`abs(${transactions.amountMinor})`;
   // The other leg of a transfer: it names the account the money came from or went to.
   const otherLeg = alias(transactions, "other_leg");
   const otherLegJoin = and(
@@ -59,6 +101,21 @@ export async function listTransactions(
           db.select({ id: accounts.id }).from(accounts).where(eq(accounts.userId, owner.userId)),
         ),
     type === undefined ? undefined : eq(transactions.type, type),
+    categoryId === undefined
+      ? undefined
+      : categoryId === "none"
+        ? isNull(transactions.categoryId)
+        : eq(transactions.categoryId, categoryId),
+    minAmountMinor === undefined ? undefined : gte(absoluteAmount, minAmountMinor),
+    maxAmountMinor === undefined ? undefined : lte(absoluteAmount, maxAmountMinor),
+    // ponytail: substring search scans at personal-expense scale; upgrade to a pg_trgm GIN index if needed.
+    searchPattern === undefined
+      ? undefined
+      : or(
+          ilike(transactions.description, searchPattern),
+          ilike(transactions.merchant, searchPattern),
+          ilike(transactions.notes, searchPattern),
+        ),
     from === undefined ? undefined : gte(transactions.bookedOn, from),
     to === undefined ? undefined : lte(transactions.bookedOn, to),
     // Both legs are in the all-accounts list, so the destination leg is left out. A lone leg stays.
@@ -74,7 +131,11 @@ export async function listTransactions(
       .from(transactions)
       .leftJoin(otherLeg, otherLegJoin)
       .where(whereClause)
-      .orderBy(desc(transactions.bookedOn), desc(transactions.createdAt), desc(transactions.id))
+      .orderBy(
+        direction(sortColumn),
+        ...(sort === "bookedOn" ? [direction(transactions.createdAt)] : []),
+        direction(transactions.id),
+      )
       .limit(limit)
       .offset(offset),
     db.select({ total: count() }).from(transactions).leftJoin(otherLeg, otherLegJoin).where(whereClause),

@@ -82,4 +82,85 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("transaction list with PostgreSQ
     expect(total).toBe(1);
     expect(items).toMatchObject([{ amountMinor: 1100, transferAccountId: checkingId, transferAmountMinor: -1000 }]);
   });
+  it("searches literally, combines filters and paginates tied amounts without gaps", async () => {
+    await pool.query("SAVEPOINT search_check");
+    try {
+      const categoryId = randomUUID();
+      await pool.query(
+        `INSERT INTO category (id, user_id, name, icon, color, types) VALUES ($1, $2, 'Search', 'coffee', '#000000', ARRAY['expense'])`,
+        [categoryId, userId],
+      );
+      const searchAccountId = randomUUID();
+      await pool.query(`INSERT INTO account (id, user_id, name, type) VALUES ($1, $2, 'Search', 'checking')`, [
+        searchAccountId,
+        userId,
+      ]);
+      const entries = [
+        ["Café", null, null, -100, categoryId],
+        [null, "CAFE", null, -100, categoryId],
+        [null, null, "caf notes", -200, null],
+        ["100%", null, null, -300, null],
+        [null, "under_score", null, -400, null],
+        [null, null, "back\\slash", 500, null],
+      ];
+      for (const [description, merchant, notes, amount, category] of entries) {
+        await pool.query(
+          `INSERT INTO "transaction" (account_id, created_by_id, type, amount_minor, description, merchant_name, notes, category_id, booked_on)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, '2025-02-01')`,
+          [
+            searchAccountId,
+            userId,
+            Number(amount) < 0 ? "expense" : "income",
+            amount,
+            description,
+            merchant,
+            notes,
+            category,
+          ],
+        );
+      }
+      const owner = { accountId: searchAccountId };
+      for (const [searchTerm, total] of [
+        ["caf", 3],
+        ["%", 1],
+        ["_", 1],
+        ["\\", 1],
+      ] as const) {
+        const result = await listTransactions(owner, { searchTerm, limit: 50, offset: 0 });
+        expect(result.total).toBe(total);
+        expect(result.items).toHaveLength(total);
+      }
+      const combined = {
+        searchTerm: "caf",
+        categoryId,
+        type: "expense",
+        minAmountMinor: 100,
+        maxAmountMinor: 100,
+        from: "2025-02-01",
+        to: "2025-02-01",
+      };
+      expect((await listTransactions(owner, { ...combined, limit: 50, offset: 0 })).total).toBe(2);
+      expect(await listTransactions(owner, { ...combined, limit: 1, offset: 2 })).toEqual({ items: [], total: 2 });
+      expect(
+        (await listTransactions(owner, { searchTerm: "caf", categoryId: "none", limit: 50, offset: 0 })).items,
+      ).toMatchObject([{ amountMinor: -200, categoryId: null }]);
+      for (const order of ["asc", "desc"] as const) {
+        const complete = await listTransactions(owner, { sort: "amountMinor", order, limit: 50, offset: 0 });
+        const pages = [];
+        for (let offset = 0; offset < entries.length; offset++) {
+          const page = await listTransactions(owner, { sort: "amountMinor", order, limit: 1, offset });
+          expect(page.total).toBe(entries.length);
+          pages.push(...page.items);
+        }
+        expect(pages.map(({ id }) => id)).toEqual(complete.items.map(({ id }) => id));
+        expect(new Set(pages.map(({ id }) => id)).size).toBe(entries.length);
+        const amounts = pages.map(({ amountMinor }) => amountMinor);
+        expect(amounts).toEqual([...amounts].sort((left, right) => (order === "asc" ? left - right : right - left)));
+        const tiedIds = pages.filter(({ amountMinor }) => amountMinor === -100).map(({ id }) => id);
+        expect(tiedIds).toEqual(order === "asc" ? [...tiedIds].sort() : [...tiedIds].sort().reverse());
+      }
+    } finally {
+      await pool.query("ROLLBACK TO SAVEPOINT search_check");
+    }
+  });
 });

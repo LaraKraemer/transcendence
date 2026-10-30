@@ -308,8 +308,8 @@ Restore with `PATCH /accounts/:accountId` using only `{"isArchived": false}`, th
 separately. Repeated archiving returns `200`; missing or foreign resources return `404`.
 Permanent account deletion is handled separately in #48.
 
-`GET /transactions` lists one account with `?accountId=`, or without it the transactions of all
-your accounts, archived ones included. `GET /accounts` lists active accounts; `GET /accounts?archived=true`
+`GET /transactions` lists one account with `?accountId=`, or without it the transactions of all your accounts, archived ones included. Search with `q` (case-insensitive, max 500 characters), filter with `categoryId` (owned UUID or `none`) and `minAmountMinor`/`maxAmountMinor` (absolute amounts). Sort with `sort=bookedOn|amountMinor|createdAt` and `order=asc|desc` (default: `bookedOn desc`; amount sorting uses signed amounts). `total` includes all active filters.
+`GET /accounts` lists active accounts; `GET /accounts?archived=true`
 lists only archived ones. Category and
 transaction deletion is permanent; deleting a category sets `categoryId = null` on its linked
 transactions. `GET /transactions/count/:categoryId` returns how many transactions use a category.
