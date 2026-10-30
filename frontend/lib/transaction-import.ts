@@ -45,7 +45,10 @@ export function parseImportPreview(text: string): ImportDocument | { error: "inv
       typeof entry.amountMinor !== "number" ||
       !Number.isSafeInteger(entry.amountMinor) ||
       entry.amountMinor === 0 ||
+      (entry.type === "expense") !== (entry.amountMinor < 0) ||
       typeof entry.bookedOn !== "string" ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(entry.bookedOn) ||
+      new Date(`${entry.bookedOn}T00:00:00Z`).toJSON()?.slice(0, 10) !== entry.bookedOn ||
       Object.keys(entry).some(
         (key) => !["type", "amountMinor", "bookedOn", "description", "notes", "occurredAt", "category"].includes(key),
       ) ||
