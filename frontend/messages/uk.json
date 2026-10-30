@@ -180,16 +180,18 @@
     },
     "balanceUnavailable": "Баланс недоступний",
     "archivedTitle": "В архіві ({count})",
+    "archivedAccounts": "Архівні рахунки",
     "archived": "В архіві",
     "unarchive": "Відновити",
     "unarchiving": "Відновлення…",
     "actions": {
       "edit": "Редагувати «{name}»",
       "archive": "Архівувати «{name}»",
-      "unarchive": "Відновити {name}"
+      "unarchive": "Відновити {name}",
+      "delete": "Видалити рахунок назавжди: {name}"
     },
     "archiveDialog": {
-      "title": "Архівувати «{name}»?",
+      "title": "Архівувати <account>{name}</account>?",
       "description": "Архівувати цей рахунок? Ваші транзакції збережуться.",
       "confirm": "Архівувати",
       "confirming": "Архівування…"
@@ -198,7 +200,17 @@
       "created": "Рахунок «{name}» створено",
       "saved": "Зміни в «{name}» збережено",
       "archived": "Рахунок «{name}» архівовано",
-      "restored": "Рахунок «{name}» відновлено"
+      "restored": "Рахунок «{name}» відновлено",
+      "deleted": "«{name}» видалено назавжди"
+    },
+    "deleteDialog": {
+      "title": "Видалити <account>{name}</account> назавжди?",
+      "description": "Цей рахунок і всі його транзакції буде видалено назавжди без можливості відновлення.",
+      "confirm": "Видалити рахунок назавжди",
+      "confirming": "Видалення…",
+      "continue": "Продовжити",
+      "finalTitle": "Останнє попередження: видалити <account>{name}</account>?",
+      "finalDescription": "Після підтвердження рахунок <account>{name}</account> і всі його транзакції буде видалено назавжди. Цю дію неможливо скасувати."
     }
   },
   "transactions": {

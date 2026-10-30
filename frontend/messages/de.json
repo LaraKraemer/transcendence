@@ -180,16 +180,18 @@
     },
     "balanceUnavailable": "Saldo nicht verfügbar",
     "archivedTitle": "Archiviert ({count})",
+    "archivedAccounts": "Archivierte Konten",
     "archived": "Archiviert",
     "unarchive": "Wiederherstellen",
     "unarchiving": "Wird wiederhergestellt…",
     "actions": {
       "edit": "{name} bearbeiten",
       "archive": "{name} archivieren",
-      "unarchive": "{name} wiederherstellen"
+      "unarchive": "{name} wiederherstellen",
+      "delete": "Konto dauerhaft löschen: {name}"
     },
     "archiveDialog": {
-      "title": "„{name}“ archivieren?",
+      "title": "<account>{name}</account> archivieren?",
       "description": "Dieses Konto archivieren? Deine Transaktionen bleiben erhalten.",
       "confirm": "Archivieren",
       "confirming": "Wird archiviert…"
@@ -198,7 +200,17 @@
       "created": "„{name}“ angelegt",
       "saved": "„{name}“ gespeichert",
       "archived": "„{name}“ archiviert",
-      "restored": "„{name}“ wiederhergestellt"
+      "restored": "„{name}“ wiederhergestellt",
+      "deleted": "„{name}“ dauerhaft gelöscht"
+    },
+    "deleteDialog": {
+      "title": "<account>{name}</account> dauerhaft löschen?",
+      "description": "Dieses Konto und alle zugehörigen Transaktionen werden dauerhaft gelöscht und können nicht wiederhergestellt werden.",
+      "confirm": "Konto dauerhaft löschen",
+      "confirming": "Wird gelöscht…",
+      "continue": "Weiter",
+      "finalTitle": "Letzte Warnung: <account>{name}</account> löschen?",
+      "finalDescription": "Wenn du jetzt bestätigst, werden <account>{name}</account> und alle zugehörigen Transaktionen unwiderruflich gelöscht. Diese Aktion kann nicht rückgängig gemacht werden."
     }
   },
   "transactions": {
@@ -536,7 +548,9 @@
         },
         "acceptableUse": {
           "title": "Zulässige Nutzung",
-          "paragraphs": ["Wenn du Poolaki nutzt, darfst du nicht:"],
+          "paragraphs": [
+            "Wenn du Poolaki nutzt, darfst du nicht:"
+          ],
           "items": [
             "versuchen, auf Profile oder Daten anderer Personen zuzugreifen;",
             "den Dienst ausspähen, angreifen oder überlasten, zum Beispiel mit automatisierten Massenanfragen, oder versuchen, seine Sicherheitsmaßnahmen zu umgehen;",

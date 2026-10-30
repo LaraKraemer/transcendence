@@ -180,16 +180,18 @@
     },
     "balanceUnavailable": "موجودی در دسترس نیست",
     "archivedTitle": "بایگانی‌شده ({count})",
+    "archivedAccounts": "حساب‌های بایگانی‌شده",
     "archived": "بایگانی‌شده",
     "unarchive": "بازگردانی",
     "unarchiving": "در حال بازگردانی…",
     "actions": {
       "edit": "ویرایش «{name}»",
       "archive": "بایگانی «{name}»",
-      "unarchive": "بازگردانی {name}"
+      "unarchive": "بازگردانی {name}",
+      "delete": "حذف دائمی حساب: {name}"
     },
     "archiveDialog": {
-      "title": "«{name}» بایگانی شود؟",
+      "title": "<account>{name}</account> بایگانی شود؟",
       "description": "این حساب بایگانی شود؟ تراکنش‌های شما حفظ می‌شوند.",
       "confirm": "بایگانی",
       "confirming": "در حال بایگانی…"
@@ -198,7 +200,17 @@
       "created": "«{name}» ساخته شد",
       "saved": "«{name}» ذخیره شد",
       "archived": "«{name}» بایگانی شد",
-      "restored": "«{name}» بازگردانده شد"
+      "restored": "«{name}» بازگردانده شد",
+      "deleted": "«{name}» برای همیشه حذف شد"
+    },
+    "deleteDialog": {
+      "title": "حساب <account>{name}</account> برای همیشه حذف شود؟",
+      "description": "این حساب و تمام تراکنش‌های آن برای همیشه حذف می‌شوند و قابل بازیابی نیستند.",
+      "confirm": "حذف دائمی حساب",
+      "confirming": "در حال حذف…",
+      "continue": "ادامه",
+      "finalTitle": "هشدار نهایی: <account>{name}</account> حذف شود؟",
+      "finalDescription": "با تأیید، حساب <account>{name}</account> و تمام تراکنش‌های آن برای همیشه حذف می‌شوند. این اقدام قابل بازگشت نیست."
     }
   },
   "transactions": {
@@ -536,7 +548,9 @@
         },
         "acceptableUse": {
           "title": "استفادهٔ مجاز",
-          "paragraphs": ["هنگام استفاده از Poolaki نباید:"],
+          "paragraphs": [
+            "هنگام استفاده از Poolaki نباید:"
+          ],
           "items": [
             "برای دسترسی به پروفایل‌ها یا سوابق دیگران تلاش کنید؛",
             "سرویس را کاوش، به آن حمله یا آن را بیش از حد بارگذاری کنید، برای مثال با درخواست‌های انبوه خودکار، یا برای دور زدن سازوکارهای امنیتی آن تلاش کنید؛",
