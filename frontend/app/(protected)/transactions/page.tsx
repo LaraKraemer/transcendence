@@ -15,6 +15,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
+import { ImportTransactionsButton } from "@/components/transactions/import-transactions-button";
 import { AccountSwitcher } from "@/components/transactions/account-switcher";
 import { DeleteTransactionButton } from "@/components/transactions/delete-transaction-button";
 import {
@@ -233,6 +234,12 @@ export default async function TransactionsPage({ searchParams }: SearchParams) {
           </LiveStatusProvider>
         )}
       </div>
+
+      {activeAccountOptions.length > 0 && (
+        <div className="mb-4 w-fit">
+          <ImportTransactionsButton key={account?.id ?? "all"} accounts={activeAccountOptions} selectedAccountId={account?.isArchived ? undefined : account?.id} />
+        </div>
+      )}
 
       {/* Amounts in different currencies can't be added up, so the totals are for one account only. */}
       {pageAccountOption && (

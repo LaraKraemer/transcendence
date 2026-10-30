@@ -10,13 +10,23 @@ import {
   findCategoryTypes,
   findOwnedTransaction,
   insertTransaction,
+  importTransactions,
   insertTransferLegs,
   listTransactions,
   summarizeTransactionsByCategory,
   updateTransaction,
   deleteTransaction,
 } from "../db/transactions.ts";
-import { isDateOnly, isIsoTimestamp, isUuid, parseOptionalText, TEXT_LIMITS } from "../validation.ts";
+import { parseTransactionImport } from "../transaction-import.ts";
+import {
+  isDateOnly,
+  isIsoTimestamp,
+  isUuid,
+  parseOptionalText,
+  parseEntryFields,
+  signError,
+  TEXT_LIMITS,
+} from "../validation.ts";
 
 function parsePaginationInt(value: unknown, defaultValue: number): number | null {
   if (value === undefined) return defaultValue;
@@ -30,13 +40,6 @@ type TransactionType = (typeof TRANSACTION_TYPES)[number];
 
 function isTransactionType(value: unknown): value is TransactionType {
   return typeof value === "string" && TRANSACTION_TYPES.includes(value as TransactionType);
-}
-
-/** Returns an error message when the sign of the amount contradicts an expense or income type. */
-function signError(type: string, amountMinor: number): string | undefined {
-  if (type === "expense" && amountMinor > 0) return "amountMinor must be negative for an expense";
-  if (type === "income" && amountMinor < 0) return "amountMinor must be positive for an income";
-  return undefined;
 }
 
 /**
@@ -60,34 +63,32 @@ async function validateCategory(
     : { status: 400, error: `An ${type} transaction requires a category that allows ${type}` };
 }
 
-/**
- * Validates the fields shared by regular transactions and transfers. Returns an error message, or the
- * trimmed optional `description` and `notes` (omitted values are stored as null).
- */
-function parseEntryFields({
-  description,
-  bookedOn,
-  notes,
-  occurredAt,
-}: Record<string, unknown>): { error: string } | { description: string | null; notes: string | null } {
-  const descriptionText = parseOptionalText(description ?? null, TEXT_LIMITS.description);
-  if (descriptionText === undefined) {
-    return { error: `description must be a string of at most ${TEXT_LIMITS.description} characters or null` };
-  }
-  if (!isDateOnly(bookedOn)) return { error: "bookedOn must use YYYY-MM-DD format" };
-  const notesText = parseOptionalText(notes ?? null, TEXT_LIMITS.notes);
-  if (notesText === undefined) {
-    return { error: `notes must be a string of at most ${TEXT_LIMITS.notes} characters or null` };
-  }
-  if (occurredAt !== undefined && occurredAt !== null && !isIsoTimestamp(occurredAt)) {
-    return { error: "occurredAt must be a valid ISO 8601 timestamp or null" };
-  }
-  return { description: descriptionText, notes: notesText };
-}
-
 export const transactionsRouter = Router();
 
 transactionsRouter.use(requireAuthenticatedUser);
+
+/** Validates and atomically imports expenses/income into one active owned account. */
+transactionsRouter.post("/import", async (req, res, next) => {
+  if (!isUuid(req.query.accountId)) {
+    res.status(400).json({ error: "accountId must be a valid UUID" });
+    return;
+  }
+  const parsed = parseTransactionImport(req.body);
+  if ("error" in parsed) {
+    res.status(400).json({ error: parsed.error });
+    return;
+  }
+  try {
+    const result = await importTransactions(req.query.accountId, res.locals.userId, parsed);
+    if ("error" in result) {
+      res.status(result.status).json({ error: result.error });
+      return;
+    }
+    res.status(201).json(result);
+  } catch (error) {
+    next(error);
+  }
+});
 
 /**
  * Lists transactions for one account owned by the authenticated user, or without accountId for all
