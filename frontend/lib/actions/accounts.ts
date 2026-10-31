@@ -173,3 +173,18 @@ export async function setAccountArchived(accountId: string, isArchived: boolean)
   refresh();
   return { success: true, message: isArchived ? "Account archived" : "Account restored" };
 }
+
+/** Permanently deletes an owned account and its transactions, then refreshes the overview. */
+export async function deleteAccount(accountId: string): Promise<ActionResponse> {
+  if (!accountIdSchema.safeParse(accountId).success) {
+    return { success: false, message: "Account not found", status: 404 };
+  }
+  try {
+    await fetchApiServer<void>(`/accounts/${accountId}`, { method: "DELETE" });
+  } catch (error) {
+    return backendFailure(error, "deleteAccount");
+  }
+
+  refresh();
+  return { success: true, message: "Account deleted" };
+}
