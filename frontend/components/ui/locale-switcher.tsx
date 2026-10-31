@@ -3,7 +3,7 @@
 import { Check, ChevronDown, Globe, Languages } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { useTransition } from "react";
+import { useId, useTransition } from "react";
 
 import { locales, localeNames } from "@/i18n/config";
 import { setLocale } from "@/lib/actions/locale";
@@ -23,6 +23,8 @@ export function LocaleSwitcher({ variant = "select" }: { variant?: "select" | "p
   const locale = useLocale();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  // Unique per instance: the header and the design system page can show more than one.
+  const selectId = useId();
 
   function onChange(next: string) {
     startTransition(async () => {
@@ -42,7 +44,7 @@ export function LocaleSwitcher({ variant = "select" }: { variant?: "select" | "p
               aria-pressed={code === locale}
               disabled={isPending}
               onClick={() => onChange(code)}
-              className="flex w-full cursor-pointer items-center gap-3 rounded-[10px] px-3 py-2.5 text-sm hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-wait disabled:opacity-60 aria-pressed:font-semibold"
+              className="flex w-full cursor-pointer items-center gap-3 rounded-[10px] px-3 py-2.5 text-sm hover:bg-accent focus-ring disabled:cursor-wait disabled:opacity-60 aria-pressed:font-semibold"
             >
               <span className="flex w-[22px] justify-center">
                 {code === locale && <Check size={16} aria-hidden className="text-success" />}
@@ -69,11 +71,11 @@ export function LocaleSwitcher({ variant = "select" }: { variant?: "select" | "p
         <Globe size={16} aria-hidden />
         <span aria-hidden>{locale.toUpperCase()}</span>
         <ChevronDown size={14} aria-hidden />
-        <label htmlFor="locale-switcher" className="sr-only">
+        <label htmlFor={selectId} className="sr-only">
           {t("language")}
         </label>
         <select
-          id="locale-switcher"
+          id={selectId}
           value={locale}
           disabled={isPending}
           onChange={(e) => onChange(e.target.value)}
@@ -88,11 +90,11 @@ export function LocaleSwitcher({ variant = "select" }: { variant?: "select" | "p
   return (
     <div className="relative flex h-[42px] items-center rounded-[11px] border border-border bg-card text-foreground focus-within:ring-2 focus-within:ring-ring">
       <Languages size={17} aria-hidden className="pointer-events-none absolute start-3 text-muted-foreground" />
-      <label htmlFor="locale-switcher" className="sr-only">
+      <label htmlFor={selectId} className="sr-only">
         {t("language")}
       </label>
       <select
-        id="locale-switcher"
+        id={selectId}
         value={locale}
         disabled={isPending}
         onChange={(e) => onChange(e.target.value)}

@@ -2,6 +2,7 @@
 
 import { Moon, Sun } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { IconButton } from "@/components/ui/icon-button";
 import { type Theme } from "@/lib/theme";
 import { useTheme } from "@/lib/theme-context";
 
@@ -18,13 +19,13 @@ export function ThemeToggle({ variant = "auth" }: { variant?: "auth" | "app" }) 
   const Icon = theme === "dark" ? Sun : Moon;
 
   return (
-    <button
-      type="button"
+    <IconButton
+      label={theme === "dark" ? t("switchToLight") : t("switchToDark")}
       onClick={toggle}
-      aria-label={theme === "dark" ? t("switchToLight") : t("switchToDark")}
-      className={`flex ${variant === "app" ? "size-10 rounded-[10px]" : "size-[42px] rounded-[11px]"} cursor-pointer items-center justify-center border border-border bg-card text-foreground transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none`}
+      variant="outline"
+      size={variant === "app" ? "lg" : "xl"}
     >
       <Icon size={18} aria-hidden />
-    </button>
+    </IconButton>
   );
 }

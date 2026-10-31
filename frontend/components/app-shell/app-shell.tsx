@@ -5,10 +5,10 @@ import { Suspense, type ReactNode } from "react";
 import { LogoutButton } from "@/components/app-shell/logout-button";
 import { NavLinks } from "@/components/app-shell/nav-links";
 import { LegalFooter } from "@/components/legal/legal-footer";
-import { LocaleSwitcher } from "@/components/locale-switcher";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { NewTransactionFab } from "@/components/transactions/new-transaction-fab";
-import { UserAvatar } from "@/components/user-avatar";
+import { LocaleSwitcher } from "@/components/ui/locale-switcher";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { UserAvatar } from "@/components/ui/user-avatar";
 
 export function Avatar({
   displayName,
@@ -22,7 +22,7 @@ export function Avatar({
   return (
     <Link
       href="/profile"
-      className="shrink-0 rounded-full transition-opacity hover:opacity-85 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card focus-visible:outline-none"
+      className="shrink-0 rounded-full transition-opacity hover:opacity-85 focus-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
     >
       <UserAvatar
         displayName={displayName}
@@ -77,7 +77,7 @@ export async function AppShell({
               visible text plus a hidden ", Profile", so voice control can say what it sees (2.5.3). */}
           <Link
             href="/profile"
-            className="-m-1.5 flex min-w-0 flex-1 items-center gap-2.5 rounded-[9px] p-1.5 transition-colors hover:bg-card focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+            className="-m-1.5 flex min-w-0 flex-1 items-center gap-2.5 rounded-[9px] p-1.5 transition-colors hover:bg-card focus-ring"
           >
             <UserAvatar
               displayName={displayName}

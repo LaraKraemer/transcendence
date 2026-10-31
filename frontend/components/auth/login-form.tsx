@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { useActionState, useState } from "react";
 
 import {
-  FormAlert,
   PasswordVisibilityButton,
   SocialSignIn,
   formErrorFor,
@@ -15,6 +14,7 @@ import {
   type FormErrorCode,
 } from "@/components/auth/form-parts";
 import { Button } from "@/components/ui/button";
+import { FormAlert } from "@/components/ui/form-alert";
 import { TextField } from "@/components/ui/text-field";
 import { useAuth } from "@/lib/auth-context";
 import { validateLogin, type FieldErrors, type LoginFields } from "@/lib/validation";

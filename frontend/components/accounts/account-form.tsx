@@ -1,11 +1,13 @@
 "use client";
 
+import { Plus } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { startTransition, useActionState, useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from "react";
 
-import { FormAlert, formErrorFor } from "@/components/auth/form-parts";
-import { AddButton } from "@/components/ui/add-button";
+import { formErrorFor } from "@/components/auth/form-parts";
 import { Button } from "@/components/ui/button";
+import { FormAlert } from "@/components/ui/form-alert";
+import { IconButton } from "@/components/ui/icon-button";
 import { useAnnounce } from "@/components/ui/live-status";
 import { SelectField } from "@/components/ui/select-field";
 import { TextField } from "@/components/ui/text-field";
@@ -51,9 +53,10 @@ export function CreateAccountForm({ currencies }: { currencies: Currency[] }) {
 
   if (!isOpen) {
     return (
-      <AddButton
+      <IconButton
         label={t("newAccount")}
         variant="success"
+        size="md"
         ref={(button) => {
           if (button && returnFocus.current) {
             returnFocus.current = false;
@@ -62,7 +65,9 @@ export function CreateAccountForm({ currencies }: { currencies: Currency[] }) {
         }}
         onClick={() => setIsOpen(true)}
         className="ms-auto"
-      />
+      >
+        <Plus size={18} aria-hidden />
+      </IconButton>
     );
   }
 

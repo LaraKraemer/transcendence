@@ -3,8 +3,8 @@
 import { useTranslations } from "next-intl";
 import { useId, type ReactNode } from "react";
 
-import { FormAlert } from "@/components/auth/form-parts";
 import { Button } from "@/components/ui/button";
+import { FormAlert } from "@/components/ui/form-alert";
 import { Modal } from "@/components/ui/modal";
 
 type ConfirmDialogProps = {
@@ -37,7 +37,7 @@ export function ConfirmDialog({
   return (
     // Described by its text: focus starts on Cancel, so a screen reader could otherwise skip what the action does.
     <Modal open={open} title={title} onClose={onCancel} busy={pending} describedBy={descriptionId} closeOnBackdropClick>
-      <div id={descriptionId} className="mb-6 text-sm text-muted-foreground">
+      <div id={descriptionId} className="mb-6 text-body text-muted-foreground">
         {children}
       </div>
       <FormAlert message={error ?? null} />

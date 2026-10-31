@@ -7,12 +7,12 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { startTransition, useActionState, useEffect, useId, useState, type FormEvent } from "react";
 import { flushSync } from "react-dom";
 
-import { iconButtonClasses } from "@/components/accounts/account-row-actions";
-import { FormAlert, formErrorFor } from "@/components/auth/form-parts";
+import { formErrorFor } from "@/components/auth/form-parts";
 import { DeleteTransactionButton } from "@/components/transactions/delete-transaction-button";
-import { AddButton } from "@/components/ui/add-button";
 import { Button } from "@/components/ui/button";
-import { ChoiceGroup } from "@/components/ui/choice-group";
+import { ChoiceGroup, choiceSegmentClassName, choiceSegmentsClassName } from "@/components/ui/choice-group";
+import { FormAlert } from "@/components/ui/form-alert";
+import { IconButton } from "@/components/ui/icon-button";
 import { useAnnounce } from "@/components/ui/live-status";
 import { Modal } from "@/components/ui/modal";
 import { SelectField } from "@/components/ui/select-field";
@@ -127,17 +127,13 @@ export function NewTransactionButton({
   return (
     <>
       {variant === "header" ? (
-        <AddButton label={t("newTransaction")} onClick={openForm} className="max-sm:hidden" />
+        <IconButton label={t("newTransaction")} variant="primary" size="md" onClick={openForm} className="max-sm:hidden">
+          <Plus size={18} aria-hidden />
+        </IconButton>
       ) : (
-        <button
-          type="button"
-          onClick={openForm}
-          aria-label={t("newTransaction")}
-          title={t("newTransaction")}
-          className="flex size-14 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-[0_8px_24px_rgba(8,14,25,.35)] hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none sm:hidden"
-        >
+        <IconButton label={t("newTransaction")} variant="primary" size="fab" onClick={openForm} className="sm:hidden">
           <Plus size={24} aria-hidden />
-        </button>
+        </IconButton>
       )}
       <Modal
         open={open}
@@ -178,19 +174,14 @@ export function NewTransactionButton({
             </p>
             <Link
               href={`/transactions?accountId=${added.accountId}`}
-              className="mt-1 inline-block rounded-sm font-semibold underline hover:no-underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+              className="mt-1 inline-block rounded-sm font-semibold underline hover:no-underline focus-ring"
             >
               {t("added.view")}
             </Link>
           </div>
-          <button
-            type="button"
-            onClick={() => setAdded(null)}
-            aria-label={tCommon("close")}
-            className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-[9px] text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-          >
+          <IconButton label={tCommon("close")} variant="ghost" onClick={() => setAdded(null)}>
             <X size={16} aria-hidden />
-          </button>
+          </IconButton>
         </div>
       )}
     </>
@@ -230,15 +221,9 @@ export function EditTransactionButton({
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        aria-label={t("edit", { description })}
-        title={t("edit", { description })}
-        className={`${iconButtonClasses} hover:text-foreground`}
-      >
+      <IconButton label={t("edit", { description })} onClick={() => setOpen(true)}>
         <Pencil size={15} aria-hidden />
-      </button>
+      </IconButton>
       <Modal
         open={open}
         title={
@@ -504,7 +489,7 @@ function TransactionForm(props: TransactionFormProps) {
         {props.mode === "create" && (
           <>
             <ChoiceGroup legend={t("form.type")} error={errorText(fieldErrors.type)} idPrefix={fieldId("type")}>
-              <div className="flex gap-1 rounded-[11px] border border-border bg-muted p-1">
+              <div className={choiceSegmentsClassName}>
                 {TRANSACTION_TYPES.map((type, index) => (
                   <label key={type} className="flex-1">
                     <input
@@ -517,7 +502,7 @@ function TransactionForm(props: TransactionFormProps) {
                       id={index === 0 ? fieldId("type") : undefined}
                       className="peer sr-only"
                     />
-                    <span className="block cursor-pointer rounded-[8px] px-2 py-1.5 text-center text-[13px] font-medium text-muted-foreground peer-checked:bg-card peer-checked:font-semibold peer-checked:text-foreground peer-checked:shadow-sm peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-disabled:cursor-not-allowed peer-disabled:opacity-50">
+                    <span className={choiceSegmentClassName}>
                       {t(`form.types.${type}`)}
                     </span>
                   </label>

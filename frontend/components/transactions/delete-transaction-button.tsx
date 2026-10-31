@@ -4,9 +4,10 @@ import { Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useId, useRef, useState, useTransition } from "react";
 
-import { iconButtonClasses } from "@/components/accounts/account-row-actions";
-import { FormAlert, formErrorFor } from "@/components/auth/form-parts";
+import { formErrorFor } from "@/components/auth/form-parts";
 import { Button } from "@/components/ui/button";
+import { FormAlert } from "@/components/ui/form-alert";
+import { IconButton } from "@/components/ui/icon-button";
 import { deleteTransaction } from "@/lib/actions/transactions";
 
 export function DeleteTransactionButton({
@@ -55,20 +56,14 @@ export function DeleteTransactionButton({
   return (
     <>
       {variant === "icon" ? (
-        <button
-          type="button"
-          onClick={openDialog}
-          aria-label={t("delete", { description })}
-          title={t("delete", { description })}
-          className={`${iconButtonClasses} hover:text-destructive`}
-        >
+        <IconButton label={t("delete", { description })} variant="muted-danger" onClick={openDialog}>
           <Trash2 size={15} aria-hidden />
-        </button>
+        </IconButton>
       ) : (
         <button
           type="button"
           onClick={openDialog}
-          className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-[11px] py-2.5 text-sm font-semibold text-destructive transition-colors hover:bg-danger-bg focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+          className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-[11px] py-2.5 text-sm font-semibold text-destructive transition-colors hover:bg-danger-bg focus-ring disabled:cursor-not-allowed disabled:opacity-60"
         >
           <Trash2 size={16} aria-hidden />
           {t("form.delete")}
