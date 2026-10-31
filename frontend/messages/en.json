@@ -442,9 +442,10 @@
     "network": "Could not reach the server. Check the transactions list before retrying: the import may already have completed."
   },
   "legal": {
-    "navLabel": "Legal",
+    "navLabel": "Site information",
     "privacyLink": "Privacy Policy",
     "termsLink": "Terms of Service",
+    "designSystemLink": "Design system",
     "lastUpdated": "Last updated: <time>{date}</time>",
     "privacy": {
       "title": "Privacy Policy",
@@ -586,6 +587,55 @@
           ]
         }
       }
+    }
+  },
+  "designSystem": {
+    "title": "Design system",
+    "intro": "The colours, type, icons and components the app is built from. Every example is the real component in the current theme and language, so switch them to see the other versions. The README describes how to use each component.",
+    "colors": {
+      "title": "Colour palette",
+      "description": "Colour tokens from app/globals.css with their light and dark values.",
+      "light": "Light",
+      "dark": "Dark",
+      "gradient": "Brand gradient"
+    },
+    "contrast": {
+      "title": "Contrast",
+      "description": "WCAG contrast of the main text colours on their backgrounds. AA needs at least 4.5:1 for normal text and 3:1 for large text.",
+      "caption": "Contrast ratios in the light and dark theme",
+      "pair": "Text on background",
+      "pairLabel": "<code>{text}</code> on <code>{surface}</code>",
+      "ratio": "{ratio}:1",
+      "aa": "AA",
+      "aaLarge": "AA large text",
+      "fails": "Fails AA"
+    },
+    "typography": {
+      "title": "Typography",
+      "description": "Each role sets size, weight and letter spacing together. Use its class, e.g. text-title, instead of separate size and weight classes.",
+      "sample": "Groceries, rent and a weekend away"
+    },
+    "icons": {
+      "title": "Icons",
+      "description": "Lucide icons at 14 to 20 px, hidden from screen readers when visible text is next to them. Arrows are mirrored in right-to-left languages.",
+      "interface": "Interface",
+      "categories": "Category icons"
+    },
+    "components": {
+      "title": "Components",
+      "description": "Reusable components from components/ui. Hover over them or press Tab to see the hover and focus styles."
+    },
+    "states": {
+      "default": "Default",
+      "disabled": "Disabled",
+      "error": "Error",
+      "loading": "Loading"
+    },
+    "demo": {
+      "openDialog": "Open dialog",
+      "dialogText": "A modal keeps the focus inside until it closes. Press Esc or the close button.",
+      "announced": "Screen readers just heard: {message}",
+      "cardText": "A card groups related content."
     }
   }
 }

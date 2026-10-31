@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 const LEGAL_LINKS = [
   { href: "/privacy", labelKey: "privacyLink" },
   { href: "/terms", labelKey: "termsLink" },
+  { href: "/design-system", labelKey: "designSystemLink" },
 ] as const;
 
 /**
@@ -21,7 +22,8 @@ export function LegalFooter({ className = "", fromSignUp = false }: { className?
   return (
     <footer className={`border-t border-border px-4 pt-3 text-xs text-muted-foreground ${className}`}>
       <nav aria-label={t("navLabel")}>
-        <ul className="flex justify-center">
+        {/* Wraps whole links onto a new line on narrow screens instead of breaking a label mid-word. */}
+        <ul className="flex flex-wrap justify-center">
           {LEGAL_LINKS.map(({ href, labelKey }) => (
             <li
               key={href}
@@ -30,7 +32,7 @@ export function LegalFooter({ className = "", fromSignUp = false }: { className?
               <Link
                 href={`${href}${query}`}
                 aria-current={pathname === href ? "page" : undefined}
-                className="inline-block rounded-md px-1 py-1 hyphens-auto wrap-anywhere underline-offset-4 hover:text-foreground hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none aria-[current=page]:font-semibold aria-[current=page]:text-foreground"
+                className="inline-block rounded-md px-1 py-1 hyphens-auto wrap-anywhere underline-offset-4 hover:text-foreground hover:underline focus-ring aria-[current=page]:font-semibold aria-[current=page]:text-foreground"
               >
                 {t(labelKey)}
               </Link>
