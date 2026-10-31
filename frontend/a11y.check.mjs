@@ -55,34 +55,6 @@ const register = await context.request.post(`${apiUrl}/auth/register`, {
   data: { email: `a11y-${Date.now()}@example.com`, password: "a11y-check-password", displayName: "Axe Check" },
 });
 if (!register.ok()) throw new Error(`register failed: ${register.status()} ${await register.text()}`);
-const post = async (path, data) => (await context.request.post(`${apiUrl}${path}`, { data })).json();
-const checking = await post("/accounts", { name: "Checking", type: "checking", openingBalanceMinor: 100000 });
-const savings = await post("/accounts", { name: "Savings", type: "savings", openingBalanceMinor: 0 });
-const groceries = await post("/categories", {
-  name: "Groceries",
-  icon: "shopping-cart",
-  color: "#16A34A",
-  types: ["expense"],
-});
-const today = new Date().toISOString().slice(0, 10);
-await post("/transactions", {
-  accountId: checking.id,
-  type: "expense",
-  categoryId: groceries.id,
-  amountMinor: -4250,
-  description: "Weekly shop",
-  bookedOn: today,
-});
-await post("/transactions", { accountId: checking.id, type: "income", amountMinor: 250000, bookedOn: today });
-await post("/transactions/transfers", {
-  fromAccountId: checking.id,
-  toAccountId: savings.id,
-  fromAmountMinor: 2500,
-  toAmountMinor: 2500,
-  bookedOn: today,
-});
-const cash = await post("/accounts", { name: "Old wallet", type: "cash", openingBalanceMinor: 0 });
-await context.request.patch(`${apiUrl}/accounts/${cash.id}`, { data: { isArchived: true } });
 const sessionCookies = await context.cookies(apiUrl);
 
 let failures = 0;
@@ -111,8 +83,37 @@ async function scan(label) {
   }
 }
 
-// Deletes the throwaway user (and its data) even when a page fails to load.
+// Deletes the throwaway user (and its data) even when seeding or a page fails.
 try {
+  const post = async (path, data) => (await context.request.post(`${apiUrl}${path}`, { data })).json();
+  const checking = await post("/accounts", { name: "Checking", type: "checking", openingBalanceMinor: 100000 });
+  const savings = await post("/accounts", { name: "Savings", type: "savings", openingBalanceMinor: 0 });
+  const groceries = await post("/categories", {
+    name: "Groceries",
+    icon: "shopping-cart",
+    color: "#16A34A",
+    types: ["expense"],
+  });
+  const today = new Date().toISOString().slice(0, 10);
+  await post("/transactions", {
+    accountId: checking.id,
+    type: "expense",
+    categoryId: groceries.id,
+    amountMinor: -4250,
+    description: "Weekly shop",
+    bookedOn: today,
+  });
+  await post("/transactions", { accountId: checking.id, type: "income", amountMinor: 250000, bookedOn: today });
+  await post("/transactions/transfers", {
+    fromAccountId: checking.id,
+    toAccountId: savings.id,
+    fromAmountMinor: 2500,
+    toAmountMinor: 2500,
+    bookedOn: today,
+  });
+  const cash = await post("/accounts", { name: "Old wallet", type: "cash", openingBalanceMinor: 0 });
+  await context.request.patch(`${apiUrl}/accounts/${cash.id}`, { data: { isArchived: true } });
+
   for (const theme of ["light", "dark"]) {
     for (const locale of ["en", "fa"]) {
       const messages = JSON.parse(readFileSync(new URL(`./messages/${locale}.json`, import.meta.url), "utf8"));
@@ -146,7 +147,14 @@ try {
     }
   }
 } finally {
-  await context.request.delete(`${apiUrl}/auth/me`);
+  // Public-page scans drop the session cookie, so put it back before deleting the user.
+  // Reported, not thrown, so a cleanup failure doesn't hide the error that got us here.
+  await context.addCookies(sessionCookies);
+  const cleanup = await context.request.delete(`${apiUrl}/auth/me`);
+  if (!cleanup.ok()) {
+    console.error(`✗ cleanup failed: ${cleanup.status()} ${await cleanup.text()}`);
+    process.exitCode = 1;
+  }
   await browser.close();
 }
 console.log(`${scans} scans, ${failures} failures`);
