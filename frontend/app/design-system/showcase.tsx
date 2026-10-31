@@ -379,7 +379,7 @@ function ContrastTable({ tokens }: { tokens: TokenValues | null }) {
   // At 320 px with WCAG text spacing the table is wider than the page, so it scrolls in its own
   // region; tabIndex lets keyboard users scroll it.
   return (
-    <div role="region" aria-label={t("contrast.caption")} className="rounded-sm">
+    <div role="region" aria-label={t("contrast.caption")} tabIndex={0} className="focus-ring overflow-x-auto rounded-sm">
       <table className="w-full text-body">
         <caption className="sr-only">{t("contrast.caption")}</caption>
         <thead>
