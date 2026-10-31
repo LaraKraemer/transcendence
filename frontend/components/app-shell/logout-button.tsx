@@ -4,28 +4,37 @@ import { LogOut } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useTransition } from "react";
 
+import { IconButton } from "@/components/ui/icon-button";
 import { useAuth } from "@/lib/auth-context";
 
-const variantClasses = {
-  icon: "size-[42px] shrink-0 rounded-[11px]",
-  block: "w-full gap-2 rounded-xl p-3.5 text-sm font-semibold",
-};
-
-export function LogoutButton({ variant = "icon" }: { variant?: keyof typeof variantClasses }) {
+export function LogoutButton({ variant = "icon" }: { variant?: "icon" | "block" }) {
   const t = useTranslations("nav");
   const { logout } = useAuth();
   const [isPending, startTransition] = useTransition();
+
+  if (variant === "icon") {
+    return (
+      <IconButton
+        label={t("logout")}
+        variant="outline-danger"
+        size="xl"
+        onClick={() => startTransition(logout)}
+        disabled={isPending}
+      >
+        <LogOut size={18} aria-hidden className="rtl:-scale-x-100" />
+      </IconButton>
+    );
+  }
 
   return (
     <button
       type="button"
       onClick={() => startTransition(logout)}
       disabled={isPending}
-      title={variant === "icon" ? t("logout") : undefined}
-      className={`flex cursor-pointer items-center justify-center border border-border bg-card text-destructive transition-colors hover:bg-danger-bg focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-wait disabled:opacity-60 ${variantClasses[variant]}`}
+      className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-border bg-card p-3.5 text-sm font-semibold text-destructive transition-colors hover:bg-danger-bg focus-ring disabled:cursor-wait disabled:opacity-60"
     >
-      <LogOut size={variant === "icon" ? 18 : 16} aria-hidden className="rtl:-scale-x-100" />
-      <span className={variant === "icon" ? "sr-only" : undefined}>{t("logout")}</span>
+      <LogOut size={16} aria-hidden className="rtl:-scale-x-100" />
+      {t("logout")}
     </button>
   );
 }

@@ -6,6 +6,7 @@ import { useRef, useState, useTransition } from "react";
 
 import type { AccountOption } from "@/components/transactions/transaction-form-dialog";
 import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
 import { Modal } from "@/components/ui/modal";
 import { importTransactions } from "@/lib/actions/transaction-import";
 import { formatAmount } from "@/lib/format";
@@ -97,11 +98,10 @@ export function ImportTransactionsButton({
 
   return (
     <div>
-      <Button
+      <IconButton
+        label={t("title")}
         variant="primary"
-        className="size-10 w-10! p-0!"
-        aria-label={t("title")}
-        title={t("title")}
+        size="lg"
         disabled={accounts.length === 0}
         onClick={() => {
           setError(null);
@@ -111,7 +111,7 @@ export function ImportTransactionsButton({
         }}
       >
         <Upload size={16} aria-hidden className="shrink-0" />
-      </Button>
+      </IconButton>
       <div role="status">
         {successCount !== null && (
           <p className="mt-2 w-fit rounded-[8px] border border-success/40 bg-success-bg px-3 py-2 text-xs font-medium text-success">

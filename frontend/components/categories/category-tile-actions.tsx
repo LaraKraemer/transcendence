@@ -7,13 +7,11 @@ import { startTransition, useActionState, useEffect, useRef, useState } from "re
 import { formErrorFor } from "@/components/auth/form-parts";
 import { CategoryForm } from "@/components/categories/category-form-dialog";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { IconButton } from "@/components/ui/icon-button";
 import { useAnnounce } from "@/components/ui/live-status";
 import { Modal } from "@/components/ui/modal";
 import { countCategoryTransactions, deleteCategory } from "@/lib/actions/categories";
 import type { Category } from "@/lib/types";
-
-const iconButtonClasses =
-  "flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-[9px] bg-card text-muted-foreground transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none";
 
 /**
  * Edit and Delete for one category tile, each in its own dialog. Like
@@ -54,26 +52,22 @@ export function CategoryTileActions({ category, headingId }: { category: Categor
   return (
     <>
       <div className="ms-auto flex shrink-0 gap-1.5">
-        <button
+        <IconButton
           ref={editButtonRef}
-          type="button"
+          label={t("actions.edit", { name: category.name })}
+          variant="card"
           onClick={() => setPanel("edit")}
-          aria-label={t("actions.edit", { name: category.name })}
-          title={t("actions.edit", { name: category.name })}
-          className={`${iconButtonClasses} hover:text-foreground`}
         >
           <Pencil size={15} aria-hidden />
-        </button>
-        <button
+        </IconButton>
+        <IconButton
           ref={deleteButtonRef}
-          type="button"
+          label={t("actions.delete", { name: category.name })}
+          variant="card-danger"
           onClick={() => setPanel("delete")}
-          aria-label={t("actions.delete", { name: category.name })}
-          title={t("actions.delete", { name: category.name })}
-          className={`${iconButtonClasses} hover:text-destructive`}
         >
           <Trash2 size={15} aria-hidden />
-        </button>
+        </IconButton>
       </div>
 
       {panel === "edit" && (

@@ -4,6 +4,8 @@ import { X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useId, useRef, type ReactNode } from "react";
 
+import { IconButton } from "@/components/ui/icon-button";
+
 type ModalProps = {
   open: boolean;
   title: ReactNode;
@@ -75,18 +77,12 @@ export function Modal({ open, title, onClose, busy, describedBy, closeOnBackdrop
       <div className="flex min-h-0 flex-col py-3">
         <div className="min-h-0 overflow-y-auto px-7 py-4">
           <div className="mb-3 flex items-center gap-3">
-            <h2 id={titleId} className="min-w-0 text-xl font-bold break-words">
+            <h2 id={titleId} className="min-w-0 text-heading break-words">
               {title}
             </h2>
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={busy}
-              aria-label={t("close")}
-              className="ms-auto flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-[9px] bg-muted text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-            >
+            <IconButton label={t("close")} onClick={onClose} disabled={busy} className="ms-auto">
               <X size={16} aria-hidden />
-            </button>
+            </IconButton>
           </div>
           {children}
         </div>
