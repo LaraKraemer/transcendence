@@ -7,6 +7,9 @@ import Link from "next/link";
 import { Avatar } from "@/components/app-shell/app-shell";
 import { CategoryIcon, categoryTileStyle } from "@/components/categories/category-icon";
 import { AccountSwitcher } from "@/components/transactions/account-switcher";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   fetchApiServer,
   getAccount,
@@ -28,8 +31,6 @@ const INCOME_EXPENSE_HEADING_ID = "income-expense-heading";
 const SPENDING_HEADING_ID = "spending-heading";
 const LATEST_HEADING_ID = "latest-transactions-heading";
 
-const focusRing = "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none";
-const cardClassName = "rounded-lg border border-border bg-card p-[18px] sm:p-6";
 const cardTitleClassName = "text-[15px] font-semibold sm:text-base";
 const barTrackClassName = "h-1.5 rounded-md bg-muted sm:h-[7px]";
 const barFillClassName = "h-full rounded-md forced-colors:bg-[CanvasText] forced-colors:forced-color-adjust-none";
@@ -111,11 +112,9 @@ export default async function DashboardPage({
     return (
       <div className="mx-auto w-full max-w-6xl pt-2">
         {header}
-        <section className="rounded-lg border border-border bg-card px-4 py-8 text-center text-[13px] text-muted-foreground sm:px-6 sm:py-10 sm:text-sm">
-          <Link href="/accounts" className={`rounded-sm underline hover:text-foreground ${focusRing}`}>
-            {t("accounts.empty")}
-          </Link>
-        </section>
+        <Card as="section" className="px-4 py-8 sm:px-6 sm:py-10">
+          <EmptyState href="/accounts">{t("accounts.empty")}</EmptyState>
+        </Card>
       </div>
     );
   }
@@ -153,7 +152,7 @@ export default async function DashboardPage({
 
       <div className="grid grid-cols-1 items-start gap-3.5 sm:gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.18fr)]">
         <div className="flex flex-col gap-3.5 sm:gap-6">
-          <section aria-labelledby={NET_HEADING_ID} className={cardClassName}>
+          <Card as="section" aria-labelledby={NET_HEADING_ID} className="p-[18px] sm:p-6">
             <h2
               id={NET_HEADING_ID}
               className="text-xs font-semibold tracking-[.06em] text-muted-foreground uppercase sm:text-[13px]"
@@ -169,20 +168,12 @@ export default async function DashboardPage({
                 {money(netMinor, "exceptZero")}
               </span>
               {change !== null && (
-                <span
-                  className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${
-                    change > 0
-                      ? "bg-success-bg text-success"
-                      : change < 0
-                        ? "bg-danger-bg text-destructive"
-                        : "bg-muted text-muted-foreground"
-                  }`}
-                >
+                <Badge variant="pill" tone={change > 0 ? "success" : change < 0 ? "danger" : "neutral"}>
                   {change !== 0 && (
                     <TrendIcon icon={change > 0 ? TrendingUp : TrendingDown} />
                   )}
                   {t("dashboard.vsLastMonth", { change: percent(change, "exceptZero") })}
-                </span>
+                </Badge>
               )}
             </div>
             <p className="mt-3 text-[13px] leading-relaxed text-muted-foreground sm:mt-3.5 sm:text-sm">
@@ -195,9 +186,9 @@ export default async function DashboardPage({
                 ? t("transactions.balanceUnavailable")
                 : t("dashboard.accountBalance", { balance: money(balanceMinor) })}
             </p>
-          </section>
+          </Card>
 
-          <section aria-labelledby={INCOME_EXPENSE_HEADING_ID} className={cardClassName}>
+          <Card as="section" aria-labelledby={INCOME_EXPENSE_HEADING_ID} className="p-[18px] sm:p-6">
             <h2 id={INCOME_EXPENSE_HEADING_ID} className={`mb-3.5 sm:mb-[18px] ${cardTitleClassName}`}>
               {t("dashboard.incomeVsExpense")}
             </h2>
@@ -219,15 +210,15 @@ export default async function DashboardPage({
                 barClassName="bg-destructive"
               />
             </dl>
-          </section>
+          </Card>
         </div>
 
-        <section aria-labelledby={SPENDING_HEADING_ID} className={cardClassName}>
+        <Card as="section" aria-labelledby={SPENDING_HEADING_ID} className="p-[18px] sm:p-6">
           <h2 id={SPENDING_HEADING_ID} className={`mb-3.5 sm:mb-[18px] ${cardTitleClassName}`}>
             {t("dashboard.spendingByCategory")}
           </h2>
           {spending.length === 0 ? (
-            <p className="py-6 text-center text-[13px] text-muted-foreground sm:text-sm">{t("dashboard.noSpending")}</p>
+            <EmptyState className="py-6">{t("dashboard.noSpending")}</EmptyState>
           ) : (
             <ul className="flex flex-col gap-3 sm:gap-4">
               {spending.map(({ categoryId, amountMinor, share }) => {
@@ -260,10 +251,10 @@ export default async function DashboardPage({
               })}
             </ul>
           )}
-        </section>
+        </Card>
       </div>
 
-      <section aria-labelledby={LATEST_HEADING_ID} className={`mt-3.5 sm:mt-6 ${cardClassName}`}>
+      <Card as="section" aria-labelledby={LATEST_HEADING_ID} className="mt-3.5 p-[18px] sm:mt-6 sm:p-6">
         <div className="mb-1 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 sm:mb-2">
           <h2 id={LATEST_HEADING_ID} className={cardTitleClassName}>
             {t("dashboard.latestTransactions")}
@@ -272,7 +263,7 @@ export default async function DashboardPage({
             <Link
               href={`/transactions?accountId=${account.id}`}
               aria-describedby={LATEST_HEADING_ID}
-              className={`flex items-center gap-1 rounded-sm text-[13px] font-semibold text-primary hover:underline dark:text-accent-foreground ${focusRing}`}
+              className="focus-ring flex items-center gap-1 rounded-sm text-[13px] font-semibold text-primary hover:underline dark:text-accent-foreground"
             >
               {t("dashboard.viewAll")}
               <ArrowRight size={14} aria-hidden className="rtl:-scale-x-100" />
@@ -281,7 +272,7 @@ export default async function DashboardPage({
         </div>
 
         {latest.items.length === 0 ? (
-          <p className="py-6 text-center text-[13px] text-muted-foreground sm:text-sm">{t("transactions.empty")}</p>
+          <EmptyState className="py-6">{t("transactions.empty")}</EmptyState>
         ) : (
           <table className="w-full text-[13px] sm:text-sm">
             <caption className="sr-only">{t("dashboard.latestCaption", { account: account.name })}</caption>
@@ -322,7 +313,7 @@ export default async function DashboardPage({
             </tbody>
           </table>
         )}
-      </section>
+      </Card>
     </div>
   );
 }
