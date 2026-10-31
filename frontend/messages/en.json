@@ -187,10 +187,11 @@
     "actions": {
       "edit": "Edit {name}",
       "archive": "Archive {name}",
-      "unarchive": "Unarchive {name}"
+      "unarchive": "Unarchive {name}",
+      "delete": "Delete account permanently: {name}"
     },
     "archiveDialog": {
-      "title": "Archive “{name}”?",
+      "title": "Archive <account>{name}</account>?",
       "description": "Archive this account? Your transactions will be kept.",
       "confirm": "Archive",
       "confirming": "Archiving…"
@@ -199,7 +200,17 @@
       "created": "“{name}” created",
       "saved": "“{name}” saved",
       "archived": "“{name}” archived",
-      "restored": "“{name}” restored"
+      "restored": "“{name}” restored",
+      "deleted": "“{name}” permanently deleted"
+    },
+    "deleteDialog": {
+      "title": "Permanently delete <account>{name}</account>?",
+      "description": "This account and all its transactions will be permanently deleted and cannot be recovered.",
+      "confirm": "Delete account permanently",
+      "confirming": "Deleting…",
+      "continue": "Continue",
+      "finalTitle": "Final warning: delete <account>{name}</account>?",
+      "finalDescription": "Confirming now will permanently delete <account>{name}</account> and all its transactions. This action cannot be undone."
     }
   },
   "transactions": {
@@ -537,7 +548,9 @@
         },
         "acceptableUse": {
           "title": "Acceptable use",
-          "paragraphs": ["When you use Poolaki, you must not:"],
+          "paragraphs": [
+            "When you use Poolaki, you must not:"
+          ],
           "items": [
             "try to access other people's profiles or records;",
             "probe, attack or overload the service, for example with automated mass requests, or try to get around its security;",

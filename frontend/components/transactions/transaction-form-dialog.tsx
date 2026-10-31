@@ -10,6 +10,7 @@ import { flushSync } from "react-dom";
 import { iconButtonClasses } from "@/components/accounts/account-row-actions";
 import { FormAlert, formErrorFor } from "@/components/auth/form-parts";
 import { DeleteTransactionButton } from "@/components/transactions/delete-transaction-button";
+import { AddButton } from "@/components/ui/add-button";
 import { Button } from "@/components/ui/button";
 import { ChoiceGroup } from "@/components/ui/choice-group";
 import { useAnnounce } from "@/components/ui/live-status";
@@ -94,17 +95,12 @@ function lastAccountId(): string | undefined {
     ?.slice(prefix.length);
 }
 
-const variantClasses = {
-  header: "flex shrink-0 items-center gap-[7px] rounded-[10px] px-[18px] py-[11px] text-sm font-semibold max-sm:hidden",
-  fab: "flex size-14 items-center justify-center rounded-full shadow-[0_8px_24px_rgba(8,14,25,.35)] sm:hidden",
-};
-
 export function NewTransactionButton({
   variant,
   accounts,
   allAccounts,
   categories,
-}: FormProps & { variant: keyof typeof variantClasses }) {
+}: FormProps & { variant: "header" | "fab" }) {
   const t = useTranslations("transactions");
   const tCommon = useTranslations("common");
   const pathname = usePathname();
@@ -120,22 +116,29 @@ export function NewTransactionButton({
   const accountOptions = pageAccount ? [pageAccount] : accounts;
   const fixedAccountId = useId();
 
+  function openForm() {
+    const lastId = lastAccountId();
+    const preselected = accountOptions.find((account) => account.id === lastId) ?? accountOptions[0];
+    setOpening((prev) => ({ key: prev.key + 1, today: localToday(), accountId: preselected?.id ?? "" }));
+    setAdded(null);
+    setOpen(true);
+  }
+
   return (
     <>
-      <button
-        type="button"
-        onClick={() => {
-          const lastId = lastAccountId();
-          const preselected = accountOptions.find((account) => account.id === lastId) ?? accountOptions[0];
-          setOpening((prev) => ({ key: prev.key + 1, today: localToday(), accountId: preselected?.id ?? "" }));
-          setAdded(null);
-          setOpen(true);
-        }}
-        className={`cursor-pointer bg-primary text-primary-foreground hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none ${variantClasses[variant]}`}
-      >
-        <Plus size={variant === "fab" ? 24 : 16} aria-hidden />
-        <span className={variant === "fab" ? "sr-only" : undefined}>{t("newTransaction")}</span>
-      </button>
+      {variant === "header" ? (
+        <AddButton label={t("newTransaction")} onClick={openForm} className="max-sm:hidden" />
+      ) : (
+        <button
+          type="button"
+          onClick={openForm}
+          aria-label={t("newTransaction")}
+          title={t("newTransaction")}
+          className="flex size-14 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-[0_8px_24px_rgba(8,14,25,.35)] hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none sm:hidden"
+        >
+          <Plus size={24} aria-hidden />
+        </button>
+      )}
       <Modal
         open={open}
         title={t("form.title")}

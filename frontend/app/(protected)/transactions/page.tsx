@@ -223,21 +223,21 @@ export default async function TransactionsPage({ searchParams }: SearchParams) {
               : t("allSubtitle", { count: overview.total })}
           </p>
         </div>
-        {!account?.isArchived && activeAccountOptions.length > 0 && (
-          <LiveStatusProvider>
-            <NewTransactionButton
-              variant="header"
-              accounts={pageAccountOption ? [pageAccountOption] : activeAccountOptions}
-              allAccounts={activeAccountOptions}
-              categories={categoryOptions}
-            />
-          </LiveStatusProvider>
-        )}
       </div>
 
       {activeAccountOptions.length > 0 && (
-        <div className="mb-4 w-fit">
+        <div className="mb-4 flex w-fit flex-wrap items-center gap-3">
           <ImportTransactionsButton key={account?.id ?? "all"} accounts={activeAccountOptions} selectedAccountId={account?.isArchived ? undefined : account?.id} />
+          {!account?.isArchived && activeAccountOptions.length > 0 && (
+            <LiveStatusProvider>
+              <NewTransactionButton
+                variant="header"
+                accounts={pageAccountOption ? [pageAccountOption] : activeAccountOptions}
+                allAccounts={activeAccountOptions}
+                categories={categoryOptions}
+              />
+            </LiveStatusProvider>
+          )}
         </div>
       )}
 

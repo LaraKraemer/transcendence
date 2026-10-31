@@ -1,4 +1,4 @@
-import { Banknote, ChevronDown, Landmark, PiggyBank, Wallet, type LucideIcon } from "lucide-react";
+import { Archive, Banknote, ChevronDown, Landmark, PiggyBank, Wallet, type LucideIcon } from "lucide-react";
 import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
 import Link from "next/link";
@@ -113,7 +113,6 @@ export default async function AccountsPage() {
 
           <section className="rounded-lg border border-border bg-card p-4 sm:p-6">
             <div className="flex flex-wrap items-center gap-3">
-              {/* tabIndex -1: focus lands here after an archived row disappears. */}
               <h2 id={ACCOUNTS_HEADING_ID} tabIndex={-1} className="text-base font-semibold outline-none">
                 {t("listTitle")}
               </h2>
@@ -138,11 +137,13 @@ export default async function AccountsPage() {
           </section>
 
           {archivedAccounts.length > 0 && (
-            // Collapsed by default: archived accounts are rarely needed. Their totals stay out of the cards above.
-            <details className="group rounded-lg border border-border bg-card p-4 sm:p-6">
-              <summary className="flex cursor-pointer list-none items-center gap-2 rounded-[9px] text-base font-semibold focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none [&::-webkit-details-marker]:hidden">
+            <details className="group rounded-lg border border-transparent p-4 open:border-border open:bg-card sm:p-6">
+              <summary
+                className="-mx-3 flex min-h-11 w-fit cursor-pointer list-none items-center gap-2 rounded-[9px] px-3 text-muted-foreground transition-colors group-open:bg-muted hover:bg-amber-100 hover:text-amber-900 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none dark:hover:bg-amber-950 dark:hover:text-amber-200 [&::-webkit-details-marker]:hidden"
+              >
+                <Archive size={18} aria-hidden />
                 <h2>{t("archivedTitle", { count: archivedAccounts.length })}</h2>
-                <ChevronDown size={17} aria-hidden className="shrink-0 transition-transform group-open:rotate-180" />
+                <ChevronDown size={17} aria-hidden className="shrink-0 transition-transform group-open:rotate-180 motion-reduce:transition-none" />
               </summary>
               <ul className="mt-1.5">
                 {archivedAccounts.map((account) => (
@@ -196,7 +197,7 @@ async function AccountRow({
             {account.name}
           </Link>
           <span
-            className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold tracking-wide uppercase ${archived ? MUTED_STYLE : className}`}
+            className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold tracking-wide uppercase ${archived ? "bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200" : className}`}
           >
             {archived ? t("archived") : t(`types.${account.type}`)}
           </span>
