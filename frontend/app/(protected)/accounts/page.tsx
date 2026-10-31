@@ -139,11 +139,10 @@ export default async function AccountsPage() {
           {archivedAccounts.length > 0 && (
             <details className="group rounded-lg border border-transparent p-4 open:border-border open:bg-card sm:p-6">
               <summary
-                title={t("archivedTitle", { count: archivedAccounts.length })}
                 className="-mx-3 flex min-h-11 w-fit cursor-pointer list-none items-center gap-2 rounded-[9px] px-3 text-muted-foreground transition-colors group-open:bg-muted hover:bg-amber-100 hover:text-amber-900 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none dark:hover:bg-amber-950 dark:hover:text-amber-200 [&::-webkit-details-marker]:hidden"
               >
                 <Archive size={18} aria-hidden />
-                <span>{t("archivedAccounts")}</span>
+                <h2>{t("archivedTitle", { count: archivedAccounts.length })}</h2>
                 <ChevronDown size={17} aria-hidden className="shrink-0 transition-transform group-open:rotate-180 motion-reduce:transition-none" />
               </summary>
               <ul className="mt-1.5">

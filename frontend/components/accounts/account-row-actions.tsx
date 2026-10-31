@@ -199,7 +199,7 @@ function ArchiveDialog({
       open
       title={t.rich("archiveDialog.title", {
         name: account.name,
-        account: (name) => <span className="rounded bg-muted px-1.5 py-0.5 text-foreground">{name}</span>,
+        account: (name) => <bdi className="rounded bg-muted px-1.5 py-0.5 text-foreground">{name}</bdi>,
       })}
       confirmLabel={isArchiving ? t("archiveDialog.confirming") : t("archiveDialog.confirm")}
       onConfirm={() => startTransition(() => runArchive())}
@@ -217,7 +217,14 @@ function DeleteAccountButton({ account, headingId }: { account: Account; heading
   const t = useTranslations("accounts");
   const [open, setOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const returnFocus = useRef(false);
   const wasDeleted = useRef(false);
+
+  useEffect(() => {
+    if (open || !returnFocus.current) return;
+    buttonRef.current?.focus();
+    returnFocus.current = false;
+  }, [open]);
 
   useEffect(
     () => () => {
@@ -243,8 +250,8 @@ function DeleteAccountButton({ account, headingId }: { account: Account; heading
           account={account}
           onDeleted={() => (wasDeleted.current = true)}
           onCancel={() => {
+            returnFocus.current = true;
             setOpen(false);
-            buttonRef.current?.focus();
           }}
         />
       )}
@@ -282,7 +289,7 @@ function DeleteAccountDialog({
   const accountNameValues = {
     name: account.name,
     account: (name: ReactNode) => (
-      <span className="rounded bg-muted px-1.5 py-0.5 text-foreground">{name}</span>
+      <bdi className="rounded bg-muted px-1.5 py-0.5 text-foreground">{name}</bdi>
     ),
   };
 
