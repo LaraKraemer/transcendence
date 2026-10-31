@@ -96,6 +96,17 @@ export type TransactionSummaryRow = {
   count: number;
 };
 
+/** One row of `GET /analytics/timeseries`: signed income/expense totals of one period (its start date) in one currency. */
+export type TimeSeriesRow = {
+  period: string;
+  currencyCode: string;
+  incomeMinor: number;
+  expenseMinor: number;
+};
+
+/** One row of `GET /analytics/categories`: a TransactionSummaryRow per currency, transfers left out. */
+export type CategoryTotalRow = TransactionSummaryRow & { currencyCode: string };
+
 /**
  * A category, as returned by the backend's /categories endpoints. `types` are the transaction types
  * it can be used for (transfers have no category).
