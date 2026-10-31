@@ -20,7 +20,7 @@ export function TextField({ id, label, error, hint, trailing, children, ...input
 
   return (
     <div className="mb-[18px]">
-      <label htmlFor={id} className="mb-[7px] block text-[13px] font-semibold">
+      <label htmlFor={id} className="mb-[7px] block text-label">
         {label}
       </label>
       <div
@@ -46,7 +46,7 @@ export function TextField({ id, label, error, hint, trailing, children, ...input
       )}
       {children}
       {error && (
-        <p id={errorId} className="mt-1.5 text-xs font-medium text-destructive">
+        <p id={errorId} className="mt-1.5 text-caption font-medium text-destructive">
           {error}
         </p>
       )}
