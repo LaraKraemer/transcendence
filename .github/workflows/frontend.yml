@@ -39,3 +39,48 @@ jobs:
       - run: npm run check:format
       - run: npm run check:import
       - run: npm run build
+
+  a11y:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: expense
+          POSTGRES_PASSWORD: expense
+          POSTGRES_DB: expense_tracker
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U expense -d expense_tracker"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgres://expense:expense@localhost:5432/expense_tracker
+      API_URL: http://localhost:3001
+      NEXT_PUBLIC_API_URL: http://localhost:3001
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: |
+            frontend/package-lock.json
+            backend/package-lock.json
+      - run: npm ci
+        working-directory: backend
+      - name: Start API and apply migrations
+        run: npx --no-install tsx srcs/index.ts > api.log 2>&1 &
+        working-directory: backend
+      - run: npm ci
+      - run: npx playwright install --with-deps --only-shell chromium
+      - run: npm run build
+      - name: Start frontend
+        run: npm run start > next.log 2>&1 &
+      - name: Wait for API and frontend
+        run: timeout 60 bash -c 'until curl -fsS http://localhost:3001/health && curl -fsS -o /dev/null http://localhost:3000/login; do sleep 1; done'
+      - run: npm run check:a11y
+      - name: Print logs on failure
+        if: failure()
+        run: cat ../backend/api.log next.log

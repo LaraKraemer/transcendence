@@ -5,14 +5,18 @@ type TextFieldProps = Omit<InputHTMLAttributes<HTMLInputElement>, "id" | "classN
   label: string;
   /** Inline validation message; marks the input invalid and links it via aria-describedby. */
   error?: string;
+  /** Instructions shown below the input before any error, e.g. a minimum length. */
+  hint?: string;
   /** Rendered inside the input box, after the input (e.g. a visibility icon). */
   trailing?: ReactNode;
   /** Rendered between the input and the error message (e.g. a strength meter). */
   children?: ReactNode;
 };
 
-export function TextField({ id, label, error, trailing, children, ...inputProps }: TextFieldProps) {
+export function TextField({ id, label, error, hint, trailing, children, ...inputProps }: TextFieldProps) {
   const errorId = `${id}-error`;
+  const hintId = `${id}-hint`;
+  const describedBy = [hint && hintId, error && errorId].filter(Boolean).join(" ") || undefined;
 
   return (
     <div className="mb-[18px]">
@@ -27,7 +31,7 @@ export function TextField({ id, label, error, trailing, children, ...inputProps 
         <input
           id={id}
           aria-invalid={error ? true : undefined}
-          aria-describedby={error ? errorId : undefined}
+          aria-describedby={describedBy}
           className={`w-full min-w-0 bg-transparent px-[15px] py-[13px] text-sm outline-none placeholder:text-muted-foreground disabled:opacity-70 ${
             inputProps.dir === "ltr" ? "rtl:text-right" : ""
           }`}
@@ -35,6 +39,11 @@ export function TextField({ id, label, error, trailing, children, ...inputProps 
         />
         {trailing && <div className="flex shrink-0 items-center pe-[13px]">{trailing}</div>}
       </div>
+      {hint && (
+        <p id={hintId} className="mt-1.5 text-xs text-muted-foreground">
+          {hint}
+        </p>
+      )}
       {children}
       {error && (
         <p id={errorId} className="mt-1.5 text-xs font-medium text-destructive">

@@ -389,7 +389,8 @@ API startup applies migrations; CI waits for `/health`, then runs requests and
 prints the API log if a step fails.
 
 From `frontend/`, run `npm ci`, `npm run lint`, `npm run check:format`, `npm run check:import` and `npm run build`.
-Frontend CI runs lint, the `formatAmount` self-check and build. Both workflows run on relevant pull requests and pushes to
+With the stack running (`make up`), `npm run check:a11y` scans every page with axe (run `npx playwright install chromium` once first); see `docs/accessibility.md`.
+Frontend CI runs lint, the `formatAmount` self-check and build, and the accessibility scan against a production build. Both workflows run on relevant pull requests and pushes to
 `main`, with read-only repository permissions and cancellation of superseded runs.
 
 <br>

@@ -174,7 +174,7 @@ export default async function DashboardPage({
                     change > 0
                       ? "bg-success-bg text-success"
                       : change < 0
-                        ? "bg-danger-bg text-danger-fg"
+                        ? "bg-danger-bg text-destructive"
                         : "bg-muted text-muted-foreground"
                   }`}
                 >

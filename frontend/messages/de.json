@@ -18,6 +18,7 @@
   "auth": {
     "continueWithGoogle": "Weiter mit Google",
     "showPassword": "Passwort anzeigen",
+    "passwordHint": "Mindestens {min, number} Zeichen",
     "fields": {
       "email": "E-Mail-Adresse",
       "emailPlaceholder": "erika.mustermann@email.com",

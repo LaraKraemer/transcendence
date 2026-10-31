@@ -281,7 +281,7 @@ export default async function TransactionsPage({ searchParams }: SearchParams) {
         />
         <nav
           aria-label={t("filterLabel")}
-          className="flex gap-1 rounded-[11px] border border-border bg-muted p-1 sm:inline-flex"
+          className="flex flex-wrap gap-1 rounded-[11px] border border-border bg-muted p-1 sm:inline-flex"
         >
           {TYPE_FILTERS.map((option) => (
             <Link
@@ -317,7 +317,7 @@ export default async function TransactionsPage({ searchParams }: SearchParams) {
                 {account ? t("caption", { account: account.name }) : t("captionAll")}
               </caption>
               <thead>
-                <tr className="bg-muted text-[11px] font-semibold tracking-[.06em] text-muted-foreground uppercase">
+                <tr className="bg-muted text-[11px] font-semibold tracking-[.06em] wrap-anywhere text-muted-foreground uppercase">
                   <th scope="col" className="py-2 ps-4 pe-3 text-start sm:py-3 sm:ps-6">
                     {t("columns.description")}
                   </th>
@@ -363,18 +363,18 @@ export default async function TransactionsPage({ searchParams }: SearchParams) {
                   return (
                     <tr key={tx.id} className="border-t border-border">
                       <td className="py-[11px] ps-4 pe-3 sm:py-3.5 sm:ps-6">
-                        <div className="font-semibold break-words">
+                        <div className="font-semibold wrap-anywhere">
                           <bdi>{description}</bdi>
                         </div>
                         {tx.description && tx.merchant && (
-                          <div className="flex items-center gap-1 text-xs break-words text-muted-foreground sm:text-[13px]">
+                          <div className="flex items-center gap-1 text-xs wrap-anywhere text-muted-foreground sm:text-[13px]">
                             <Store size={12} aria-hidden className="shrink-0" />
                             <span className="sr-only">{t("merchant")}: </span>
                             <bdi className="min-w-0">{tx.merchant}</bdi>
                           </div>
                         )}
                         {otherLegAccount && (
-                          <div className="flex items-center gap-1 text-xs break-words text-muted-foreground sm:text-[13px]">
+                          <div className="flex items-center gap-1 text-xs wrap-anywhere text-muted-foreground sm:text-[13px]">
                             {tx.amountMinor < 0 ? (
                               <ArrowUpRight size={12} aria-hidden className="shrink-0 rtl:-scale-x-100" />
                             ) : (
@@ -389,11 +389,11 @@ export default async function TransactionsPage({ searchParams }: SearchParams) {
                           </div>
                         )}
                         {tx.notes && (
-                          <div className="text-xs break-words text-muted-foreground sm:text-[13px]">
+                          <div className="text-xs wrap-anywhere text-muted-foreground sm:text-[13px]">
                             <bdi>{tx.notes}</bdi>
                           </div>
                         )}
-                        <div className="mt-0.5 text-xs break-words text-muted-foreground sm:text-[13px] lg:hidden">
+                        <div className="mt-0.5 text-xs wrap-anywhere text-muted-foreground sm:text-[13px] lg:hidden">
                           {!account && (
                             <>
                               {accountLabel}
@@ -406,7 +406,7 @@ export default async function TransactionsPage({ searchParams }: SearchParams) {
                         </div>
                       </td>
                       {!account && (
-                        <td className="hidden px-3 py-3.5 break-words text-muted-foreground lg:table-cell">
+                        <td className="hidden px-3 py-3.5 wrap-anywhere text-muted-foreground lg:table-cell">
                           {accountLabel}
                         </td>
                       )}
@@ -524,7 +524,7 @@ async function NoAccounts() {
           role="group"
           aria-label={t("transactions.filterLabel")}
           aria-disabled="true"
-          className="flex cursor-not-allowed gap-1 rounded-[11px] border border-border bg-muted p-1 opacity-50 sm:inline-flex"
+          className="flex cursor-not-allowed flex-wrap gap-1 rounded-[11px] border border-border bg-muted p-1 opacity-50 sm:inline-flex"
         >
           {TYPE_FILTERS.map((option) => (
             <span

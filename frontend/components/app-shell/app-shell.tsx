@@ -73,10 +73,10 @@ export async function AppShell({
         </div>
 
         <div className="mt-auto flex items-center gap-2.5 rounded-xl bg-muted px-3 py-2.5">
-          {/* One link for avatar and text; the logout button stays outside it. */}
+          {/* One link for avatar and text; the logout button stays outside it. Its name is the
+              visible text plus a hidden ", Profile", so voice control can say what it sees (2.5.3). */}
           <Link
             href="/profile"
-            aria-label={`${displayName}, ${t("profile")}`}
             className="-m-1.5 flex min-w-0 flex-1 items-center gap-2.5 rounded-[9px] p-1.5 transition-colors hover:bg-card focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
           >
             <UserAvatar
@@ -89,6 +89,7 @@ export async function AppShell({
               <div className="truncate text-[13px] font-semibold">{displayName}</div>
               <div className="truncate text-xs text-muted-foreground">{email}</div>
             </div>
+            <span className="sr-only">, {t("profile")}</span>
           </Link>
           <LogoutButton />
         </div>
