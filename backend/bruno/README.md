@@ -20,3 +20,8 @@ It archives the savings account and checks that only it appears in `GET /account
 
 The collection deletes the created transaction, then permanently deletes the account,
 and checks that fetching each deleted resource returns 404.
+
+The analytics requests then create EUR and USD data, including an archived account
+and a transfer. They check separate currency totals, zero-filled periods, and
+UTF-8 CSV with formula-safe text and decimal amounts. Reporting requires both
+`from` and `to`; the range is inclusive and capped at 1827 days (about five years).

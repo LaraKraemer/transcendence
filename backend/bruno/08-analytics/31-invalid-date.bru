@@ -1,0 +1,18 @@
+meta {
+  name: 31 - Reject invalid analytics calendar date
+  type: http
+  seq: 32
+}
+
+get {
+  url: {{baseUrl}}/analytics/timeseries?from=2025-02-30&to=2025-03-01&granularity=day
+  body: none
+  auth: none
+}
+
+tests {
+  test("invalid calendar dates return 400", function () {
+    expect(res.getStatus()).to.equal(400);
+    expect(res.getBody()).to.deep.equal({ error: "from must be a valid YYYY-MM-DD date" });
+  });
+}
