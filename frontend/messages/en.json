@@ -131,7 +131,11 @@
       "photoType": "Choose a JPEG or PNG image",
       "photoTooLarge": "The photo must be 5 MB or smaller",
       "network": "Could not reach the server. Please try again later."
-    }
+    },
+    "photoPreview": "Selected photo preview",
+    "uploadPhoto": "Upload",
+    "replaceSelection": "Replace selection",
+    "savingPhoto": "Saving photo…"
   },
   "accounts": {
     "title": "Accounts",
@@ -176,9 +180,14 @@
       "generic": "Something went wrong. Please try again."
     },
     "balanceUnavailable": "Balance unavailable",
+    "archivedTitle": "Archived ({count})",
+    "archived": "Archived",
+    "unarchive": "Unarchive",
+    "unarchiving": "Restoring…",
     "actions": {
       "edit": "Edit {name}",
-      "archive": "Archive {name}"
+      "archive": "Archive {name}",
+      "unarchive": "Unarchive {name}"
     },
     "archiveDialog": {
       "title": "Archive “{name}”?",
@@ -189,7 +198,8 @@
     "announcements": {
       "created": "“{name}” created",
       "saved": "“{name}” saved",
-      "archived": "“{name}” archived"
+      "archived": "“{name}” archived",
+      "restored": "“{name}” restored"
     }
   },
   "transactions": {
@@ -230,6 +240,11 @@
     "emptyAll": "No transactions yet.",
     "emptyFiltered": "{filter, select, income {No income transactions.} expense {No expense transactions.} transfer {No transfers.} other {No transactions.}}",
     "showing": "Showing {shown, number} of {total, plural, one {# transaction} other {# transactions}}",
+    "showingRange": "Showing {from, number}–{to, number} of {total, plural, one {# transaction} other {# transactions}}",
+    "pagination": "Transaction pages",
+    "newer": "Newer",
+    "pageOf": "Page {page, number} of {pages, number}",
+    "older": "Older",
     "delete": "Delete {description}",
     "edit": "Edit {description}",
     "confirmTitle": "Delete transaction?",
@@ -393,6 +408,27 @@
       "retry": "Try again",
       "reference": "Reference code: {code}"
     }
+  },
+  "transactionImport": {
+    "title": "Import JSON",
+    "account": "Destination account",
+    "file": "JSON file",
+    "help": "Up to 5 MiB and 1,000 expense/income transactions. Version 1 JSON only. Optional category: an existing category name matching the transaction type.",
+    "preview": "Preview ({count} transactions)",
+    "date": "Date",
+    "description": "Description",
+    "amount": "Amount",
+    "warning": "Import the whole file? Importing this file again creates duplicates. No duplicate detection is performed.",
+    "confirm": "Import all",
+    "reading": "Reading file…",
+    "importing": "Importing transactions…",
+    "success": "Imported {count} transactions.",
+    "tooLarge": "The file must be no larger than 5 MiB.",
+    "invalid": "Invalid JSON import. Use version 1, a three-letter currency and 1–1,000 expense/income transactions.",
+    "invalidRow": "Row {row} is invalid. Check the type, the amount's sign (negative for expenses), the booking date (YYYY-MM-DD), the text lengths and the category.",
+    "readError": "Could not read this file. Please select it again.",
+    "currencyMismatch": "The file currency must match the destination account.",
+    "network": "Could not reach the server. Check the transactions list before retrying: the import may already have completed."
   },
   "legal": {
     "navLabel": "Legal",

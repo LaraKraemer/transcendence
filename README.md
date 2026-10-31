@@ -35,7 +35,7 @@ Final group project as part of the 42 curriculum, building a full-stack expense 
 | Frontend | TypeScript, Next.js |
 | Backend | TypeScript, Node.js, Express |
 | Database | PostgreSQL, Drizzle ORM |
-| Development Tools | Docker, Docker Compose, Makefile, GitHub Repository, GitHub Projects 
+| Development Tools | Docker, Docker Compose, Makefile, GitHub Repository, GitHub Projects
 
 <br>
 
@@ -91,7 +91,7 @@ https://github.com/nvm-sh/nvm
 Then:
 ```bash
 nvm install
-nvm use 
+nvm use
 ```
 
 The repository contains an `.nvmrc` file specifying the required Node version.
@@ -141,7 +141,7 @@ make build
 make up
 ```
 
-### Or Two Commands combined in One: 
+### Or Two Commands combined in One:
 ```bash
 make rebuild
 ```
@@ -351,7 +351,7 @@ It also checks the currency catalog populated by migrations.
 
 4. Open the `backend/bruno/` folder as a collection in the Bruno desktop app,
    choose the `local` environment, and run requests in numerical order.
-  
+
 	OR run bruno test from CLI
 
 	```bash
@@ -388,7 +388,7 @@ with `TEST_DATABASE_URL` set using
 API startup applies migrations; CI waits for `/health`, then runs requests and
 prints the API log if a step fails.
 
-From `frontend/`, run `npm ci`, `npm run lint`, `npm run check:format`, `npm run check:transactions` and `npm run build`.
+From `frontend/`, run `npm ci`, `npm run lint`, `npm run check:format`, `npm run check:import` and `npm run build`.
 With the stack running (`make up`), `npm run check:a11y` scans every page with axe (run `npx playwright install chromium` once first); see `docs/accessibility.md`.
 Frontend CI runs lint, the `formatAmount` self-check and build, and the accessibility scan against a production build. Both workflows run on relevant pull requests and pushes to
 `main`, with read-only repository permissions and cancellation of superseded runs.
@@ -532,7 +532,7 @@ make rebuild
 
 Uninstall dependencies:
 ```bash
-cd backend 
+cd backend
 rm -rf node_modules package-lock.json
 npm install
 ```
@@ -617,3 +617,49 @@ New team members should be able to:
 3. Run `make build`
 4. Run `make up`
 5. Start developing
+
+
+## Avatar upload preview
+
+Avatar selection now opens a local preview: **Upload** saves it, **Replace selection**
+chooses another file and **Cancel** leaves the current avatar untouched. Saving uses
+an indeterminate progress indicator; JPEG/PNG and the 5 MiB limit are unchanged.
+
+## JSON transaction import
+
+Use **Import JSON** on the transactions page, select an active destination account,
+choose a file, review the preview and confirm **Import all**. Rows are imported as expense/income transactions. Each row may include an optional
+`category` name matching an existing category belonging to you and allowing its transaction
+type. Names are trimmed and matched exactly (case-sensitive); missing, null or blank names
+leave the transaction uncategorized. Unknown or incompatible categories reject the whole import. Canceling the preview writes nothing.
+The file is not retained. Importing it again creates duplicates; check the list before
+retrying after a network failure, since the previous import may have completed.
+
+`POST /transactions/import?accountId=<uuid>` requires authentication and accepts a raw
+`application/json` document, up to **5 MiB** and **1–1,000 transactions**:
+
+```json
+{
+  "version": 1,
+  "currency": "EUR",
+  "transactions": [
+    {
+      "bookedOn": "2026-10-20",
+      "type": "expense",
+      "amountMinor": -2499,
+      "description": "Weekly groceries"
+    }
+  ]
+}
+```
+
+`bookedOn`, `type` and `amountMinor` are required. `description`, `notes`, `category` and
+`occurredAt` are optional and use the same limits/defaults as manual creation.
+Money is a signed non-zero safe integer in minor units; currency must match the
+account. Unsupported fields/versions, transfers, invalid rows and missing/foreign
+or archived destinations are rejected. Row errors identify the first invalid row.
+The server locks the destination account and inserts the whole batch atomically.
+Success returns `201 { "imported": <count> }`. Validation failures return 400,
+missing/foreign accounts 404, archived accounts 409 and oversized bodies 413.
+
+Frontend import preview regression check: `cd frontend && npm run check:import`.

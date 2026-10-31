@@ -131,7 +131,11 @@
       "photoType": "یک تصویر JPEG یا PNG انتخاب کنید",
       "photoTooLarge": "حجم عکس باید حداکثر ۵ مگابایت باشد",
       "network": "ارتباط با سرور برقرار نشد. لطفاً بعداً دوباره تلاش کنید."
-    }
+    },
+    "photoPreview": "پیش‌نمایش عکس انتخاب‌شده",
+    "uploadPhoto": "بارگذاری",
+    "replaceSelection": "تغییر انتخاب",
+    "savingPhoto": "در حال ذخیرهٔ عکس…"
   },
   "accounts": {
     "title": "حساب‌ها",
@@ -176,9 +180,14 @@
       "generic": "مشکلی پیش آمد. لطفاً دوباره تلاش کنید."
     },
     "balanceUnavailable": "موجودی در دسترس نیست",
+    "archivedTitle": "بایگانی‌شده ({count})",
+    "archived": "بایگانی‌شده",
+    "unarchive": "بازگردانی",
+    "unarchiving": "در حال بازگردانی…",
     "actions": {
       "edit": "ویرایش «{name}»",
-      "archive": "بایگانی «{name}»"
+      "archive": "بایگانی «{name}»",
+      "unarchive": "بازگردانی {name}"
     },
     "archiveDialog": {
       "title": "«{name}» بایگانی شود؟",
@@ -189,7 +198,8 @@
     "announcements": {
       "created": "«{name}» ساخته شد",
       "saved": "«{name}» ذخیره شد",
-      "archived": "«{name}» بایگانی شد"
+      "archived": "«{name}» بایگانی شد",
+      "restored": "«{name}» بازگردانده شد"
     }
   },
   "transactions": {
@@ -230,6 +240,11 @@
     "emptyAll": "هنوز تراکنشی ثبت نشده است.",
     "emptyFiltered": "{filter, select, income {درآمدی ثبت نشده است.} expense {هزینه‌ای ثبت نشده است.} transfer {انتقالی ثبت نشده است.} other {تراکنشی ثبت نشده است.}}",
     "showing": "نمایش {shown, number} از {total, plural, other {# تراکنش}}",
+    "showingRange": "نمایش {from, number} تا {to, number} از {total, plural, other {# تراکنش}}",
+    "pagination": "صفحه‌های تراکنش",
+    "newer": "جدیدتر",
+    "pageOf": "صفحهٔ {page, number} از {pages, number}",
+    "older": "قدیمی‌تر",
     "delete": "حذف «{description}»",
     "edit": "ویرایش «{description}»",
     "confirmTitle": "تراکنش حذف شود؟",
@@ -393,6 +408,27 @@
       "retry": "تلاش دوباره",
       "reference": "کد پیگیری: {code}"
     }
+  },
+  "transactionImport": {
+    "title": "ورود JSON",
+    "account": "حساب مقصد",
+    "file": "فایل JSON",
+    "help": "حداکثر ۵ مگابایت و ۱۰۰۰ تراکنش هزینه/درآمد. فقط JSON نسخهٔ ۱. دسته‌بندی اختیاری: نام یک دسته‌بندی موجود و سازگار با نوع تراکنش.",
+    "preview": "پیش‌نمایش ({count} تراکنش)",
+    "date": "تاریخ",
+    "description": "توضیحات",
+    "amount": "مبلغ",
+    "warning": "کل فایل وارد شود؟ ورود دوبارهٔ این فایل تراکنش‌های تکراری می‌سازد. موارد تکراری شناسایی نمی‌شوند.",
+    "confirm": "ورود همه",
+    "reading": "در حال خواندن فایل…",
+    "importing": "در حال ورود تراکنش‌ها…",
+    "success": "{count} تراکنش وارد شد.",
+    "tooLarge": "حجم فایل نباید بیشتر از ۵ MiB باشد.",
+    "invalid": "JSON نامعتبر است. از نسخهٔ ۱، کد ارز سه‌حرفی بزرگ و ۱ تا ۱۰۰۰ تراکنش هزینه/درآمد استفاده کنید.",
+    "invalidRow": "ردیف {row} نامعتبر است. نوع، علامت مبلغ (منفی برای هزینه‌ها)، تاریخ تراکنش (YYYY-MM-DD)، طول متن‌ها و دسته‌بندی را بررسی کنید.",
+    "readError": "خواندن فایل ممکن نشد. دوباره آن را انتخاب کنید.",
+    "currencyMismatch": "ارز فایل باید با ارز حساب مقصد یکسان باشد.",
+    "network": "ارتباط با سرور ممکن نشد. پیش از تلاش دوباره فهرست تراکنش‌ها را بررسی کنید؛ شاید ورود انجام شده باشد."
   },
   "legal": {
     "navLabel": "اطلاعات حقوقی",

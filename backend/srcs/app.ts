@@ -3,6 +3,7 @@ import cors from "cors";
 import { DrizzleQueryError } from "drizzle-orm";
 import express from "express";
 
+import { requireAuthenticatedUser } from "./auth.ts";
 import { pool } from "./db/client.ts";
 import { createAuthRateLimiter, createLoginRateLimiter } from "./rate-limit.ts";
 import { accountsRouter } from "./routes/account.ts";
@@ -10,6 +11,7 @@ import { authRouter } from "./routes/auth.ts";
 import { categoriesRouter } from "./routes/category.ts";
 import { currenciesRouter } from "./routes/currency.ts";
 import { transactionsRouter } from "./routes/transaction.ts";
+import { TRANSACTION_IMPORT_MAX_BYTES } from "./transaction-import.ts";
 
 export function createApp() {
   const app = express();
@@ -31,6 +33,7 @@ export function createApp() {
     }),
   );
   app.use(cookieParser());
+  app.post("/transactions/import", requireAuthenticatedUser, express.json({ limit: TRANSACTION_IMPORT_MAX_BYTES }));
   app.use(express.json());
   app.post("/auth/register", authRateLimiter);
   app.post("/auth/login", authRateLimiter, loginRateLimiter);

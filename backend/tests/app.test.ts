@@ -362,3 +362,31 @@ describe("JSON input errors", () => {
     expect(query).not.toHaveBeenCalled();
   });
 });
+
+describe("JSON import request limits", () => {
+  const accountId = "550e8400-e29b-41d4-a716-446655440000";
+  const userId = "550e8400-e29b-41d4-a716-446655440001";
+  it("requires authentication before parsing the import document", async () => {
+    const response = await fetch(`${base}/transactions/import?accountId=${accountId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{",
+    });
+    expect(response.status).toBe(401);
+    expect(query).not.toHaveBeenCalled();
+  });
+  it.each([
+    [JSON.stringify({ padding: "x".repeat(101 * 1024) }), 400, "Import contains unsupported fields"],
+    [JSON.stringify({ padding: "x".repeat(5 * 1024 * 1024) }), 413, "Request body too large"],
+    ["{", 400, "Malformed JSON"],
+  ])("applies the import parser limit rather than the global default %#", async (body, status, error) => {
+    query.mockResolvedValueOnce({ rows: [[userId]] }).mockResolvedValueOnce({ rows: [[userId]] });
+    const response = await fetch(`${base}/transactions/import?accountId=${accountId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: "session=test" },
+      body,
+    });
+    expect(response.status).toBe(status);
+    expect(await response.json()).toEqual({ error });
+  });
+});

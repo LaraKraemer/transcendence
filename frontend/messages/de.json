@@ -131,7 +131,11 @@
       "photoType": "Wähle ein JPEG- oder PNG-Bild",
       "photoTooLarge": "Das Foto darf höchstens 5 MB groß sein",
       "network": "Der Server ist nicht erreichbar. Bitte versuche es später erneut."
-    }
+    },
+    "photoPreview": "Vorschau des ausgewählten Fotos",
+    "uploadPhoto": "Hochladen",
+    "replaceSelection": "Auswahl ersetzen",
+    "savingPhoto": "Foto wird gespeichert…"
   },
   "accounts": {
     "title": "Konten",
@@ -176,9 +180,14 @@
       "generic": "Etwas ist schiefgelaufen. Bitte versuche es erneut."
     },
     "balanceUnavailable": "Saldo nicht verfügbar",
+    "archivedTitle": "Archiviert ({count})",
+    "archived": "Archiviert",
+    "unarchive": "Wiederherstellen",
+    "unarchiving": "Wird wiederhergestellt…",
     "actions": {
       "edit": "{name} bearbeiten",
-      "archive": "{name} archivieren"
+      "archive": "{name} archivieren",
+      "unarchive": "{name} wiederherstellen"
     },
     "archiveDialog": {
       "title": "„{name}“ archivieren?",
@@ -189,7 +198,8 @@
     "announcements": {
       "created": "„{name}“ angelegt",
       "saved": "„{name}“ gespeichert",
-      "archived": "„{name}“ archiviert"
+      "archived": "„{name}“ archiviert",
+      "restored": "„{name}“ wiederhergestellt"
     }
   },
   "transactions": {
@@ -230,6 +240,11 @@
     "emptyAll": "Noch keine Transaktionen.",
     "emptyFiltered": "{filter, select, income {Keine Einnahmen.} expense {Keine Ausgaben.} transfer {Keine Umbuchungen.} other {Keine Transaktionen.}}",
     "showing": "{shown, number} von {total, plural, one {# Transaktion} other {# Transaktionen}}",
+    "showingRange": "{from, number}–{to, number} von {total, plural, one {# Transaktion} other {# Transaktionen}}",
+    "pagination": "Transaktionsseiten",
+    "newer": "Neuere",
+    "pageOf": "Seite {page, number} von {pages, number}",
+    "older": "Ältere",
     "delete": "{description} löschen",
     "edit": "{description} bearbeiten",
     "confirmTitle": "Transaktion löschen?",
@@ -393,6 +408,27 @@
       "retry": "Erneut versuchen",
       "reference": "Referenzcode: {code}"
     }
+  },
+  "transactionImport": {
+    "title": "JSON importieren",
+    "account": "Zielkonto",
+    "file": "JSON-Datei",
+    "help": "Bis zu 5 MiB und 1.000 Ausgaben/Einnahmen. Nur JSON Version 1. Kategorie optional: Name einer vorhandenen Kategorie, die zum Buchungstyp passt.",
+    "preview": "Vorschau ({count} Buchungen)",
+    "date": "Datum",
+    "description": "Beschreibung",
+    "amount": "Betrag",
+    "warning": "Die gesamte Datei importieren? Ein erneuter Import erzeugt Duplikate. Es erfolgt keine Duplikaterkennung.",
+    "confirm": "Alle importieren",
+    "reading": "Datei wird gelesen…",
+    "importing": "Buchungen werden importiert…",
+    "success": "{count} Buchungen importiert.",
+    "tooLarge": "Die Datei darf höchstens 5 MiB groß sein.",
+    "invalid": "Ungültiger JSON-Import. Verwende Version 1, einen Währungscode aus drei Großbuchstaben und 1–1.000 Ausgaben/Einnahmen.",
+    "invalidRow": "Zeile {row} ist ungültig. Prüfe Typ, Vorzeichen des Betrags (negativ bei Ausgaben), das Buchungsdatum (JJJJ-MM-TT), die Textlängen und die Kategorie.",
+    "readError": "Die Datei konnte nicht gelesen werden. Bitte erneut auswählen.",
+    "currencyMismatch": "Die Dateiwährung muss mit dem Zielkonto übereinstimmen.",
+    "network": "Der Server ist nicht erreichbar. Prüfe vor einem erneuten Versuch die Buchungsliste: Der Import könnte bereits abgeschlossen sein."
   },
   "legal": {
     "navLabel": "Rechtliches",

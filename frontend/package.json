@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "check:format": "node --experimental-strip-types lib/format.check.mjs",
-    "check:transactions": "node --experimental-strip-types lib/transactions.check.mjs",
+    "check:import": "node --experimental-strip-types lib/transaction-import.check.mjs",
     "check:a11y": "node a11y.check.mjs"
   },
   "dependencies": {
