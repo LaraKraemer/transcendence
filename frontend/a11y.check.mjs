@@ -36,7 +36,11 @@ const protectedPages = [
 const dialogs = [
   { path: "/accounts", button: (m) => m.accounts.newAccount },
   { path: "/accounts", button: (m) => m.accounts.actions.edit.replace("{name}", "Checking") },
-  { path: "/accounts", button: (m) => m.accounts.actions.archive.replace("{name}", "Checking") },
+  {
+    path: "/accounts",
+    before: (m) => m.accounts.actions.edit.replace("{name}", "Checking"),
+    button: (m) => m.accounts.actions.archive.replace("{name}", "Checking"),
+  },
   { path: "/categories", button: (m) => m.categories.newCategory },
   { path: "/categories", button: (m) => m.categories.actions.edit.replace("{name}", "Groceries") },
   { path: "/categories", button: (m) => m.categories.actions.delete.replace("{name}", "Groceries") },
@@ -132,6 +136,9 @@ try {
         }
         for (const dialog of dialogs) {
           await page.goto(`${frontendUrl}${dialog.path}`, { waitUntil: "networkidle" });
+          if (dialog.before) {
+            await page.getByRole("button", { name: dialog.before(messages), exact: true }).first().click();
+          }
           const formsBefore = await page.locator("form").count();
           await page
             .getByRole("button", { name: dialog.button(messages), exact: true })
