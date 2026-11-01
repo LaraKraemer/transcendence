@@ -35,6 +35,43 @@ function parsePaginationInt(value: unknown, defaultValue: number): number | null
   return Number.isSafeInteger(n) ? n : null;
 }
 
+/** Parses the transaction search filters and allow-listed sort options. */
+function parseSearchFilters(query: Record<string, unknown>) {
+  const { categoryId } = query;
+  const searchTerm = parseOptionalText(query.q ?? "", TEXT_LIMITS.description);
+  const minAmountMinor = parsePaginationInt(query.minAmountMinor, 0);
+  const maxAmountMinor = parsePaginationInt(query.maxAmountMinor, Number.MAX_SAFE_INTEGER);
+  const sort = query.sort ?? "bookedOn";
+  const order = query.order ?? "desc";
+  if (searchTerm === undefined) {
+    return { error: `q must be a string of at most ${TEXT_LIMITS.description} characters` };
+  }
+  if (categoryId !== undefined && categoryId !== "none" && !isUuid(categoryId)) {
+    return { error: "categoryId must be a valid UUID or none" };
+  }
+  if (minAmountMinor === null || maxAmountMinor === null) {
+    return { error: "minAmountMinor and maxAmountMinor must be non-negative safe integers" };
+  }
+  if (minAmountMinor > maxAmountMinor) {
+    return { error: "minAmountMinor must not exceed maxAmountMinor" };
+  }
+  if (sort !== "bookedOn" && sort !== "amountMinor" && sort !== "createdAt") {
+    return { error: "sort must be bookedOn, amountMinor, or createdAt" };
+  }
+  if (order !== "asc" && order !== "desc") {
+    return { error: "order must be asc or desc" };
+  }
+
+  return {
+    sort,
+    order,
+    ...(searchTerm === null ? {} : { searchTerm }),
+    ...(categoryId === undefined ? {} : { categoryId }),
+    ...(query.minAmountMinor === undefined ? {} : { minAmountMinor }),
+    ...(query.maxAmountMinor === undefined ? {} : { maxAmountMinor }),
+  } as const;
+}
+
 const TRANSACTION_TYPES = ["expense", "income", "transfer"] as const;
 type TransactionType = (typeof TRANSACTION_TYPES)[number];
 
@@ -94,10 +131,16 @@ transactionsRouter.post("/import", async (req, res, next) => {
  * Lists transactions for one account owned by the authenticated user, or without accountId for all
  * of the user's accounts (archived ones included), where a transfer is one item.
  *
- * Optional query parameters: accountId, type, limit (default 50), offset (default 0), from, to
+ * Supports text, category, type, amount and date filters, sorting and pagination.
  */
 transactionsRouter.get("/", async (req, res) => {
   const { accountId, type } = req.query;
+  const filters = parseSearchFilters(req.query);
+  if ("error" in filters) {
+    res.status(400).json({ error: filters.error });
+    return;
+  }
+  const { categoryId } = filters;
 
   if (accountId !== undefined && !isUuid(accountId)) {
     res.status(400).json({ error: "accountId must be a valid UUID" });
@@ -129,6 +172,11 @@ transactionsRouter.get("/", async (req, res) => {
     return;
   }
 
+  if (categoryId !== undefined && categoryId !== "none" && !(await findOwnedCategory(categoryId, res.locals.userId))) {
+    res.status(404).json({ error: "Category not found" });
+    return;
+  }
+
   let owner: { accountId: string } | { userId: string } = { userId: res.locals.userId };
   if (accountId !== undefined) {
     const account = await findOwnedAccount(accountId, res.locals.userId);
@@ -140,6 +188,7 @@ transactionsRouter.get("/", async (req, res) => {
   }
 
   const result = await listTransactions(owner, {
+    ...filters,
     limit,
     offset,
     ...(type === undefined ? {} : { type }),
