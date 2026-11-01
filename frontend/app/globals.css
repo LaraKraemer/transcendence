@@ -2,7 +2,8 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* `.light` lets a part of the page (the design system's swatches) show the light values in dark mode. */
+/* `.light` gives the design system's colour swatches the light values in dark mode.
+   Only for inline var(--…) styles: dark: classes still apply inside it. */
 :root,
 .light {
   --background: #f6f8fb;
