@@ -84,7 +84,7 @@ export async function listTransactions(
   return { items, total: totals[0]!.total };
 }
 
-/** Builds user-scoped reporting conditions; only the legacy summary includes transfers. */
+/** Builds user-scoped reporting conditions; transfers are left out unless `includeTransfers` is set. */
 function reportingConditions(userId: string, filters: Partial<AnalyticsFilters>, includeTransfers = false) {
   return and(
     eq(accounts.userId, userId),
@@ -137,10 +137,18 @@ export async function transactionTimeSeries(
         expenseMinor: sql<number>`sum(${transactions.amountMinor}) filter (where ${transactions.type} = 'expense')`
           .mapWith(Number)
           .as("expense_minor"),
+        transferOutMinor:
+          sql<number>`sum(${transactions.amountMinor}) filter (where ${transactions.type} = 'transfer' and ${transactions.amountMinor} < 0)`
+            .mapWith(Number)
+            .as("transfer_out_minor"),
+        transferInMinor:
+          sql<number>`sum(${transactions.amountMinor}) filter (where ${transactions.type} = 'transfer' and ${transactions.amountMinor} > 0)`
+            .mapWith(Number)
+            .as("transfer_in_minor"),
       })
       .from(transactions)
       .innerJoin(accounts, eq(transactions.accountId, accounts.id))
-      .where(reportingConditions(userId, filters))
+      .where(reportingConditions(userId, filters, true))
       .groupBy(sql`"total_period"`, accounts.currencyCode),
   );
   const accountCurrencies = db.$with("account_currencies").as(
@@ -168,6 +176,8 @@ export async function transactionTimeSeries(
       currencyCode: accountCurrencies.currencyCode,
       incomeMinor: sql<number>`coalesce(${totals.incomeMinor}, 0)`.mapWith(Number),
       expenseMinor: sql<number>`coalesce(${totals.expenseMinor}, 0)`.mapWith(Number),
+      transferOutMinor: sql<number>`coalesce(${totals.transferOutMinor}, 0)`.mapWith(Number),
+      transferInMinor: sql<number>`coalesce(${totals.transferInMinor}, 0)`.mapWith(Number),
     })
     .from(periods)
     .crossJoin(accountCurrencies)
@@ -175,7 +185,7 @@ export async function transactionTimeSeries(
     .orderBy(periods.period, accountCurrencies.currencyCode);
 }
 
-/** Lists all matching non-transfer entries, with display labels and the UI's currency precision. */
+/** Lists all matching entries, including transfer legs, with display labels and the UI's currency precision. */
 export async function transactionsForExport(userId: string, filters: AnalyticsFilters) {
   // ponytail: buffers the bounded export in memory; stream rows if personal-scale exports outgrow memory.
   return db
@@ -194,7 +204,7 @@ export async function transactionsForExport(userId: string, filters: AnalyticsFi
     .innerJoin(accounts, eq(transactions.accountId, accounts.id))
     .leftJoin(categories, eq(transactions.categoryId, categories.id))
     .leftJoin(currencies, eq(accounts.currencyCode, currencies.code))
-    .where(reportingConditions(userId, filters))
+    .where(reportingConditions(userId, filters, true))
     .orderBy(transactions.bookedOn, transactions.createdAt, transactions.id);
 }
 

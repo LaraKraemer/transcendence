@@ -11,15 +11,15 @@ get {
 }
 
 tests {
-  test("currencies stay separate, archived income is included, transfer-only periods are zero", function () {
+  test("currencies stay separate, archived income is included, transfers appear only in the informational transfer fields", function () {
     expect(res.getStatus()).to.equal(200);
     expect(res.getBody()).to.deep.equal([
-      { period: "2025-01-01", currencyCode: "EUR", incomeMinor: 0, expenseMinor: -1234 },
-      { period: "2025-01-01", currencyCode: "USD", incomeMinor: 0, expenseMinor: 0 },
-      { period: "2025-01-02", currencyCode: "EUR", incomeMinor: 0, expenseMinor: 0 },
-      { period: "2025-01-02", currencyCode: "USD", incomeMinor: 0, expenseMinor: 0 },
-      { period: "2025-01-03", currencyCode: "EUR", incomeMinor: 0, expenseMinor: 0 },
-      { period: "2025-01-03", currencyCode: "USD", incomeMinor: 2500, expenseMinor: 0 }
+      { period: "2025-01-01", currencyCode: "EUR", incomeMinor: 0, expenseMinor: -1234, transferOutMinor: 0, transferInMinor: 0 },
+      { period: "2025-01-01", currencyCode: "USD", incomeMinor: 0, expenseMinor: 0, transferOutMinor: 0, transferInMinor: 0 },
+      { period: "2025-01-02", currencyCode: "EUR", incomeMinor: 0, expenseMinor: 0, transferOutMinor: -500, transferInMinor: 0 },
+      { period: "2025-01-02", currencyCode: "USD", incomeMinor: 0, expenseMinor: 0, transferOutMinor: 0, transferInMinor: 550 },
+      { period: "2025-01-03", currencyCode: "EUR", incomeMinor: 0, expenseMinor: 0, transferOutMinor: 0, transferInMinor: 0 },
+      { period: "2025-01-03", currencyCode: "USD", incomeMinor: 2500, expenseMinor: 0, transferOutMinor: 0, transferInMinor: 0 }
     ]);
   });
 }

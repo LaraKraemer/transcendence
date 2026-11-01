@@ -328,7 +328,8 @@ Transactions accept an optional `merchant` (max 100 trimmed characters); `null` 
 
 ## Analytics and CSV export
 
-These authenticated routes include archived accounts and **exclude transfers**.
+These authenticated routes include archived accounts. Time series and CSV export also show transfers (see below);
+category totals leave them out.
 Both `from` and `to` are required calendar dates (`YYYY-MM-DD`), inclusive, with
 `from <= to` and at most 1827 days between them (about five years). Invalid or
 repeated filter values return `400`; missing or foreign accounts/categories return
@@ -337,7 +338,7 @@ result to one owned account; otherwise all owned accounts are included.
 
 | Endpoint | Additional query parameters | Response |
 |---|---|---|
-| `/analytics/timeseries` | Required `granularity=day\|week\|month`; optional `categoryId` | Array of `{ period, currencyCode, incomeMinor, expenseMinor }` |
+| `/analytics/timeseries` | Required `granularity=day\|week\|month`; optional `categoryId` | Array of `{ period, currencyCode, incomeMinor, expenseMinor, transferOutMinor, transferInMinor }` |
 | `/analytics/categories` | Optional `categoryId` | Array of `{ categoryId, type, totalMinor, count, currencyCode }` |
 | `/transactions/export` | Required `format=csv`; optional `categoryId` | UTF-8 CSV attachment, `transactions.csv` |
 
@@ -350,6 +351,13 @@ Time-series `period` is the bucket's start date: the date itself, Monday for
 weeks, or the first day for months. A first bucket may start before `from`, but
 its totals still include only transactions inside the requested dates. Rows are
 ordered by period then currency.
+
+`transferOutMinor` (negative legs) and `transferInMinor` (positive legs) are
+informational: each transfer leg counts in its own account's currency, and they are
+never part of income or expense because a transfer between your own accounts does
+not change the overall balance. They are `0` when `type` or `categoryId` is given,
+since transfer legs match neither. The CSV export lists transfer legs with type
+`transfer` and an empty category.
 
 ```text
 GET /analytics/timeseries?from=2025-01-01&to=2025-01-03&granularity=day
@@ -371,7 +379,7 @@ The repository includes a Bruno collection for repeatable local API testing in
 and a transaction, then updates and deletes that transaction, makes and deletes a transfer, and permanently deletes the account.
 It also checks the currency catalog populated by migrations.
 The final analytics requests verify two-currency totals, archived data,
-zero-filled periods, transfer exclusion, and spreadsheet-safe CSV.
+zero-filled periods, transfer legs, and spreadsheet-safe CSV.
 
 1. Start the services:
 
