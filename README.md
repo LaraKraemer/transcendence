@@ -370,6 +370,14 @@ ordered by booked date, creation time, then transaction ID. Amounts use a decima
 point and the reference currency's `minorUnit` (fallback `2` for currencies outside
 the catalog, matching the UI).
 
+The frontend's **Analytics** page (`/analytics`; on mobile under **More**) draws
+these routes as line, bar and donut charts, one set per currency, each with a
+"Show as table" alternative. Its filters (period, account, category, type) live in
+the URL, and it reloads its data every 30 seconds while the tab is visible.
+**Export CSV** downloads `/transactions/export` with the same filters. **Print or
+save as PDF** opens the browser's print dialog: the PDF is the browser's own
+print-to-PDF, with navigation and controls hidden by a print stylesheet.
+
 <br>
 
 # Local API Testing

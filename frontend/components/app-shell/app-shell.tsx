@@ -57,7 +57,7 @@ export async function AppShell({
         {t("skipToContent")}
       </a>
 
-      <aside className="sticky top-0 hidden h-screen w-[272px] shrink-0 flex-col gap-5 border-e border-border bg-card px-4 py-5 lg:flex">
+      <aside className="sticky top-0 hidden h-screen w-[272px] shrink-0 flex-col gap-5 border-e border-border bg-card px-4 py-5 lg:flex print:hidden">
         <Link href="/dashboard" className="flex items-center gap-2.5 px-1.5 py-1 font-bold hover:opacity-80">
           <span className="flex size-[34px] items-center justify-center rounded-[9px] bg-primary text-primary-foreground">
             P
@@ -95,7 +95,7 @@ export async function AppShell({
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="hidden items-center justify-end gap-2 px-8 pt-5 pb-3 lg:flex">
+        <header className="hidden items-center justify-end gap-2 px-8 pt-5 pb-3 lg:flex print:hidden">
           <LocaleSwitcher variant="pill" />
           <ThemeToggle variant="app" />
         </header>
@@ -108,10 +108,10 @@ export async function AppShell({
         >
           {children}
         </main>
-        <LegalFooter className="px-20 pb-24 lg:px-4 lg:pb-3" />
+        <LegalFooter className="px-20 pb-24 lg:px-4 lg:pb-3 print:hidden" />
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 z-10 border-t border-border bg-card lg:hidden">
+      <div className="fixed inset-x-0 bottom-0 z-10 border-t border-border bg-card lg:hidden print:hidden">
         <div className="absolute end-4 bottom-full mb-4">
           <Suspense fallback={null}>
             <NewTransactionFab />

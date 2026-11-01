@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronRight, Languages, SunMoon, type LucideIcon } from "lucide-react";
+import { ChartPie, ChevronDown, ChevronRight, Languages, SunMoon, type LucideIcon } from "lucide-react";
 import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
 import Link from "next/link";
@@ -60,6 +60,16 @@ export default async function MorePage() {
           <span className="block truncate text-xs">{user.email}</span>
         </span>
         <ChevronRight size={18} aria-hidden className="ms-auto shrink-0 opacity-80 rtl:-scale-x-100" />
+      </Link>
+
+      {/* Analytics has no tab of its own on mobile. */}
+      <Link
+        href="/analytics"
+        className="block rounded-(--radius) border border-border bg-card px-[18px] py-1.5 hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+      >
+        <SettingRow icon={ChartPie} label={t("nav.analytics")}>
+          <ChevronRight size={18} aria-hidden className="text-muted-foreground rtl:-scale-x-100" />
+        </SettingRow>
       </Link>
 
       <div className="divide-y divide-border rounded-(--radius) border border-border bg-card px-[18px] py-1.5">

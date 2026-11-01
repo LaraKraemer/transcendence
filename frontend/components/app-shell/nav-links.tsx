@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeftRight, LayoutGrid, Menu, Tag, Wallet } from "lucide-react";
+import { ArrowLeftRight, ChartPie, LayoutGrid, Menu, Tag, Wallet } from "lucide-react";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -9,6 +9,7 @@ const NAV_ITEMS = [
   { href: "/dashboard", labelKey: "overview", icon: LayoutGrid },
   { href: "/accounts", labelKey: "accounts", icon: Wallet },
   { href: "/transactions", labelKey: "transactions", icon: ArrowLeftRight },
+  { href: "/analytics", labelKey: "analytics", icon: ChartPie },
   { href: "/categories", labelKey: "categories", icon: Tag },
 ] as const;
 
@@ -39,7 +40,8 @@ export function NavLinks({ variant }: { variant: keyof typeof variantClasses }) 
   const t = useTranslations("nav");
   const pathname = usePathname();
   const classes = variantClasses[variant];
-  const items = variant === "tabs" ? [...NAV_ITEMS, MORE_ITEM] : NAV_ITEMS;
+  // Five tabs fit at 320 px, so on mobile Analytics is opened from the More page.
+  const items = variant === "tabs" ? [...NAV_ITEMS.filter((item) => item.href !== "/analytics"), MORE_ITEM] : NAV_ITEMS;
 
   return (
     <nav aria-label={t("mainNavigation")}>
