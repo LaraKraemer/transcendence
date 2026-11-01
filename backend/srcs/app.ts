@@ -7,6 +7,7 @@ import { requireAuthenticatedUser } from "./auth.ts";
 import { pool } from "./db/client.ts";
 import { createAuthRateLimiter, createLoginRateLimiter } from "./rate-limit.ts";
 import { accountsRouter } from "./routes/account.ts";
+import { analyticsRouter } from "./routes/analytics.ts";
 import { authRouter } from "./routes/auth.ts";
 import { categoriesRouter } from "./routes/category.ts";
 import { currenciesRouter } from "./routes/currency.ts";
@@ -38,6 +39,7 @@ export function createApp() {
   app.post("/auth/register", authRateLimiter);
   app.post("/auth/login", authRateLimiter, loginRateLimiter);
   app.use("/accounts", accountsRouter);
+  app.use("/analytics", analyticsRouter);
   app.use("/auth", authRouter);
   app.use("/categories", categoriesRouter);
   app.use("/currencies", currenciesRouter);

@@ -78,10 +78,11 @@ describe("isDateOnly", () => {
     expect(isDateOnly(value)).toBe(false);
   });
 
-  it.each(["2025-02-30", "2025-02-29", "2025-04-31"])("rejects impossible calendar date %s", (value) => {
+  it.each(["2025-02-30", "2025-02-29", "2024-04-31", "0000-01-01"])("rejects invalid calendar date %s", (value) => {
     expect(isDateOnly(value)).toBe(false);
   });
-  it("accepts leap day", () => {
+
+  it("accepts leap days", () => {
     expect(isDateOnly("2024-02-29")).toBe(true);
   });
 });
