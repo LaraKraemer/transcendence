@@ -22,7 +22,7 @@ const textSpacingCss =
   " p { margin-bottom: 2em !important; }";
 const viewports = { desktop: { width: 1280, height: 800 }, phone: { width: 320, height: 640 } };
 
-const publicPages = ["/login", "/register", "/privacy", "/terms", "/no-such-page"];
+const publicPages = ["/login", "/register", "/privacy", "/terms", "/design-system", "/no-such-page"];
 const protectedPages = [
   "/dashboard",
   "/accounts",

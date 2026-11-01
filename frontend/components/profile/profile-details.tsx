@@ -14,12 +14,14 @@ import {
   type ReactNode,
 } from "react";
 
-import { FormAlert, formErrorFor, serverFieldErrors, useAuthErrorText } from "@/components/auth/form-parts";
+import { formErrorFor, serverFieldErrors, useAuthErrorText } from "@/components/auth/form-parts";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { FormAlert } from "@/components/ui/form-alert";
 import { useAnnounce } from "@/components/ui/live-status";
 import { Modal } from "@/components/ui/modal";
 import { TextField } from "@/components/ui/text-field";
-import { UserAvatar } from "@/components/user-avatar";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { deleteAvatar, updateDisplayName, uploadAvatar } from "@/lib/actions/profile";
 import type { ActionResponse, User } from "@/lib/types";
 import { MAX_DISPLAY_NAME_LENGTH, type ValidationErrorCode } from "@/lib/validation";
@@ -112,14 +114,14 @@ export function ProfileDetails({ user }: { user: User }) {
         <button
           type="button"
           onClick={() => setIsEditingName(true)}
-          className="ms-auto flex shrink-0 cursor-pointer items-center gap-[7px] rounded-[10px] bg-primary px-[18px] py-[11px] text-sm font-semibold text-primary-foreground hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none max-lg:hidden"
+          className="ms-auto flex shrink-0 cursor-pointer items-center gap-[7px] rounded-[10px] bg-primary px-[18px] py-[11px] text-sm font-semibold text-primary-foreground hover:opacity-90 focus-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background max-lg:hidden"
         >
           <Pencil size={15} aria-hidden />
           {t("profile.editProfile")}
         </button>
       </div>
 
-      <section className="mb-5 overflow-hidden rounded-lg border border-border bg-card">
+      <Card as="section" className="mb-5 overflow-hidden">
         <div className="relative h-[110px] bg-(image:--grad) lg:h-[120px]">
           {/* Mobile only: the More tab is where profile is opened from on small screens. */}
           <Link
@@ -146,7 +148,7 @@ export function ProfileDetails({ user }: { user: User }) {
               onClick={() => !isPhotoPending && fileInputRef.current?.click()}
               aria-label={t("profile.changePhoto")}
               title={t("profile.changePhoto")}
-              className="absolute end-0.5 bottom-0.5 flex size-8 cursor-pointer items-center justify-center rounded-full bg-card text-primary shadow-[0_3px_10px_rgba(8,14,25,.28)] hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card focus-visible:outline-none aria-disabled:cursor-wait aria-disabled:opacity-60 dark:text-accent-foreground"
+              className="absolute end-0.5 bottom-0.5 flex size-8 cursor-pointer items-center justify-center rounded-full bg-card text-primary shadow-[0_3px_10px_rgba(8,14,25,.28)] hover:opacity-90 focus-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card aria-disabled:cursor-wait aria-disabled:opacity-60 dark:text-accent-foreground"
             >
               <Camera size={16} aria-hidden />
             </button>
@@ -173,7 +175,7 @@ export function ProfileDetails({ user }: { user: User }) {
                 type="button"
                 aria-disabled={isPhotoPending}
                 onClick={() => !isPhotoPending && runPhotoAction(deleteAvatar, t("profile.announcements.photoRemoved"))}
-                className="mt-3 cursor-pointer rounded-[6px] text-[13px] font-semibold text-destructive hover:opacity-80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none aria-disabled:cursor-wait aria-disabled:opacity-60"
+                className="mt-3 cursor-pointer rounded-[6px] text-[13px] font-semibold text-destructive hover:opacity-80 focus-ring aria-disabled:cursor-wait aria-disabled:opacity-60"
               >
                 {t("profile.removePhoto")}
               </button>
@@ -236,11 +238,12 @@ export function ProfileDetails({ user }: { user: User }) {
             )}
           </div>
         </div>
-      </section>
+      </Card>
 
-      <section
+      <Card
+        as="section"
         aria-labelledby="personal-info"
-        className="rounded-lg border border-border bg-card p-[18px] lg:max-w-[60%] lg:p-6"
+        className="p-[18px] lg:max-w-[60%] lg:p-6"
       >
         <div className="mb-1.5 flex items-center gap-3">
           <h2 id="personal-info" className="text-base font-semibold">
@@ -249,7 +252,7 @@ export function ProfileDetails({ user }: { user: User }) {
           <button
             type="button"
             onClick={() => setIsEditingName(true)}
-            className="ms-auto flex cursor-pointer items-center gap-[5px] rounded-[6px] text-[13px] font-semibold text-primary hover:opacity-80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none dark:text-accent-foreground"
+            className="ms-auto flex cursor-pointer items-center gap-[5px] rounded-[6px] text-[13px] font-semibold text-primary hover:opacity-80 focus-ring dark:text-accent-foreground"
           >
             <Pencil size={13} aria-hidden />
             {t("profile.edit")}
@@ -263,7 +266,7 @@ export function ProfileDetails({ user }: { user: User }) {
             <bdi>{user.email}</bdi>
           </InfoRow>
         </div>
-      </section>
+      </Card>
 
       <Modal
         open={isEditingName}

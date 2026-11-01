@@ -4,6 +4,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
+import { ToggleButton } from "@/components/ui/toggle-button";
 import type { ActionResponse } from "@/lib/types";
 import { MIN_PASSWORD_LENGTH, isValidationErrorCode, type ValidationErrorCode } from "@/lib/validation";
 
@@ -69,24 +70,8 @@ export function PasswordVisibilityButton({ visible, onToggle }: { visible: boole
   const t = useTranslations();
   const Icon = visible ? EyeOff : Eye;
   return (
-    <button
-      type="button"
-      onClick={onToggle}
-      aria-label={t("auth.showPassword")}
-      aria-pressed={visible}
-      className="cursor-pointer text-muted-foreground hover:text-foreground disabled:cursor-not-allowed"
-    >
+    <ToggleButton label={t("auth.showPassword")} pressed={visible} onPressedChange={onToggle} variant="plain" size="inline">
       <Icon size={17} aria-hidden />
-    </button>
-  );
-}
-
-/** Red box at the top of the form, e.g. for a wrong password or when the server is down. */
-export function FormAlert({ message }: { message: string | null }) {
-  if (!message) return null;
-  return (
-    <div role="alert" className="mb-[18px] rounded-[11px] bg-danger-bg px-[15px] py-3 text-[13px] font-medium text-destructive">
-      {message}
-    </div>
+    </ToggleButton>
   );
 }

@@ -7,13 +7,10 @@ import { startTransition, useActionState, useEffect, useRef, useState, type Reac
 import { AccountForm } from "@/components/accounts/account-form";
 import { formErrorFor } from "@/components/auth/form-parts";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { IconButton } from "@/components/ui/icon-button";
 import { useAnnounce } from "@/components/ui/live-status";
 import { deleteAccount, setAccountArchived } from "@/lib/actions/accounts";
 import type { Account } from "@/lib/types";
-
-/** Small row action button; the transactions list uses it too, so both lists look alike. */
-export const iconButtonClasses =
-  "flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-[9px] bg-muted text-muted-foreground transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none";
 
 /**
  * Edit expands the shared account form, containing Archive and Delete actions.
@@ -64,16 +61,9 @@ export function AccountRowActions({
       {panel === "none" && (
         // On narrow screens the buttons move to their own line, so the name isn't squeezed.
         <div className="flex basis-full justify-end gap-1.5 sm:basis-auto">
-          <button
-            ref={editButtonRef}
-            type="button"
-            onClick={() => setPanel("edit")}
-            aria-label={t("actions.edit", { name: account.name })}
-            title={t("actions.edit", { name: account.name })}
-            className={`${iconButtonClasses} hover:text-foreground`}
-          >
+          <IconButton ref={editButtonRef} label={t("actions.edit", { name: account.name })} onClick={() => setPanel("edit")}>
             <Pencil size={15} aria-hidden />
-          </button>
+          </IconButton>
         </div>
       )}
 
@@ -85,16 +75,14 @@ export function AccountRowActions({
           onClose={() => close("edit")}
           editActions={
             <div className="ms-auto flex shrink-0 items-center gap-1.5">
-              <button
+              <IconButton
                 ref={archiveButtonRef}
-                type="button"
+                label={t("actions.archive", { name: account.name })}
+                variant="muted-warning"
                 onClick={() => setPanel("archive")}
-                aria-label={t("actions.archive", { name: account.name })}
-                title={t("actions.archive", { name: account.name })}
-                className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-[9px] bg-muted text-muted-foreground transition-colors hover:bg-amber-100 hover:text-amber-900 focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-card focus-visible:outline-none dark:hover:bg-amber-950 dark:hover:text-amber-200"
               >
                 <Archive size={15} aria-hidden />
-              </button>
+              </IconButton>
               <DeleteAccountButton account={account} headingId={headingId} />
             </div>
           }
@@ -152,16 +140,14 @@ export function UnarchiveButton({ account, headingId }: { account: Account; head
         </p>
       )}
       {/* aria-disabled, not disabled: a disabled button loses keyboard focus. */}
-      <button
-        type="button"
+      <IconButton
+        label={t("actions.unarchive", { name: account.name })}
         onClick={() => !isRestoring && startTransition(() => runRestore())}
         aria-disabled={isRestoring}
-        aria-label={t("actions.unarchive", { name: account.name })}
-        title={t("actions.unarchive", { name: account.name })}
-        className={`${iconButtonClasses} hover:text-foreground aria-disabled:cursor-wait aria-disabled:opacity-60`}
+        className="aria-disabled:cursor-wait aria-disabled:opacity-60"
       >
         <ArchiveRestore size={15} aria-hidden />
-      </button>
+      </IconButton>
       <DeleteAccountButton account={account} headingId={headingId} />
     </div>
   );
@@ -235,16 +221,9 @@ function DeleteAccountButton({ account, headingId }: { account: Account; heading
 
   return (
     <>
-      <button
-        ref={buttonRef}
-        type="button"
-        onClick={() => setOpen(true)}
-        aria-label={t("actions.delete", { name: account.name })}
-        title={t("actions.delete", { name: account.name })}
-        className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-[9px] bg-danger-bg text-danger-fg transition-colors hover:bg-destructive hover:text-white focus-visible:ring-2 focus-visible:ring-danger-fg focus-visible:ring-offset-2 focus-visible:ring-offset-card focus-visible:outline-none"
-      >
+      <IconButton ref={buttonRef} label={t("actions.delete", { name: account.name })} variant="danger" onClick={() => setOpen(true)}>
         <Trash2 size={15} aria-hidden />
-      </button>
+      </IconButton>
       {open && (
         <DeleteAccountDialog
           account={account}

@@ -23,6 +23,9 @@ import {
   NewTransactionButton,
   type AccountOption,
 } from "@/components/transactions/transaction-form-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { LiveStatusProvider } from "@/components/ui/live-status";
 import {
   fetchApiServer,
@@ -47,7 +50,6 @@ type TypeFilter = (typeof TYPE_FILTERS)[number];
 // The list heading takes focus after a delete removes the focused row's button.
 const LIST_HEADING_ID = "transactions-heading";
 
-const focusRing = "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none";
 
 type SearchParams = { searchParams: Promise<{ [key: string]: string | string[] | undefined }> };
 
@@ -206,15 +208,13 @@ export default async function TransactionsPage({ searchParams }: SearchParams) {
       <div className="mb-[18px] flex items-start gap-4 sm:mb-6">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <h1 className="text-[26px] font-bold tracking-[-0.02em] break-words">
+            <h1 className="text-title break-words">
               {account
                 ? t.rich("heading", { account: account.name, name: (chunks) => <bdi>{chunks}</bdi> })
                 : t("listTitle")}
             </h1>
             {account?.isArchived && (
-              <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
-                {t("archived")}
-              </span>
+              <Badge>{t("archived")}</Badge>
             )}
           </div>
           <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
@@ -289,7 +289,7 @@ export default async function TransactionsPage({ searchParams }: SearchParams) {
               href={transactionsHref(account?.id, option)}
               scroll={false}
               aria-current={option === filter ? "page" : undefined}
-              className={`flex-1 rounded-[8px] px-3.5 py-1.5 text-center text-[13px] font-medium sm:flex-none text-muted-foreground hover:text-foreground aria-[current=page]:bg-card aria-[current=page]:font-semibold aria-[current=page]:text-foreground aria-[current=page]:shadow-sm ${focusRing}`}
+              className="flex-1 rounded-[8px] px-3.5 py-1.5 text-center text-[13px] font-medium sm:flex-none text-muted-foreground hover:text-foreground aria-[current=page]:bg-card aria-[current=page]:font-semibold aria-[current=page]:text-foreground aria-[current=page]:shadow-sm focus-ring"
             >
               {t(`filters.${option}`)}
             </Link>
@@ -298,19 +298,19 @@ export default async function TransactionsPage({ searchParams }: SearchParams) {
       </div>
 
       <LiveStatusProvider>
-        <section aria-labelledby={LIST_HEADING_ID} className="rounded-lg border border-border bg-card">
+        <Card as="section" aria-labelledby={LIST_HEADING_ID}>
           <h2
             id={LIST_HEADING_ID}
             tabIndex={-1}
-            className={`mx-4 mt-4 mb-2 w-fit rounded-sm text-[15px] font-semibold sm:mx-6 sm:mt-5 sm:mb-3 sm:text-base ${focusRing}`}
+            className="focus-ring mx-4 mt-4 mb-2 w-fit rounded-sm text-[15px] font-semibold sm:mx-6 sm:mt-5 sm:mb-3 sm:text-base"
           >
             {t("listTitle")}
           </h2>
 
           {visible.length === 0 ? (
-            <p className="px-4 py-8 text-center text-[13px] text-muted-foreground sm:px-6 sm:py-10 sm:text-sm">
+            <EmptyState className="px-4 py-8 sm:px-6 sm:py-10">
               {filter !== "all" ? t("emptyFiltered", { filter }) : account ? t("empty") : t("emptyAll")}
-            </p>
+            </EmptyState>
           ) : (
             <table className="w-full text-[13px] sm:text-sm">
               <caption className="sr-only">
@@ -503,7 +503,7 @@ export default async function TransactionsPage({ searchParams }: SearchParams) {
               </nav>
             )}
           </div>
-        </section>
+        </Card>
       </LiveStatusProvider>
     </div>
   );
@@ -537,14 +537,9 @@ async function NoAccounts() {
         </div>
       </div>
 
-      <section className="rounded-lg border border-border bg-card px-4 py-8 text-center text-[13px] text-muted-foreground sm:px-6 sm:py-10 sm:text-sm">
-        <Link
-          href="/accounts"
-          className={`rounded-sm underline hover:text-foreground ${focusRing}`}
-        >
-          {t("accounts.empty")}
-        </Link>
-      </section>
+      <Card as="section" className="px-4 py-8 sm:px-6 sm:py-10">
+        <EmptyState href="/accounts">{t("accounts.empty")}</EmptyState>
+      </Card>
     </div>
   );
 }
@@ -586,7 +581,7 @@ function PageLink({ href, disabled, children }: { href: string; disabled: boolea
       href={href}
       aria-disabled={disabled || undefined}
       tabIndex={disabled ? -1 : undefined}
-      className={`inline-flex min-h-9 items-center gap-1 rounded-[8px] border border-border px-3 text-[13px] font-medium hover:bg-muted aria-disabled:pointer-events-none aria-disabled:opacity-50 ${focusRing}`}
+      className="inline-flex min-h-9 items-center gap-1 rounded-[8px] border border-border px-3 text-[13px] font-medium hover:bg-muted aria-disabled:pointer-events-none aria-disabled:opacity-50 focus-ring"
     >
       {children}
     </Link>
@@ -611,7 +606,7 @@ function StatCard({
   className?: string;
 }) {
   return (
-    <div className={`flex items-center gap-4 rounded-lg border border-border bg-card p-3.5 sm:p-5 ${className}`}>
+    <Card className={`flex items-center gap-4 p-3.5 sm:p-5 ${className}`}>
       <span className={`flex size-11 shrink-0 max-sm:hidden items-center justify-center rounded-xl ${iconClassName}`}>
         <Icon size={20} aria-hidden />
       </span>
@@ -624,6 +619,6 @@ function StatCard({
         </div>
         {note && <div className="truncate text-xs text-muted-foreground">{note}</div>}
       </div>
-    </div>
+    </Card>
   );
 }

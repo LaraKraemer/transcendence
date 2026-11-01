@@ -7,9 +7,10 @@ import type { ReactNode } from "react";
 
 import { LogoutButton } from "@/components/app-shell/logout-button";
 import { RedirectOnDesktop } from "@/components/app-shell/redirect-on-desktop";
-import { LocaleSwitcher } from "@/components/locale-switcher";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { UserAvatar } from "@/components/user-avatar";
+import { Card } from "@/components/ui/card";
+import { LocaleSwitcher } from "@/components/ui/locale-switcher";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { localeNames } from "@/i18n/config";
 import { getCurrentUser } from "@/lib/dal";
 
@@ -46,7 +47,7 @@ export default async function MorePage() {
       {/* Hover lays 10% black over the gradient, so the text only gains contrast (opacity let the page show through). */}
       <Link
         href="/profile"
-        className="flex items-center gap-3 rounded-(--radius) bg-(image:--grad) p-4 text-white hover:bg-[linear-gradient(rgb(0_0_0/0.1),rgb(0_0_0/0.1)),var(--grad)] focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none"
+        className="flex items-center gap-3 rounded-(--radius) bg-(image:--grad) p-4 text-white hover:bg-[linear-gradient(rgb(0_0_0/0.1),rgb(0_0_0/0.1)),var(--grad)] focus-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       >
         {/* Decorative: the name is right next to it. */}
         <UserAvatar
@@ -62,10 +63,10 @@ export default async function MorePage() {
         <ChevronRight size={18} aria-hidden className="ms-auto shrink-0 opacity-80 rtl:-scale-x-100" />
       </Link>
 
-      <div className="divide-y divide-border rounded-(--radius) border border-border bg-card px-[18px] py-1.5">
+      <Card className="divide-y divide-border px-[18px] py-1.5">
         {/* Native disclosure: the Language button opens the language list below it. */}
         <details className="group">
-          <summary className="cursor-pointer list-none rounded-[10px] focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none [&::-webkit-details-marker]:hidden">
+          <summary className="cursor-pointer list-none rounded-[10px] focus-ring [&::-webkit-details-marker]:hidden">
             <SettingRow icon={Languages} label={t("common.language")}>
               <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
                 {localeNames[locale]}
@@ -78,7 +79,7 @@ export default async function MorePage() {
         <SettingRow icon={SunMoon} label={t("nav.theme")}>
           <ThemeToggle />
         </SettingRow>
-      </div>
+      </Card>
 
       <LogoutButton variant="block" />
     </div>

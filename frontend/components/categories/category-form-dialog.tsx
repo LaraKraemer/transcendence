@@ -4,11 +4,12 @@ import { Check, Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { startTransition, useActionState, useEffect, useId, useState, type FormEvent } from "react";
 
-import { FormAlert, formErrorFor } from "@/components/auth/form-parts";
+import { formErrorFor } from "@/components/auth/form-parts";
 import { CATEGORY_ICON_KEYS, CategoryIcon } from "@/components/categories/category-icon";
-import { AddButton } from "@/components/ui/add-button";
 import { Button } from "@/components/ui/button";
-import { ChoiceGroup } from "@/components/ui/choice-group";
+import { ChoiceGroup, choiceSegmentClassName, choiceSegmentsClassName } from "@/components/ui/choice-group";
+import { FormAlert } from "@/components/ui/form-alert";
+import { IconButton } from "@/components/ui/icon-button";
 import { useAnnounce } from "@/components/ui/live-status";
 import { Modal } from "@/components/ui/modal";
 import { TextField } from "@/components/ui/text-field";
@@ -55,7 +56,7 @@ const DEFAULT_CUSTOM = { hue: 180, lightness: 45 };
 const HUE_STOPS = [0, 60, 120, 180, 240, 300, 360];
 // A white thumb with a dark outline stays visible on every part of both tracks.
 const sliderClasses =
-  "h-2.5 w-full cursor-pointer appearance-none rounded-full ring-1 ring-foreground/15 ring-inset focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card focus-visible:outline-none [&::-webkit-slider-thumb]:size-5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-[0_0_0_1px_rgba(8,14,25,.45),0_1px_3px_rgba(8,14,25,.35)] [&::-moz-range-thumb]:size-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:shadow-[0_0_0_1px_rgba(8,14,25,.45),0_1px_3px_rgba(8,14,25,.35)]";
+  "h-2.5 w-full cursor-pointer appearance-none rounded-full ring-1 ring-foreground/15 ring-inset focus-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card [&::-webkit-slider-thumb]:size-5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-[0_0_0_1px_rgba(8,14,25,.45),0_1px_3px_rgba(8,14,25,.35)] [&::-moz-range-thumb]:size-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:shadow-[0_0_0_1px_rgba(8,14,25,.45),0_1px_3px_rgba(8,14,25,.35)]";
 
 // Shared by the preset circles and the custom one; the selection ring uses the
 // text colour, because a ring in the circle's own colour vanishes on a dark card.
@@ -93,14 +94,16 @@ export function NewCategoryButton({ variant }: { variant: "header" | "tile" }) {
   return (
     <>
       {variant === "header" ? (
-        <AddButton label={t("newCategory")} onClick={openForm} />
+        <IconButton label={t("newCategory")} variant="primary" size="md" onClick={openForm}>
+          <Plus size={18} aria-hidden />
+        </IconButton>
       ) : (
         <button
           type="button"
           onClick={openForm}
           aria-label={t("addCategory")}
           title={t("addCategory")}
-          className="flex min-h-[66px] cursor-pointer items-center justify-center gap-[7px] rounded-xl border-[1.5px] border-dashed border-border p-3.5 text-[13px] font-semibold text-muted-foreground hover:border-ring hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+          className="flex min-h-[66px] cursor-pointer items-center justify-center gap-[7px] rounded-xl border-[1.5px] border-dashed border-border p-3.5 text-[13px] font-semibold text-muted-foreground hover:border-ring hover:text-foreground focus-ring"
         >
           <Plus size={15} aria-hidden />
           {t("addCategory")}
@@ -240,7 +243,7 @@ export function CategoryForm({
         />
 
         <ChoiceGroup legend={t("form.types")} error={errorText(fieldErrors.types)} idPrefix={`${idPrefix}-types`}>
-          <div className="flex gap-1 rounded-[11px] border border-border bg-muted p-1">
+          <div className={choiceSegmentsClassName}>
             {CATEGORY_TYPES.map((type, index) => (
               <label key={type} className="flex-1">
                 <input
@@ -252,7 +255,7 @@ export function CategoryForm({
                   data-field={index === 0 ? `${idPrefix}-types` : undefined}
                   className="peer sr-only"
                 />
-                <span className="block cursor-pointer rounded-[8px] px-2 py-1.5 text-center text-[13px] font-medium text-muted-foreground peer-checked:bg-card peer-checked:font-semibold peer-checked:text-foreground peer-checked:shadow-sm peer-focus-visible:ring-2 peer-focus-visible:ring-ring">
+                <span className={choiceSegmentClassName}>
                   {t(`types.${type}`)}
                 </span>
               </label>

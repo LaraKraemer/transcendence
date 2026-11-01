@@ -663,3 +663,38 @@ Success returns `201 { "imported": <count> }`. Validation failures return 400,
 missing/foreign accounts 404, archived accounts 409 and oversized bodies 413.
 
 Frontend import preview regression check: `cd frontend && npm run check:import`.
+
+## Design system
+
+`/design-system` (linked in the footer, public) shows the colour palette with light/dark
+values and contrast ratios, the type scale, the icons and every component below in the
+current theme and language. Reuse these instead of copying class strings:
+
+- Colours are tokens in `frontend/app/globals.css` (`bg-card`, `text-muted-foreground`, …).
+- Type roles set size, weight and tracking together: `text-title` (page `<h1>`),
+  `text-heading` (dialog title), `text-subheading` (card heading), `text-body`,
+  `text-label` (form label), `text-caption` (hint, error), `text-overline` (with `uppercase`).
+- `focus-ring` is the keyboard focus ring of links and buttons; add
+  `focus-visible:ring-offset-*` where the ring needs a gap.
+- Icons are `lucide-react`, `aria-hidden` next to visible text; add `rtl:-scale-x-100` to
+  arrows. Category icons come from `CATEGORY_ICONS` in `components/categories/category-icon.tsx`.
+
+| Component (`components/ui/`) | Props | When to use |
+|---|---|---|
+| `Button`, `buttonClassName` | `variant`: `primary` \| `success` \| `outline` \| `danger`, plus `<button>` props | Full-width form and dialog actions. Show loading as `disabled` with a "…ing" label. `buttonClassName(variant)` styles a `<Link>` as a button. |
+| `IconButton` | `label`, `children` (the icon, `aria-hidden`), `variant?` (default `muted`), `size?`: `inline` \| `sm` (default) \| `md` \| `lg` \| `xl` \| `fab`, plus `<button>` props | Every button that shows only an icon: add, edit, archive, delete, close, import, log out. `label` is its accessible name and tooltip. Variants: `primary`, `success`, `danger` (filled); `muted`, `muted-danger`, `muted-warning` (row actions); `card`, `card-danger` (on a muted tile); `ghost`, `plain`, `outline`, `outline-danger`. |
+| `ToggleButton` | `label`, `pressed`, `onPressedChange`, plus `IconButton` props | An icon button that is on or off, e.g. show password. The label stays the same; `aria-pressed` tells the state. |
+| `TextField` | `id`, `label`, `error?`, `trailing?`, `children?`, plus `<input>` props | Every text, email, password, number or date input. `error` marks it invalid and links the message. |
+| `SelectField` | `id`, `label`, `error?`, `hint?`, `children` (`<option>`s), plus `<select>` props | A choice from a list. Required unless `required={false}`. |
+| `ChoiceGroup`, `choiceSegmentsClassName`, `choiceSegmentClassName` | `legend`, `idPrefix`, `error?`, `children` | A labelled group of radios or checkboxes with one error. The two class names give the choices the segmented look (`peer sr-only` input, then a styled `<span>`). |
+| `Modal` | `open`, `title`, `onClose`, `busy?`, `describedBy?`, `closeOnBackdropClick?` | Forms in a dialog. Mark the first field `data-autofocus`. `busy` blocks closing while saving. |
+| `ConfirmDialog` | `open`, `title`, `children`, `confirmLabel`, `onConfirm`, `onCancel`, `pending?`, `confirmDisabled?`, `error?` | Before a destructive action. Focus starts on Cancel. |
+| `LiveStatusProvider`, `useAnnounce` | `announce(message)` | Tell screen readers the result of an action whose row disappears ("“Savings” archived"). |
+| `FormAlert` | `message` (`null` hides it) | A form-level error at the top of a form, e.g. a network failure. |
+| `Card` | `as?`: `div` \| `section` \| `article` \| `details`, `className` (padding), plus HTML props | Every bordered panel. Use `as="section"` with `aria-labelledby` when it has a heading. |
+| `Badge`, `badgeToneClassName` | `tone?`: `neutral` \| `info` \| `success` \| `warning` \| `danger`, `variant?`: `label` \| `pill` | `label`: short uppercase status next to a name. `pill`: a value with an icon. The text must make sense without the colour. |
+| `EmptyState` | `href?`, `className` (spacing), `children` | The message where a list has nothing to show. `href` makes it a link to where the user can add something. |
+| `StrengthMeter` | `score`, `segments?` (3), `label`, `tone`: `danger` \| `success` | A segmented level with a text label, e.g. password strength (`PasswordStrength` in `components/auth`). |
+| `UserAvatar` | `displayName`, `avatarUrl`, `alt` (`""` = decorative), `className` (size and colours) | A user's photo, with initials when there is none or it fails to load. |
+| `ThemeToggle` | `variant?`: `auth` (42 px) \| `app` (40 px) | Light/dark switch in page headers. An `IconButton` whose label names the theme it switches to. |
+| `LocaleSwitcher` | `variant?`: `select` \| `pill` \| `list` | Language picker: `select` on public pages, `pill` in the app header, `list` on the mobile More page. |
