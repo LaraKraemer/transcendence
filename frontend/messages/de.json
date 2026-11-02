@@ -587,7 +587,8 @@
           ]
         }
       }
-    }
+    },
+    "statusLink": "Systemstatus"
   },
   "designSystem": {
     "title": "Designsystem",
@@ -637,5 +638,22 @@
       "announced": "Screenreader haben gerade gehört: {message}",
       "cardText": "Eine Karte fasst zusammengehörige Inhalte zusammen."
     }
+  },
+  "systemStatus": {
+    "pause": "Statusprüfungen pausieren",
+    "resume": "Statusprüfungen fortsetzen",
+    "paused": "Statusprüfungen sind pausiert. Die angezeigten Ergebnisse können veraltet sein.",
+    "title": "Systemstatus",
+    "refresh": "Der Status wird alle 30 Sekunden automatisch geprüft.",
+    "ok": "Funktionsfähig",
+    "degraded": "Eingeschränkt",
+    "down": "Ausgefallen",
+    "unreachable": "Das Backend ist nicht erreichbar. Die Abfrage wird automatisch wiederholt.",
+    "overall": "Gesamtzustand",
+    "loading": "Status wird geladen…",
+    "database": "Datenbank",
+    "storage": "Avatar-Speicher",
+    "lastBackup": "Letztes erfolgreiches Backup",
+    "noBackup": "Kein erfolgreicher Backup-Zeitpunkt bekannt."
   }
 }

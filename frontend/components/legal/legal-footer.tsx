@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const LEGAL_LINKS = [
+  { href: "/status", labelKey: "statusLink" },
   { href: "/privacy", labelKey: "privacyLink" },
   { href: "/terms", labelKey: "termsLink" },
   { href: "/design-system", labelKey: "designSystemLink" },

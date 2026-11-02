@@ -823,7 +823,10 @@ function ConfirmDemo() {
       )}
       <ConfirmDialog
         open={open}
-        title={t("accounts.archiveDialog.title", { name })}
+        title={t.rich("accounts.archiveDialog.title", {
+          name,
+          account: (name) => <bdi className="rounded bg-muted px-1.5 py-0.5 text-foreground">{name}</bdi>,
+        })}
         confirmLabel={t("accounts.archiveDialog.confirm")}
         onCancel={() => setOpen(false)}
         onConfirm={() => {

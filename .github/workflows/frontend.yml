@@ -80,6 +80,8 @@ jobs:
         run: npm run start > next.log 2>&1 &
       - name: Wait for API and frontend
         run: timeout 60 bash -c 'until curl -fsS http://localhost:3001/health && curl -fsS -o /dev/null http://localhost:3000/login; do sleep 1; done'
+      - name: Check status page behavior
+        run: node status.check.mjs
       - run: npm run check:a11y
       - name: Print logs on failure
         if: failure()

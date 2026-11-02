@@ -54,7 +54,7 @@ Status: **Pass**, **N/A** (no such content), **Pending** (needs the manual check
 | 2.1.2 | A | No Keyboard Trap | Pass / Pending | The Tab walk cycles through every page. Dialogs use `showModal()`, and Esc closes them unless a save is running. Confirm in the walkthrough. |
 | 2.1.4 | A | Character Key Shortcuts | N/A | No single-key shortcuts. |
 | 2.2.1 | A | Timing Adjustable | N/A | No time limits. Sessions last 30 days. |
-| 2.2.2 | A | Pause, Stop, Hide | Pass | The only animation is the dashboard loading pulse, which stops on load and with `prefers-reduced-motion`. |
+| 2.2.2 | A | Pause, Stop, Hide | Pass | The dashboard loading pulse stops on load and with `prefers-reduced-motion`. Automatic updates on `/status` can be paused and resumed. |
 | 2.3.1 | A | Three Flashes | Pass | Nothing flashes. |
 | 2.4.1 | A | Bypass Blocks | Pass | "Skip to content" link to `#main` on app pages, plus landmarks. |
 | 2.4.2 | A | Page Titled | Pass | Every page sets a `title` through `generateMetadata` ("Accounts · Expense Tracker"). The transactions title names the account. |
@@ -92,4 +92,14 @@ Out of scope: WCAG 2.2 and AAA criteria, mobile screen readers (TalkBack, iOS Vo
 
 ## Pages added later
 
-The analytics, status and design-system pages (#144, #146, #148, #149) do not exist yet. Add each new page to `publicPages`, `protectedPages` or `dialogs` in `frontend/a11y.check.mjs`. Charts need a text or table alternative (1.1.1).
+Add new pages and dialogs to `publicPages`, `protectedPages` or `dialogs` in `frontend/a11y.check.mjs`. The status and design-system pages are included. Charts need a text or table alternative (1.1.1).
+
+## Public status page
+
+`/status` is included in the main automated page scan, including light/dark, English/Persian, desktop/mobile reflow and text-spacing checks. The historical scan counts above predate this addition.
+`cd frontend && node status.check.mjs` separately checks initial backend failure, recovery, 30-second refresh, component changes, pause/resume and request timeout in English. Backend responses are simulated; accessibility and layout coverage stays in `check:a11y`.
+
+The page uses text and decorative icons, a persistent polite live region containing overall and individual component states, and a keyboard-accessible pause/resume button. Identical
+refreshes leave the announcement text unchanged. The visible results, including the backup timestamp,
+form the live region; there is no duplicate hidden summary for reading navigation.
+Manual accessibility verification was reported complete by the user on 2026-11-02, including VoiceOver reading navigation.
