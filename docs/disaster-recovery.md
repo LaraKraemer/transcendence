@@ -26,6 +26,15 @@ Run commands from the project root.
 | `backups/latest.ok` | Last successful backup time; updated only when both files succeed. |
 | `backups/overview.txt` | Available folders, universal times, sizes in kibibytes (1,024 bytes) and results. Updated after backup cleanup and daily skips. `Successful` means the files exist, not that recovery was tested. |
 
+## Storage name change
+
+Fixed `expense_db-data` and `expense_avatar-data` names have been removed. Older
+project-prefixed volumes are used again. If you used the fixed names, make a
+backup and copy it outside `backups/` before updating. Stop the old stack with
+`make down` before updating, then use `make up` and restore that backup. Keep the
+old volumes until login, balances and avatars are verified. No data is moved or
+deleted automatically by this change.
+
 ## Create a backup
 
 Backups can run while the app is open. User changes, including avatar changes,
@@ -67,7 +76,7 @@ The direct command is `sh scripts/restore.sh backups/<snapshot> --confirm`.
 | Test source | Restore into a temporary database and extract avatars into a temporary folder. Failure leaves current data untouched. |
 | Restore | Recreate the database, restore its dump in a transaction, replace avatars and set file ownership. |
 | Restart | Start services and check `/health`. |
-| Failure | Restore errors leave writers stopped. Investigate and retry with a good backup. There is no automatic return to the previous data. |
+| Failure | Errors explain why restore stopped. Backend and backups stay stopped after restore failure. Check the error before running `make up` with the same project settings. There is no automatic return to previous data. |
 
 ## Status checks
 
@@ -79,7 +88,7 @@ The direct command is `sh scripts/restore.sh backups/<snapshot> --confirm`.
 | `ok` | Database and avatar storage checks pass; backup is no older than 36 hours. |
 | `down` | Database check fails. |
 | `degraded` | Database works, but storage is not writable or the backup time is missing, unreadable, invalid, in the future or over 36 hours old. |
-| Timeouts | Database connection and status query each have a three-second limit. |
+| Timeouts | Status checks use a separate connection pool with three-second limits. Other routes keep their existing connection behavior. |
 | Local setup | Set `AVATAR_DIR` and `BACKUP_MARKER_PATH` when running outside Docker. |
 
 | Response field | Value |
@@ -95,8 +104,43 @@ The direct command is `sh scripts/restore.sh backups/<snapshot> --confirm`.
 ## Recovery drill
 
 A drill tests whether a backup can recover real data.
-**Use a separate, disposable Compose project:** change fixed container names and
-host ports as well as the project name. Keep backups outside deleted volumes.
+**Use a copy of the project, not your normal working folder.**
+
+### Prepare the test project
+
+| Step | Action |
+| --- | --- |
+| 1. Stop the normal app | In your normal `transcendence` folder, run `make stop` before setting the test project name. This frees its ports without deleting data. |
+| 2. Copy the project | Copy the whole `transcendence` folder to a separate folder named `transcendence-drill`, for example using your file manager. A second clone also works. |
+| 3. Keep backups separate | The copy must use its own `backups/` folder. Do not link it to the original folder. You may copy a selected backup into it. |
+| 4. Select the test project | Open a terminal in `transcendence-drill` and run the commands below. |
+
+Example folder layout:
+
+```text
+Desktop/
+├── transcendence/        # normal project
+└── transcendence-drill/  # separate copy for the drill
+```
+
+In the test folder, run:
+
+```sh
+export COMPOSE_PROJECT_NAME=drill
+make up
+```
+
+The setting gives the test its own containers, data volumes and network. It does
+not separate ports or backup folders; that is why the normal app is stopped and
+the project is copied. To run both apps at once, change the test ports and matching
+app addresses instead.
+
+**Keep this terminal open for every drill command**, including `make clean` and
+`make restore`. In a new terminal, select the test folder and export the same
+project name again before running commands. Never run the drill in the original
+project folder.
+
+### Run the drill
 
 | Step | Action |
 | --- | --- |
@@ -108,6 +152,17 @@ host ports as well as the project name. Keep backups outside deleted volumes.
 | Script check | Run `python3 scripts/backup.check.py`. Tests scheduling, cleanup, overview and missing-file guards using fake database, lock and Docker commands. |
 | Isolated database check | Use the command below. Tests real locks, damaged dumps, broken archives and successful recovery with temporary storage. Your app data is not mounted. |
 | Server smoke test | From `backend/bruno`, run `TEST_PASSWORD='<at-least-12-characters>' ../node_modules/.bin/bru run --env local`. Set the server address to the test stack. |
+
+### Return to the normal project
+
+After recording the results, run `make stop` in the test folder. Then clear the
+test project setting before starting your normal project:
+
+```sh
+unset COMPOSE_PROJECT_NAME
+cd ../transcendence
+make up
+```
 
 ### Isolated database check
 
