@@ -69,13 +69,20 @@ export function granularityFor(range: DateRange): Granularity {
   return days <= 31 ? "day" : days <= 183 ? "week" : "month";
 }
 
-export type CurrencyReport = {
+/** The signed totals of a period or a whole range. */
+type Totals = Pick<TimeSeriesRow, "incomeMinor" | "expenseMinor" | "transferOutMinor" | "transferInMinor">;
+
+/**
+ * The change of balance: income and expenses plus transfers in and out. Same-currency transfers between the
+ * user's own accounts cancel out across all accounts.
+ */
+export const netMinor = ({ incomeMinor, expenseMinor, transferOutMinor, transferInMinor }: Totals) =>
+  incomeMinor + expenseMinor + transferInMinor + transferOutMinor;
+
+export type CurrencyReport = Totals & {
   currencyCode: string;
   series: Omit<TimeSeriesRow, "currencyCode">[];
   categories: CategoryTotalRow[];
-  /** Totals of the range: income positive, expenses negative, as the API signs them. */
-  incomeMinor: number;
-  expenseMinor: number;
 };
 
 /** Splits the API rows into one report per currency (in the API's order), because amounts in different currencies can't be added. */
@@ -84,7 +91,15 @@ export function reportsByCurrency(series: TimeSeriesRow[], categories: CategoryT
   const reportFor = (currencyCode: string) => {
     let report = reports.get(currencyCode);
     if (!report) {
-      report = { currencyCode, series: [], categories: [], incomeMinor: 0, expenseMinor: 0 };
+      report = {
+        currencyCode,
+        series: [],
+        categories: [],
+        incomeMinor: 0,
+        expenseMinor: 0,
+        transferOutMinor: 0,
+        transferInMinor: 0,
+      };
       reports.set(currencyCode, report);
     }
     return report;
@@ -94,6 +109,8 @@ export function reportsByCurrency(series: TimeSeriesRow[], categories: CategoryT
     report.series.push(point);
     report.incomeMinor += point.incomeMinor;
     report.expenseMinor += point.expenseMinor;
+    report.transferOutMinor += point.transferOutMinor;
+    report.transferInMinor += point.transferInMinor;
   }
   for (const row of categories) reportFor(row.currencyCode).categories.push(row);
   return [...reports.values()];

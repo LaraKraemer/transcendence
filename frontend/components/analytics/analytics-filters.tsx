@@ -2,13 +2,13 @@
 
 import { ChevronDown, Download, Printer } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useId, useOptimistic, useTransition, type FormEvent, type ReactNode } from "react";
 
 import { RANGE_PRESETS, type DateRange, type RangePreset } from "@/lib/analytics";
 
 type Option = { id: string; name: string };
-type Filters = { range: RangePreset; accountId: string; categoryId: string; type: string };
+type Filters = { range: RangePreset; from: string; to: string; accountId: string; categoryId: string; type: string };
 
 const focusRing = "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none";
 const fieldClassName = `w-full rounded-[10px] border border-border bg-card py-2 text-[13px] font-medium ${focusRing}`;
@@ -38,25 +38,24 @@ export function AnalyticsFilters({
   const t = useTranslations("analytics");
   const router = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const id = useId();
   const [, startTransition] = useTransition();
   const [selected, setSelected] = useOptimistic(filters);
 
-  /** Writes the changed filters to the URL; an empty value removes its parameter. */
-  function update(changes: Record<string, string>) {
-    const params = new URLSearchParams(searchParams);
-    for (const [name, value] of Object.entries(changes)) {
-      if (value === "") params.delete(name);
-      else params.set(name, value);
-    }
+  /**
+   * Writes the changed filters to the URL; an empty value leaves its parameter out. Built from the optimistic
+   * `selected`, not the URL, so a second change made before the page has reloaded keeps the first one.
+   */
+  function update(changes: Partial<Filters>) {
+    const next = { ...selected, ...changes };
+    const params = new URLSearchParams(Object.entries(next).filter(([, value]) => value !== ""));
     startTransition(() => {
-      setSelected((current) => ({ ...current, ...changes }));
+      setSelected(next);
       router.push(`${pathname}?${params}`, { scroll: false });
     });
   }
 
-  function changeRange(range: string) {
+  function changeRange(range: RangePreset) {
     // A custom range starts from the dates shown so far; a preset needs none.
     update(range === "custom" ? { range, ...customRange } : { range, from: "", to: "" });
   }
@@ -70,7 +69,12 @@ export function AnalyticsFilters({
   return (
     <section aria-label={t("filters")} className="mb-3.5 flex flex-col gap-3 sm:mb-6 print:hidden">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <FilterSelect id={`${id}-range`} label={t("range")} value={selected.range} onChange={changeRange}>
+        <FilterSelect
+          id={`${id}-range`}
+          label={t("range")}
+          value={selected.range}
+          onChange={(range) => changeRange(range as RangePreset)}
+        >
           {RANGE_PRESETS.map((range) => (
             <option key={range} value={range}>
               {t(`ranges.${range}`)}

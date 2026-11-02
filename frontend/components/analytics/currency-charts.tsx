@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { Bar, BarChart, CartesianGrid, Legend, Line, LineChart, Pie, PieChart, Tooltip, XAxis, YAxis } from "recharts";
 
 import { getDirection, type Locale } from "@/i18n/config";
-import type { CurrencyReport, Granularity } from "@/lib/analytics";
+import { netMinor, type CurrencyReport, type Granularity } from "@/lib/analytics";
 import { formatAmount } from "@/lib/format";
 
 const chartHeightPx = 240;
@@ -19,18 +19,23 @@ const tooltipStyle = {
   fontSize: 12,
 };
 const UNCATEGORISED_COLOR = "var(--muted-foreground)";
+// Transfer lines are dashed, so they don't differ from income and expenses by colour alone.
+const TRANSFER_DASH = "6 4";
+
+type LineKey = "income" | "expenses" | "transfersIn" | "transfersOut";
 
 const cardTitleClassName = "text-[15px] font-semibold sm:text-base";
 
 /**
- * The charts of one currency: income and expenses over time (line), net per period (bar) and totals by
- * category (donut). Each has a "show as table" alternative with the same numbers, for screen readers too.
+ * The charts of one currency: income, expenses and transfers over time (line), net per period (bar) and totals
+ * by category (donut). Each has a "show as table" alternative with the same numbers, for screen readers too.
  */
 export function CurrencyCharts({
   report,
   minorUnit,
   granularity,
   type,
+  showTransfers,
   categories,
 }: {
   report: CurrencyReport;
@@ -38,6 +43,8 @@ export function CurrencyCharts({
   granularity: Granularity;
   /** The type filter; the donut shows income only when it is "income". */
   type: "income" | "expense" | undefined;
+  /** Whether to draw the transfer lines; false under a type or category filter, which transfers never match. */
+  showTransfers: boolean;
   categories: { id: string; name: string; color: string }[];
 }) {
   const t = useTranslations();
@@ -57,17 +64,35 @@ export function CurrencyCharts({
       calendar: "gregory",
     });
 
-  // Expenses are drawn as positive amounts next to income; the net keeps its sign.
-  const points = report.series.map(({ period, incomeMinor, expenseMinor }) => ({
-    period: periodLabel(period),
-    income: incomeMinor,
-    expenses: -expenseMinor,
-    net: incomeMinor + expenseMinor,
+  // Expenses and transfers out are drawn as positive amounts next to income; the net keeps its sign.
+  const points = report.series.map((point) => ({
+    period: periodLabel(point.period),
+    income: point.incomeMinor,
+    expenses: Math.abs(point.expenseMinor),
+    transfersIn: point.transferInMinor,
+    transfersOut: Math.abs(point.transferOutMinor),
+    net: netMinor(point),
   }));
-  const lines = [
-    ...(type === "expense" ? [] : [{ key: "income", name: t("analytics.income"), color: "var(--success)" }]),
-    ...(type === "income" ? [] : [{ key: "expenses", name: t("analytics.expenses"), color: "var(--destructive)" }]),
-  ];
+  const lines = (
+    [
+      { key: "income", name: t("analytics.income"), color: "var(--success)", shown: type !== "expense" },
+      { key: "expenses", name: t("analytics.expenses"), color: "var(--destructive)", shown: type !== "income" },
+      {
+        key: "transfersIn",
+        name: t("analytics.transfersIn"),
+        color: "var(--success)",
+        dash: TRANSFER_DASH,
+        shown: showTransfers,
+      },
+      {
+        key: "transfersOut",
+        name: t("analytics.transfersOut"),
+        color: "var(--destructive)",
+        dash: TRANSFER_DASH,
+        shown: showTransfers,
+      },
+    ] satisfies { key: LineKey; name: string; color: string; dash?: string; shown: boolean }[]
+  ).filter((line) => line.shown);
 
   const sliceType = type ?? "expense";
   const categoryById = new Map(categories.map((category) => [category.id, category]));
@@ -109,10 +134,7 @@ export function CurrencyCharts({
           <DataTable
             caption={`${overTimeTitle} (${currencyCode})`}
             columns={[t("analytics.period"), ...lines.map((line) => line.name)]}
-            rows={points.map((point) => [
-              point.period,
-              ...lines.map((line) => money(point[line.key as "income" | "expenses"])),
-            ])}
+            rows={points.map((point) => [point.period, ...lines.map((line) => money(point[line.key]))])}
           />
         }
       >
@@ -129,6 +151,8 @@ export function CurrencyCharts({
               name={line.name}
               stroke={line.color}
               strokeWidth={2}
+              strokeDasharray={line.dash}
+              legendType="plainline"
               dot={false}
               isAnimationActive={false}
             />

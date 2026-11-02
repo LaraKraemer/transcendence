@@ -13,7 +13,7 @@ import {
   getCurrencies,
   notFoundOnMissingResource,
 } from "@/lib/dal";
-import { granularityFor, RANGE_PRESETS, reportsByCurrency, resolveRange, todayIn } from "@/lib/analytics";
+import { granularityFor, netMinor, RANGE_PRESETS, reportsByCurrency, resolveRange, todayIn } from "@/lib/analytics";
 import { formatAmount } from "@/lib/format";
 import type { CategoryTotalRow, TimeSeriesRow } from "@/lib/types";
 
@@ -31,9 +31,10 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 /**
- * Income and expenses of a date range as charts, one set per currency (amounts in different currencies are never
- * added up). Filters live in the URL: `range` (a preset or `custom` with `from` and `to`), `accountId`, `categoryId`
- * and `type`. Transfers are left out by the API.
+ * Income, expenses and transfers of a date range as charts, one set per currency (amounts in different currencies
+ * are never added up). Filters live in the URL: `range` (a preset or `custom` with `from` and `to`), `accountId`,
+ * `categoryId` and `type`. Transfers are shown apart from income and expenses, and only without a type or category
+ * filter, since transfer legs match neither. Net is the change of balance, transfers included.
  */
 export default async function AnalyticsPage({ searchParams }: SearchParams) {
   const query = await searchParams;
@@ -69,6 +70,7 @@ export default async function AnalyticsPage({ searchParams }: SearchParams) {
   const categoryId = param(query.categoryId);
   const type = query.type === "income" || query.type === "expense" ? query.type : undefined;
   const granularity = range === null ? null : granularityFor(range);
+  const showTransfers = type === undefined && categoryId === undefined;
 
   const filterQuery = range && {
     ...range,
@@ -113,7 +115,14 @@ export default async function AnalyticsPage({ searchParams }: SearchParams) {
       </div>
 
       <AnalyticsFilters
-        filters={{ range: preset, accountId: accountId ?? "", categoryId: categoryId ?? "", type: type ?? "" }}
+        filters={{
+          range: preset,
+          from: param(query.from) ?? "",
+          to: param(query.to) ?? "",
+          accountId: accountId ?? "",
+          categoryId: categoryId ?? "",
+          type: type ?? "",
+        }}
         customRange={range ?? resolveRange("month", today)!}
         accounts={accounts.map(toOption)}
         archivedAccounts={archivedAccounts.map(toOption)}
@@ -135,7 +144,7 @@ export default async function AnalyticsPage({ searchParams }: SearchParams) {
             const minorUnit = currency?.minorUnit ?? 2;
             const money = (amountMinor: number, signDisplay?: "exceptZero") =>
               formatAmount(amountMinor, report.currencyCode, minorUnit, locale, signDisplay);
-            const netMinor = report.incomeMinor + report.expenseMinor;
+            const net = netMinor(report);
             const headingId = `currency-${report.currencyCode}`;
             return (
               <section key={report.currencyCode} aria-labelledby={headingId} className={cardClassName}>
@@ -144,20 +153,35 @@ export default async function AnalyticsPage({ searchParams }: SearchParams) {
                     ? t("analytics.currencyHeading", { code: currency.code, name: currency.name })
                     : report.currencyCode}
                 </h2>
-                <dl className="mt-3 mb-5 grid grid-cols-1 gap-3 min-[400px]:grid-cols-3 sm:mb-6">
+                <dl
+                  className={`mt-3 mb-5 grid grid-cols-1 gap-3 sm:mb-6 ${showTransfers ? "min-[400px]:grid-cols-2 xl:grid-cols-5" : "min-[400px]:grid-cols-3"}`}
+                >
                   <Figure label={t("analytics.income")} value={money(report.incomeMinor)} className="text-success" />
                   <Figure
                     label={t("analytics.expenses")}
-                    value={money(-report.expenseMinor)}
+                    value={money(Math.abs(report.expenseMinor))}
                     className="text-destructive"
                   />
+                  {showTransfers && (
+                    <>
+                      <Figure label={t("analytics.transfersIn")} value={money(report.transferInMinor)} className="" />
+                      <Figure
+                        label={t("analytics.transfersOut")}
+                        value={money(Math.abs(report.transferOutMinor))}
+                        className=""
+                      />
+                    </>
+                  )}
                   <Figure
                     label={t("analytics.net")}
-                    value={money(netMinor, "exceptZero")}
-                    className={netMinor > 0 ? "text-success" : netMinor < 0 ? "text-destructive" : ""}
+                    value={money(net, "exceptZero")}
+                    className={net > 0 ? "text-success" : net < 0 ? "text-destructive" : ""}
                   />
                 </dl>
-                {report.incomeMinor === 0 && report.expenseMinor === 0 ? (
+                {report.incomeMinor === 0 &&
+                report.expenseMinor === 0 &&
+                report.transferInMinor === 0 &&
+                report.transferOutMinor === 0 ? (
                   <p className="py-6 text-center text-[13px] text-muted-foreground sm:text-sm">
                     {t("analytics.noData")}
                   </p>
@@ -167,6 +191,7 @@ export default async function AnalyticsPage({ searchParams }: SearchParams) {
                     minorUnit={minorUnit}
                     granularity={granularity}
                     type={type}
+                    showTransfers={showTransfers}
                     categories={categories.map(({ id, name, color }) => ({ id, name, color }))}
                   />
                 )}

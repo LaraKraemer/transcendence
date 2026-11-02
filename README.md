@@ -372,8 +372,9 @@ the catalog, matching the UI).
 
 The frontend's **Analytics** page (`/analytics`; on mobile under **More**) draws
 these routes as line, bar and donut charts, one set per currency, each with a
-"Show as table" alternative. Its filters (period, account, category, type) live in
-the URL, and it reloads its data every 30 seconds while the tab is visible.
+"Show as table" alternative. Its Net is the change of balance: income and expenses
+plus transfers in and out (shown apart, and hidden under a type or category filter).
+Its filters (period, account, category, type) live in the URL, and it reloads its data every 30 seconds while the tab is visible.
 **Export CSV** downloads `/transactions/export` with the same filters. **Print or
 save as PDF** opens the browser's print dialog: the PDF is the browser's own
 print-to-PDF, with navigation and controls hidden by a print stylesheet.

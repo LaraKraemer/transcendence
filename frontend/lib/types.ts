@@ -96,12 +96,17 @@ export type TransactionSummaryRow = {
   count: number;
 };
 
-/** One row of `GET /analytics/timeseries`: signed income/expense totals of one period (its start date) in one currency. */
+/**
+ * One row of `GET /analytics/timeseries`: signed totals of one period (its start date) in one currency. Transfer
+ * legs are counted apart from income and expenses (out negative, in positive), and are 0 under a type or category filter.
+ */
 export type TimeSeriesRow = {
   period: string;
   currencyCode: string;
   incomeMinor: number;
   expenseMinor: number;
+  transferOutMinor: number;
+  transferInMinor: number;
 };
 
 /** One row of `GET /analytics/categories`: a TransactionSummaryRow per currency, transfers left out. */
