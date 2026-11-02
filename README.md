@@ -673,6 +673,8 @@ missing/foreign accounts 404, archived accounts 409 and oversized bodies 413.
 
 Frontend import preview regression check: `cd frontend && npm run check:import`.
 
+Public status page: `/status` is available without signing in, linked in the footer, and refreshes every 30 seconds, with a pause/resume control. It shows dependency health and the latest backup, or an unreachable message when the backend is offline. Run its browser regression check against the running frontend with `cd frontend && node status.check.mjs`.
+
 Public operational status: `GET /status` reports database latency, avatar storage
 permission, process uptime, version and the latest successful backup. `/health`
 remains the database readiness endpoint used by CI.

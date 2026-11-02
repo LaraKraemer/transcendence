@@ -587,7 +587,8 @@
           ]
         }
       }
-    }
+    },
+    "statusLink": "System status"
   },
   "designSystem": {
     "title": "Design system",
@@ -637,5 +638,22 @@
       "announced": "Screen readers just heard: {message}",
       "cardText": "A card groups related content."
     }
+  },
+  "systemStatus": {
+    "pause": "Pause status checks",
+    "resume": "Resume status checks",
+    "paused": "Status checks are paused. Displayed results may be out of date.",
+    "title": "System status",
+    "refresh": "Status is checked automatically every 30 seconds.",
+    "ok": "Operational",
+    "degraded": "Degraded",
+    "down": "Down",
+    "unreachable": "The backend cannot be reached. Retrying automatically.",
+    "overall": "Overall status",
+    "loading": "Loading status…",
+    "database": "Database",
+    "storage": "Avatar storage",
+    "lastBackup": "Last successful backup",
+    "noBackup": "No successful backup time is known."
   }
 }
