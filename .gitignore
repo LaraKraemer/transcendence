@@ -257,3 +257,5 @@ backend/avatars/
 /docs/manual-tests
 
 # End of https://www.toptal.com/developers/gitignore/api/node,xcode,linux,nextjs,macos
+
+/backups/

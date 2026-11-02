@@ -9,7 +9,7 @@ vi.mock("../srcs/db/client.ts", async () => {
   const { drizzle } = await import("drizzle-orm/node-postgres");
   const { EventEmitter } = await import("node:events");
   const pool = Object.assign(new EventEmitter(), { query });
-  return { db: drizzle({ query } as unknown as import("pg").Pool), pool };
+  return { db: drizzle({ query } as unknown as import("pg").Pool), pool, statusPool: pool };
 });
 
 import { createApp } from "../srcs/app.ts";
@@ -66,6 +66,23 @@ describe("GET /health", () => {
     const res = await fetch(`${base}/health`);
     expect(res.status).toBe(503);
     expect(await res.json()).toEqual({ status: "error", db: "unreachable" });
+  });
+});
+
+describe("GET /status", () => {
+  it("is public and reports database failure without internal details", async () => {
+    query.mockRejectedValueOnce(new Error("private connection string"));
+    const response = await fetch(`${base}/status`);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    const body = await response.json();
+    expect(body).toMatchObject({
+      status: "down",
+      components: { database: { status: "down", latencyMs: expect.any(Number) } },
+      uptimeSeconds: expect.any(Number),
+      version: expect.any(String),
+    });
+    expect(JSON.stringify(body)).not.toContain("private");
   });
 });
 

@@ -194,9 +194,15 @@ Run `docker compose exec backend npm run db:generate` only after changing
 Database data is stored in the `db-data` Docker volume and survives normal
 container restarts. Profile images are stored in the `avatar-data` volume
 mounted at `/app/avatars` inside the backend container; override the path with
-the `AVATAR_DIR` environment variable. `make clean` removes both volumes. PostgreSQL reads its initial user, password, and
-database name only when this volume is first created, so changing those values
-later requires recreating the volume.
+the `AVATAR_DIR` environment variable. `make clean` removes both volumes.
+PostgreSQL reads its initial user, password, and database name only when this
+volume is first created, so changing those values later requires recreating the volume.
+
+### Backups and recovery
+
+Daily database/avatar backups live in the host `./backups` directory and survive
+cleanup. See [disaster recovery](docs/disaster-recovery.md) for retention,
+limitations and the restore procedure and its confirmation argument.
 
 
 <br>
@@ -432,12 +438,15 @@ Test files live in `backend/tests/`, mirroring `backend/srcs/`:
 | Command | Description |
 |---|---|
 | `make up` | Start containers |
-| `make down` | Stop containers |
+| `make down` | Stop and remove containers |
+| `make stop` | Stop containers without removing them or their volumes |
 | `make build` | Rebuild containers |
 | `make rebuild` | Rebuild and renew dependency volumes after Dockerfile or dependency changes |
 | `make restart` | Restart containers |
 | `make logs` | View container logs |
-| `make clean` | Remove containers and volumes |
+| `make clean` | Remove containers and volumes (preserves host backups) |
+| `make backup` | Back up the database and avatars now |
+| `make restore BACKUP=backups/<snapshot> CONFIRM=--confirm` | Replace database and avatars from a trusted snapshot |
 | `make prune` | Remove unused images to free storage |
 <br>
 
@@ -663,6 +672,10 @@ Success returns `201 { "imported": <count> }`. Validation failures return 400,
 missing/foreign accounts 404, archived accounts 409 and oversized bodies 413.
 
 Frontend import preview regression check: `cd frontend && npm run check:import`.
+
+Public operational status: `GET /status` reports database latency, avatar storage
+permission, process uptime, version and the latest successful backup. `/health`
+remains the database readiness endpoint used by CI.
 
 ## Design system
 
