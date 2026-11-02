@@ -84,20 +84,69 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("analytics with PostgreSQL", () 
     await pool.end();
   });
 
-  it("separates currencies, includes archived accounts, deduplicates currencies and zero-fills transfer-only days", async () => {
+  it("separates currencies, includes archived accounts, deduplicates currencies and reports transfer legs on transfer-only days", async () => {
     expect(await transactionTimeSeries(userId, range, "day")).toEqual([
-      { period: "2025-01-01", currencyCode: "EUR", incomeMinor: 10000, expenseMinor: 0 },
-      { period: "2025-01-01", currencyCode: "USD", incomeMinor: 7000, expenseMinor: 0 },
-      { period: "2025-01-02", currencyCode: "EUR", incomeMinor: 0, expenseMinor: 0 },
-      { period: "2025-01-02", currencyCode: "USD", incomeMinor: 0, expenseMinor: 0 },
-      { period: "2025-01-03", currencyCode: "EUR", incomeMinor: 0, expenseMinor: -600 },
-      { period: "2025-01-03", currencyCode: "USD", incomeMinor: 0, expenseMinor: -800 },
+      {
+        period: "2025-01-01",
+        currencyCode: "EUR",
+        incomeMinor: 10000,
+        expenseMinor: 0,
+        transferOutMinor: 0,
+        transferInMinor: 0,
+      },
+      {
+        period: "2025-01-01",
+        currencyCode: "USD",
+        incomeMinor: 7000,
+        expenseMinor: 0,
+        transferOutMinor: 0,
+        transferInMinor: 0,
+      },
+      {
+        period: "2025-01-02",
+        currencyCode: "EUR",
+        incomeMinor: 0,
+        expenseMinor: 0,
+        transferOutMinor: -900,
+        transferInMinor: 0,
+      },
+      {
+        period: "2025-01-02",
+        currencyCode: "USD",
+        incomeMinor: 0,
+        expenseMinor: 0,
+        transferOutMinor: 0,
+        transferInMinor: 1000,
+      },
+      {
+        period: "2025-01-03",
+        currencyCode: "EUR",
+        incomeMinor: 0,
+        expenseMinor: -600,
+        transferOutMinor: 0,
+        transferInMinor: 0,
+      },
+      {
+        period: "2025-01-03",
+        currencyCode: "USD",
+        incomeMinor: 0,
+        expenseMinor: -800,
+        transferOutMinor: 0,
+        transferInMinor: 0,
+      },
     ]);
   });
 
   it("uses Monday week starts and clips totals to the requested dates, not the full period", async () => {
     expect(await transactionTimeSeries(userId, { ...range, accountId: eurId }, "week")).toEqual([
-      { period: "2024-12-30", currencyCode: "EUR", incomeMinor: 10000, expenseMinor: -600 },
+      {
+        period: "2024-12-30",
+        currencyCode: "EUR",
+        incomeMinor: 10000,
+        expenseMinor: -600,
+        transferOutMinor: -900,
+        transferInMinor: 0,
+      },
     ]);
   });
 
@@ -110,6 +159,8 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("analytics with PostgreSQL", () 
         currencyCode: "EUR",
         incomeMinor: 0,
         expenseMinor: 0,
+        transferOutMinor: 0,
+        transferInMinor: 0,
       })),
     );
     expect(
@@ -123,9 +174,30 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("analytics with PostgreSQL", () 
     expect(
       await transactionTimeSeries(userId, { ...range, accountId: usdId, categoryId, type: "expense" }, "day"),
     ).toEqual([
-      { period: "2025-01-01", currencyCode: "USD", incomeMinor: 0, expenseMinor: 0 },
-      { period: "2025-01-02", currencyCode: "USD", incomeMinor: 0, expenseMinor: 0 },
-      { period: "2025-01-03", currencyCode: "USD", incomeMinor: 0, expenseMinor: -800 },
+      {
+        period: "2025-01-01",
+        currencyCode: "USD",
+        incomeMinor: 0,
+        expenseMinor: 0,
+        transferOutMinor: 0,
+        transferInMinor: 0,
+      },
+      {
+        period: "2025-01-02",
+        currencyCode: "USD",
+        incomeMinor: 0,
+        expenseMinor: 0,
+        transferOutMinor: 0,
+        transferInMinor: 0,
+      },
+      {
+        period: "2025-01-03",
+        currencyCode: "USD",
+        incomeMinor: 0,
+        expenseMinor: -800,
+        transferOutMinor: 0,
+        transferInMinor: 0,
+      },
     ]);
   });
 
@@ -133,8 +205,22 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("analytics with PostgreSQL", () 
     expect(
       await transactionTimeSeries(userId, { from: "2025-01-02", to: "2025-02-02", accountId: eurId }, "month"),
     ).toEqual([
-      { period: "2025-01-01", currencyCode: "EUR", incomeMinor: 999, expenseMinor: -600 },
-      { period: "2025-02-01", currencyCode: "EUR", incomeMinor: 0, expenseMinor: -250 },
+      {
+        period: "2025-01-01",
+        currencyCode: "EUR",
+        incomeMinor: 999,
+        expenseMinor: -600,
+        transferOutMinor: -900,
+        transferInMinor: 0,
+      },
+      {
+        period: "2025-02-01",
+        currencyCode: "EUR",
+        incomeMinor: 0,
+        expenseMinor: -250,
+        transferOutMinor: 0,
+        transferInMinor: 0,
+      },
     ]);
   });
 
@@ -150,11 +236,11 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("analytics with PostgreSQL", () 
     ]);
   });
 
-  it("exports all matching rows with labels and UI precision, excluding transfers and foreign data", async () => {
+  it("exports all matching rows with labels and UI precision, including transfer legs but not foreign data", async () => {
     const rows = await transactionsForExport(userId, range);
-    expect(rows).toHaveLength(5);
-    expect(rows.filter(({ currencyCode }) => currencyCode === "USD")).toHaveLength(2);
-    expect(rows.every(({ type }) => type !== "transfer")).toBe(true);
+    expect(rows).toHaveLength(7);
+    expect(rows.filter(({ currencyCode }) => currencyCode === "USD")).toHaveLength(3);
+    expect(rows.filter(({ type }) => type === "transfer")).toHaveLength(2);
     expect(await transactionsForExport(userId, { ...range, accountId: usdId, categoryId, type: "expense" })).toEqual([
       {
         account: "Checking",
@@ -174,7 +260,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("analytics with PostgreSQL", () 
     await pool.query("UPDATE account SET currency_code = 'AAA' WHERE id = $1", [eurId]);
     try {
       const rows = await transactionsForExport(userId, { ...range, accountId: eurId });
-      expect(rows).toHaveLength(3);
+      expect(rows).toHaveLength(4);
       expect(rows.every(({ currencyCode, minorUnit }) => currencyCode === "AAA" && minorUnit === 2)).toBe(true);
     } finally {
       await pool.query("UPDATE account SET currency_code = 'EUR' WHERE id = $1", [eurId]);

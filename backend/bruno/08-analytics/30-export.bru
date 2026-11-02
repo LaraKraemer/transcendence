@@ -19,6 +19,7 @@ tests {
     expect(csv).to.include("account,currency,date,type,category,merchant,description,amount\r\n");
     expect(csv).to.include('"Analytics EUR","EUR","2025-01-01","expense","Groceries Category","\'+Shop","\'=Café, ""tea""",-12.34\r\n');
     expect(csv).to.include('"Analytics USD","USD","2025-01-03","income","","","",25.00\r\n');
-    expect(csv).not.to.include('"transfer"');
+    expect(csv).to.include('"Analytics EUR","EUR","2025-01-02","transfer","","","",-5.00\r\n');
+    expect(csv).to.include('"Analytics USD","USD","2025-01-02","transfer","","","",5.50\r\n');
   });
 }

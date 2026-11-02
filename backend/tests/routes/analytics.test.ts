@@ -78,7 +78,9 @@ describe.each(routes)("$url reporting filters", ({ router, url, params }) => {
     expect(statement.text).toContain('"account"."user_id" =');
     expect(statement.text).toContain('"transaction"."category_id" =');
     expect(values).toEqual(expect.arrayContaining([userId, accountId, categoryId, "expense", range.from, range.to]));
-    expect(statement.text).toContain('"transaction"."type" in');
+    // Only the category summary leaves transfers out.
+    if (url === "/categories") expect(statement.text).toContain('"transaction"."type" in');
+    else expect(statement.text).not.toContain('"transaction"."type" in');
   });
 
   it.each([
@@ -114,17 +116,38 @@ describe("GET /analytics/timeseries", () => {
   it.each(["day", "week", "month"])("returns numeric totals and SQL-filled periods for %s", async (granularity) => {
     query.mockResolvedValueOnce({
       rows: [
-        ["2025-01-01", "EUR", "1200", "-500"],
-        ["2025-01-01", "USD", "700", "0"],
-        ["2025-01-02", "EUR", "0", "0"],
+        ["2025-01-01", "EUR", "1200", "-500", "0", "0"],
+        ["2025-01-01", "USD", "700", "0", "0", "0"],
+        ["2025-01-02", "EUR", "0", "0", "-300", "0"],
       ],
     });
     expect(await dispatch(analyticsRouter, { url: "/timeseries", query: { ...range, granularity } })).toEqual({
       status: 200,
       body: [
-        { period: "2025-01-01", currencyCode: "EUR", incomeMinor: 1200, expenseMinor: -500 },
-        { period: "2025-01-01", currencyCode: "USD", incomeMinor: 700, expenseMinor: 0 },
-        { period: "2025-01-02", currencyCode: "EUR", incomeMinor: 0, expenseMinor: 0 },
+        {
+          period: "2025-01-01",
+          currencyCode: "EUR",
+          incomeMinor: 1200,
+          expenseMinor: -500,
+          transferOutMinor: 0,
+          transferInMinor: 0,
+        },
+        {
+          period: "2025-01-01",
+          currencyCode: "USD",
+          incomeMinor: 700,
+          expenseMinor: 0,
+          transferOutMinor: 0,
+          transferInMinor: 0,
+        },
+        {
+          period: "2025-01-02",
+          currencyCode: "EUR",
+          incomeMinor: 0,
+          expenseMinor: 0,
+          transferOutMinor: -300,
+          transferInMinor: 0,
+        },
       ],
     });
     expect(query.mock.calls[0]![0].text).toContain("generate_series");

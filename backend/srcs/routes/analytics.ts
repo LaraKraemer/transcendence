@@ -23,7 +23,7 @@ async function ownedFilters(query: Record<string, unknown>, userId: string) {
 export const analyticsRouter = Router();
 analyticsRouter.use(requireAuthenticatedUser);
 
-/** Returns signed income/expense totals per period and currency, including zero periods. */
+/** Returns signed income/expense totals per period and currency, including zero periods, plus informational transfer-out/in totals (never part of income/expense). */
 analyticsRouter.get("/timeseries", async (req, res, next) => {
   const { granularity } = req.query;
   if (granularity !== "day" && granularity !== "week" && granularity !== "month") {
@@ -63,7 +63,7 @@ function csvCell(value: string | null): string {
   return `"${safeText.replaceAll('"', '""')}"`;
 }
 
-/** Downloads bounded, filtered non-transfer transactions as spreadsheet-safe UTF-8 CSV. */
+/** Downloads bounded, filtered transactions, including transfer legs, as spreadsheet-safe UTF-8 CSV. */
 export const exportTransactionsCsv: RequestHandler = async (req, res, next) => {
   if (req.query.format !== "csv") {
     res.status(400).json({ error: "format must be csv" });
