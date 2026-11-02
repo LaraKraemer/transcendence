@@ -1,7 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const { query, access, readFile } = vi.hoisted(() => ({ query: vi.fn(), access: vi.fn(), readFile: vi.fn() }));
-vi.mock("../srcs/db/client.ts", () => ({ pool: { query } }));
+const { query, applicationQuery, access, readFile } = vi.hoisted(() => ({
+  query: vi.fn(),
+  applicationQuery: vi.fn(),
+  access: vi.fn(),
+  readFile: vi.fn(),
+}));
+vi.mock("../srcs/db/client.ts", () => ({ statusPool: { query }, pool: { query: applicationQuery } }));
 vi.mock("node:fs/promises", () => ({ access, readFile }));
 readFile.mockResolvedValue('{"version":"1.0.0"}');
 const { getStatus } = await import("../srcs/status.ts");
@@ -12,6 +17,18 @@ afterEach(() => {
 });
 
 describe("public status", () => {
+  it("uses its own pool while an application query is waiting", async () => {
+    applicationQuery.mockReturnValue(new Promise(() => {}));
+    const pendingApplicationQuery = applicationQuery();
+    query.mockResolvedValue({});
+    access.mockResolvedValue(undefined);
+    readFile.mockResolvedValue(new Date().toISOString());
+    expect(await getStatus()).toMatchObject({ components: { database: { status: "ok" } } });
+    expect(applicationQuery).toHaveBeenCalledTimes(1);
+    expect(query).toHaveBeenCalledWith("SELECT 1");
+    expect(pendingApplicationQuery).toBeInstanceOf(Promise);
+  });
+
   it.each([
     [0, "ok"],
     [36 * 60 * 60 * 1000, "ok"],

@@ -9,7 +9,7 @@ vi.mock("../srcs/db/client.ts", async () => {
   const { drizzle } = await import("drizzle-orm/node-postgres");
   const { EventEmitter } = await import("node:events");
   const pool = Object.assign(new EventEmitter(), { query });
-  return { db: drizzle({ query } as unknown as import("pg").Pool), pool };
+  return { db: drizzle({ query } as unknown as import("pg").Pool), pool, statusPool: pool };
 });
 
 import { createApp } from "../srcs/app.ts";
