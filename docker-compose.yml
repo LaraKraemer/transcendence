@@ -99,6 +99,7 @@ services:
 
 
   backup:
+    container_name: expense-backup
     build:
       context: ./scripts
       dockerfile: backup.Dockerfile
@@ -120,4 +121,10 @@ services:
 
 volumes:
   db-data:
+    name: expense_db-data
   avatar-data:
+    name: expense_avatar-data
+
+networks:
+  default:
+    name: expense_default
