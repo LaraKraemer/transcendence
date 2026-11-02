@@ -69,10 +69,14 @@ export function SystemStatus() {
       <h1 id="system-status-title" className="text-title">
         {t("title")}
       </h1>
-      <p className="mt-2 text-muted-foreground">{t(paused ? "paused" : "refresh")}</p>
-      <Button variant="outline" className="mt-4" onClick={() => setPaused(!paused)}>
-        {t(paused ? "resume" : "pause")}
-      </Button>
+      <p role="status" className="mt-2 text-muted-foreground">
+        {t(paused ? "paused" : "refresh")}
+      </p>
+      {(result || unreachable) && (
+        <Button variant="outline" className="mt-4" onClick={() => setPaused(!paused)}>
+          {t(paused ? "resume" : "pause")}
+        </Button>
+      )}
       {/* Use the visible results for announcements so reading navigation encounters each result only once. */}
       <div role="status" aria-atomic="true" className="mt-6">
         {unreachable ? (

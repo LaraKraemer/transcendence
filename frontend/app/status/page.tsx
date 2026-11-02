@@ -10,9 +10,10 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 /** Public operational status, independent of backend availability. */
-export default function StatusPage() {
+export default async function StatusPage({ searchParams }: PageProps<"/status">) {
+  const { from } = await searchParams;
   return (
-    <PublicPageShell from={undefined}>
+    <PublicPageShell from={from}>
       <SystemStatus />
     </PublicPageShell>
   );

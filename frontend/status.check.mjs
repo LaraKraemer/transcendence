@@ -14,9 +14,14 @@ try {
   let requests = 0;
   let hanging = false;
   let storageDown = false;
+  let releaseInitialRequest;
+  const initialRequestGate = new Promise((resolve) => {
+    releaseInitialRequest = resolve;
+  });
   await page.route("**/status", async (route) => {
     if (route.request().resourceType() !== "fetch") return route.continue();
     requests++;
+    await initialRequestGate;
     if (hanging) return;
     if (unreachable) return route.abort();
     return route.fulfill({
@@ -55,7 +60,19 @@ try {
   ]);
   health = "ok";
   unreachable = true;
-  await page.goto(`${origin}/status`);
+  await page.goto(`${origin}/status?from=register`);
+  await page.getByText(t.loading, { exact: true }).waitFor();
+  assert.equal(
+    await page.getByRole("button", { name: t.pause, exact: true }).count(),
+    0,
+    "cannot pause before the first response",
+  );
+  assert.equal(
+    await page.getByRole("banner").getByRole("link").getAttribute("href"),
+    "/register",
+    "return link preserves registration context",
+  );
+  releaseInitialRequest();
   await page.getByRole("status").filter({ hasText: t.unreachable }).waitFor();
   unreachable = false;
   await page.clock.fastForward(30_000);
@@ -82,6 +99,7 @@ try {
   await page.clock.fastForward(30_000);
   await checkStatuses("ok", "ok", "ok");
   await page.getByRole("button", { name: t.pause, exact: true }).click();
+  await page.getByRole("status").getByText(t.paused, { exact: true }).waitFor();
   const pausedRequests = requests;
   await page.clock.fastForward(60_000);
   assert.equal(requests, pausedRequests, "pause stops requests");
@@ -91,6 +109,7 @@ try {
   );
   await page.getByRole("button", { name: t.resume, exact: true }).click();
   await resumedResponse;
+  await page.getByRole("status").getByText(t.refresh, { exact: true }).waitFor();
   await checkStatuses("down", "down", "ok");
   hanging = true;
   const pendingRequest = page.waitForRequest(
