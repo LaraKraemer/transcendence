@@ -63,10 +63,16 @@ cmp /backups/latest.ok /tmp/previous-marker
 flock /backups/.lock sh -c 'touch /tmp/backup-lock-held; sleep 3' &
 lock_process_id=$!
 while [ ! -f /tmp/backup-lock-held ]; do sleep 0.1; done
-if sh /scripts/backup.sh; then
+if sh /scripts/backup.sh >/tmp/lock-error.log 2>&1; then
   echo 'An overlapping backup unexpectedly succeeded' >&2
   exit 1
 fi
+grep -q 'Another backup or restore is running' /tmp/lock-error.log
+if sh /scripts/restore-data.sh >/tmp/restore-lock-error.log 2>&1; then
+  echo 'An overlapping restore unexpectedly succeeded' >&2
+  exit 1
+fi
+grep -q 'Another backup or restore is running' /tmp/restore-lock-error.log
 cmp /backups/latest.ok /tmp/previous-marker
 wait "$lock_process_id"
 

@@ -31,7 +31,10 @@ fi
 mkdir -p "$backup_directory"
 # Manual and scheduled backups share this lock; crashes release it.
 exec 9>"$backup_directory/.lock"
-flock -n 9 || exit 1
+if ! flock -n 9; then
+  echo 'Another backup or restore is running; try again later.' >&2
+  exit 1
+fi
 
 # Skip existing daily backups only for scheduled runs.
 if [ "${1:-}" = --daily ]; then
