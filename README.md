@@ -194,11 +194,15 @@ Run `docker compose exec backend npm run db:generate` only after changing
 Database data is stored in the `db-data` Docker volume and survives normal
 container restarts. Profile images are stored in the `avatar-data` volume
 mounted at `/app/avatars` inside the backend container; override the path with
-the `AVATAR_DIR` environment variable. `make clean` removes both volumes. Daily database/avatar backups live in the host
-`./backups` directory and survive cleanup. See [disaster recovery](docs/disaster-recovery.md)
-for retention, limitations and the restore procedure and its confirmation argument. PostgreSQL reads its initial user, password, and
-database name only when this volume is first created, so changing those values
-later requires recreating the volume.
+the `AVATAR_DIR` environment variable. `make clean` removes both volumes.
+PostgreSQL reads its initial user, password, and database name only when this
+volume is first created, so changing those values later requires recreating the volume.
+
+### Backups and recovery
+
+Daily database/avatar backups live in the host `./backups` directory and survive
+cleanup. See [disaster recovery](docs/disaster-recovery.md) for retention,
+limitations and the restore procedure and its confirmation argument.
 
 
 <br>
