@@ -1,6 +1,11 @@
 #!/bin/sh
 set -eu
 
+# Match the Compose command used by Make, including project and file options.
+compose() {
+  ${COMPOSE:-docker compose} "$@"
+}
+
 # Read relative paths from the project root.
 cd "$(dirname "$0")/.."
 
@@ -18,17 +23,20 @@ if [ ! -s "$backup_directory/completed.ok" ] ||
   exit 1
 fi
 # Read both files before stopping services. Use trusted backups only.
-docker compose run --rm --no-deps -v "$backup_directory:/restore:ro" --entrypoint sh backup -ec '
+compose run --rm --no-deps -v "$backup_directory:/restore:ro" --entrypoint sh backup -ec '
   pg_restore --exit-on-error --file=/dev/null /restore/database.dump
   tar -tzf /restore/avatars.tar.gz >/dev/null
 '
 
 # Stop writes and scheduled backups.
-docker compose stop backup backend
-docker compose up -d --wait db
+compose stop backup backend
+compose up -d --wait db
 # Restart only if restore succeeds.
-docker compose run --rm --no-deps -v "$backup_directory:/restore:ro" --entrypoint sh backup /scripts/restore-data.sh
+if ! compose run --rm --no-deps -v "$backup_directory:/restore:ro" --entrypoint sh backup /scripts/restore-data.sh; then
+  echo 'Restore failed. Backend and backup remain stopped. Check the error before restarting with make up using the same Compose settings.' >&2
+  exit 1
+fi
 
 # Start services and check the database.
-docker compose up -d --wait backend frontend backup
-docker compose exec -T backend node -e 'fetch("http://127.0.0.1:3001/health").then(r=>{if(!r.ok)process.exit(1)})'
+compose up -d --wait backend frontend backup
+compose exec -T backend node -e 'fetch("http://127.0.0.1:3001/health").then(r=>{if(!r.ok)process.exit(1)})'

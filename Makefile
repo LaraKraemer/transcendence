@@ -49,4 +49,4 @@ backup:
 
 # Replace current data: make restore BACKUP=backups/<snapshot> CONFIRM=--confirm
 restore:
-	sh scripts/restore.sh "$(BACKUP)" "$(CONFIRM)"
+	COMPOSE="$(COMPOSE)" sh scripts/restore.sh "$(BACKUP)" "$(CONFIRM)"

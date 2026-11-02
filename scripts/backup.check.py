@@ -118,7 +118,7 @@ with tempfile.TemporaryDirectory() as temporary_directory:
     # Empty or missing files must stop restore before Docker runs.
     docker_log = root / "docker-calls"
     docker = commands / "docker"
-    docker.write_text('#!/bin/sh\nprintf called >> "$RESTORE_CHECK_LOG"\n')
+    docker.write_text('#!/bin/sh\nprintf "%s\\n" "$1 $2 $3 $4 $5 $6" >> "$RESTORE_CHECK_LOG"\nif [ "${RESTORE_CHECK_FAIL:-}" = yes ]; then\n  case "$*" in *restore-data.sh*) exit 1;; esac\nfi\n')
     docker.chmod(0o755)
     restore_environment = dict(environment, RESTORE_CHECK_LOG=str(docker_log))
     backup_files = ("completed.ok", "database.dump", "avatars.tar.gz")
@@ -138,5 +138,33 @@ with tempfile.TemporaryDirectory() as temporary_directory:
             assert result.returncode != 0
             assert b"Backup is incomplete" in result.stderr
             assert not docker_log.exists()
+
+    # Every restore command must use the chosen project and Compose file.
+    source = root / "complete-backup"
+    source.mkdir()
+    for name in backup_files:
+        (source / name).write_text("test")
+    subprocess.run(
+        ["make", "restore", f"BACKUP={source}", "CONFIRM=--confirm",
+         "COMPOSE=docker compose -p recovery-drill -f drill.yml"],
+        cwd=backup_script.parent.parent,
+        env=restore_environment,
+        capture_output=True,
+        check=True,
+    )
+    docker_calls = docker_log.read_text().splitlines()
+    assert len(docker_calls) == 6, docker_calls
+    assert all(call.startswith("compose -p recovery-drill -f drill.yml ") for call in docker_calls)
+    result = subprocess.run(
+        ["make", "restore", f"BACKUP={source}", "CONFIRM=--confirm",
+         "COMPOSE=docker compose -p recovery-drill -f drill.yml"],
+        cwd=backup_script.parent.parent,
+        env=dict(restore_environment, RESTORE_CHECK_FAIL="yes"),
+        capture_output=True,
+    )
+    assert result.returncode != 0
+    assert b"Backend and backup remain stopped" in result.stderr
+    assert len(docker_log.read_text().splitlines()) == 10
+
 
 print("Backup scheduling, retention, overview and restore guard checks passed")
