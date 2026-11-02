@@ -12,7 +12,8 @@ if (!databaseUrl) {
   );
 }
 
-export const pool = new pg.Pool({ connectionString: databaseUrl });
+const connectionTimeoutMs = 3000;
+export const pool = new pg.Pool({ connectionString: databaseUrl, connectionTimeoutMillis: connectionTimeoutMs });
 
 pool.on("error", (error) => {
   console.error("Unexpected PostgreSQL pool error:", error);

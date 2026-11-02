@@ -11,6 +11,7 @@ import { authRouter } from "./routes/auth.ts";
 import { categoriesRouter } from "./routes/category.ts";
 import { currenciesRouter } from "./routes/currency.ts";
 import { transactionsRouter } from "./routes/transaction.ts";
+import { getStatus } from "./status.ts";
 import { TRANSACTION_IMPORT_MAX_BYTES } from "./transaction-import.ts";
 
 export function createApp() {
@@ -45,6 +46,11 @@ export function createApp() {
 
   app.get("/", (_, res) => {
     res.send("Expense Tracker API");
+  });
+
+  /** Public operational status; component failures contain no internal details. */
+  app.get("/status", async (_, res) => {
+    res.set("Cache-Control", "no-store").json(await getStatus());
   });
 
   app.get("/health", async (_, res) => {

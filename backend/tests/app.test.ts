@@ -69,6 +69,23 @@ describe("GET /health", () => {
   });
 });
 
+describe("GET /status", () => {
+  it("is public and reports database failure without internal details", async () => {
+    query.mockRejectedValueOnce(new Error("private connection string"));
+    const response = await fetch(`${base}/status`);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    const body = await response.json();
+    expect(body).toMatchObject({
+      status: "down",
+      components: { database: { status: "down", latencyMs: expect.any(Number) } },
+      uptimeSeconds: expect.any(Number),
+      version: expect.any(String),
+    });
+    expect(JSON.stringify(body)).not.toContain("private");
+  });
+});
+
 // ─── CORS ─────────────────────────────────────────────────────────────────────
 
 describe("CORS", () => {
