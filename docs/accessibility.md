@@ -6,14 +6,14 @@ Target: WCAG 2.1 levels A and AA, for every page of the frontend in light and da
 
 | Check | Tool | Scope | Run by |
 |---|---|---|---|
-| Automated scan | `cd frontend && npm run check:a11y` (axe-core 4.14 through Playwright 1.64, Chromium). It is also the `a11y` job of `.github/workflows/frontend.yml`. | `/login`, `/register`, `/privacy`, `/terms`, 404, `/dashboard`, `/accounts`, `/accounts?archived=true`, `/transactions`, `/categories`, `/profile`, `/more`, and 10 dialogs and inline forms (new/edit/archive account, new/edit/delete category, new/edit/delete transaction, edit profile). Each runs in light and dark, `en` and `fa`, at 1280 px and 320 px: 172 scans. | CI on every frontend PR |
+| Automated scan | `cd frontend && npm run check:a11y` (axe-core 4.14 through Playwright 1.64, Chromium). It is also the `a11y` job of `.github/workflows/frontend.yml`. | `/status`, `/login`, `/register`, `/privacy`, `/terms`, `/design-system`, 404, `/dashboard`, `/accounts`, `/accounts?archived=true`, `/transactions` (also with the filters panel open, an empty search result and the page links), `/analytics`, `/categories`, `/profile`, `/more`, and 10 dialogs and inline forms (new/edit/archive account, new/edit/delete category, new/edit/delete transaction, edit profile). Each runs in light and dark, `en` and `fa`, at 1280 px and 320 px: 220 scans. | CI on every frontend PR |
 | Reflow and text spacing | The same script fails if a page scrolls sideways at 320 px (equal to 1280 px at 400% zoom), with and without the 1.4.12 text-spacing overrides. | Same as above | CI |
 | Contrast of theme tokens | Ratios computed from `app/globals.css` for every text token on every background token, and for `--ring`/`--input` as UI components. | Both themes | Claude Code, 2026-10-28 |
 | Focus visibility and order | Scripted Tab walk through each page, failing on any focus stop with no outline or ring, or one that is off screen. | All pages above, 1280 px and 320 px | Claude Code, 2026-10-28 |
 | Keyboard-only walkthrough | Manual | Register, create account/category/transaction, edit, delete, transfer, change language/theme, logout | **Pending: team** |
 | Screen reader | VoiceOver, macOS, Safari | The same flows | **Pending: team** |
 
-The latest scan found no failures (0 of 172 scans; axe best-practice rules also run clean).
+The latest scan (2026-11-03) found no failures in 220 scans.
 
 ## Fixed in this audit
 
@@ -34,7 +34,7 @@ Status: **Pass**, **N/A** (no such content), **Pending** (needs the manual check
 
 | SC | Level | Name | Status | How verified / notes |
 |---|---|---|---|---|
-| 1.1.1 | A | Non-text Content | Pass | axe. Icons are `aria-hidden` next to text or inside named buttons. Avatars have alt text, or `alt=""` when the name is next to them. The dashboard figures and category shares are text (`<dl>`, `<ul>`); bars are decoration. |
+| 1.1.1 | A | Non-text Content | Pass | axe. Icons are `aria-hidden` next to text or inside named buttons. Avatars have alt text, or `alt=""` when the name is next to them. The dashboard figures and category shares are text (`<dl>`, `<ul>`); bars are decoration. Each analytics chart has a "Show table" data table with the same values. |
 | 1.2.1–1.2.5 | A/AA | Time-based media | N/A | No audio or video. |
 | 1.3.1 | A | Info and Relationships | Pass | axe. Headings, landmarks (`header`, `nav`, `main`, `aside`, `footer`), `<table>` with header cells, `<fieldset>`/`<legend>` for radio and checkbox groups, labels bound to fields. |
 | 1.3.2 | A | Meaningful Sequence | Pass | DOM order matches visual order. Layout uses logical properties, so RTL mirrors without reordering. |
@@ -92,11 +92,11 @@ Out of scope: WCAG 2.2 and AAA criteria, mobile screen readers (TalkBack, iOS Vo
 
 ## Pages added later
 
-Add new pages and dialogs to `publicPages`, `protectedPages` or `dialogs` in `frontend/a11y.check.mjs`. The status and design-system pages are included. Charts need a text or table alternative (1.1.1).
+Add new pages and dialogs to `publicPages`, `protectedPages` or `dialogs` in `frontend/a11y.check.mjs`, and update the scope and scan count above. Charts need a text or table alternative (1.1.1).
 
 ## Public status page
 
-`/status` is included in the main automated page scan, including light/dark, English/Persian, desktop/mobile reflow and text-spacing checks. The historical scan counts above predate this addition.
+`/status` is included in the main automated page scan, including light/dark, English/Persian, desktop/mobile reflow and text-spacing checks.
 `cd frontend && node status.check.mjs` separately checks initial backend failure, recovery, 30-second refresh, component changes, pause/resume and request timeout in English. Backend responses are simulated; accessibility and layout coverage stays in `check:a11y`.
 
 The page uses text and decorative icons, a persistent polite live region containing overall and individual component states, and a keyboard-accessible pause/resume button. Identical
