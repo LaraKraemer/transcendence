@@ -14,6 +14,18 @@ if (!databaseUrl) {
 
 export const pool = new pg.Pool({ connectionString: databaseUrl });
 
+// Keep status deadlines and connection usage separate from application requests.
+const statusTimeoutMs = 3000;
+export const statusPool = new pg.Pool({
+  connectionString: databaseUrl,
+  max: 1,
+  connectionTimeoutMillis: statusTimeoutMs,
+  query_timeout: statusTimeoutMs,
+});
+statusPool.on("error", () => {
+  console.error("Unexpected status database connection error");
+});
+
 pool.on("error", (error) => {
   console.error("Unexpected PostgreSQL pool error:", error);
 });

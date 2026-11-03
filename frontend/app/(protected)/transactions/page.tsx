@@ -23,6 +23,9 @@ import {
   NewTransactionButton,
   type AccountOption,
 } from "@/components/transactions/transaction-form-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { LiveStatusProvider } from "@/components/ui/live-status";
 import {
   fetchApiServer,
@@ -47,7 +50,6 @@ type TypeFilter = (typeof TYPE_FILTERS)[number];
 // The list heading takes focus after a delete removes the focused row's button.
 const LIST_HEADING_ID = "transactions-heading";
 
-const focusRing = "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none";
 
 type SearchParams = { searchParams: Promise<{ [key: string]: string | string[] | undefined }> };
 
@@ -206,15 +208,13 @@ export default async function TransactionsPage({ searchParams }: SearchParams) {
       <div className="mb-[18px] flex items-start gap-4 sm:mb-6">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <h1 className="text-[26px] font-bold tracking-[-0.02em] break-words">
+            <h1 className="text-title break-words">
               {account
                 ? t.rich("heading", { account: account.name, name: (chunks) => <bdi>{chunks}</bdi> })
                 : t("listTitle")}
             </h1>
             {account?.isArchived && (
-              <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
-                {t("archived")}
-              </span>
+              <Badge>{t("archived")}</Badge>
             )}
           </div>
           <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
@@ -223,21 +223,21 @@ export default async function TransactionsPage({ searchParams }: SearchParams) {
               : t("allSubtitle", { count: overview.total })}
           </p>
         </div>
-        {!account?.isArchived && activeAccountOptions.length > 0 && (
-          <LiveStatusProvider>
-            <NewTransactionButton
-              variant="header"
-              accounts={pageAccountOption ? [pageAccountOption] : activeAccountOptions}
-              allAccounts={activeAccountOptions}
-              categories={categoryOptions}
-            />
-          </LiveStatusProvider>
-        )}
       </div>
 
       {activeAccountOptions.length > 0 && (
-        <div className="mb-4 w-fit">
+        <div className="mb-4 flex w-fit flex-wrap items-center gap-3">
           <ImportTransactionsButton key={account?.id ?? "all"} accounts={activeAccountOptions} selectedAccountId={account?.isArchived ? undefined : account?.id} />
+          {!account?.isArchived && activeAccountOptions.length > 0 && (
+            <LiveStatusProvider>
+              <NewTransactionButton
+                variant="header"
+                accounts={pageAccountOption ? [pageAccountOption] : activeAccountOptions}
+                allAccounts={activeAccountOptions}
+                categories={categoryOptions}
+              />
+            </LiveStatusProvider>
+          )}
         </div>
       )}
 
@@ -281,7 +281,7 @@ export default async function TransactionsPage({ searchParams }: SearchParams) {
         />
         <nav
           aria-label={t("filterLabel")}
-          className="flex gap-1 rounded-[11px] border border-border bg-muted p-1 sm:inline-flex"
+          className="flex flex-wrap gap-1 rounded-[11px] border border-border bg-muted p-1 sm:inline-flex"
         >
           {TYPE_FILTERS.map((option) => (
             <Link
@@ -289,7 +289,7 @@ export default async function TransactionsPage({ searchParams }: SearchParams) {
               href={transactionsHref(account?.id, option)}
               scroll={false}
               aria-current={option === filter ? "page" : undefined}
-              className={`flex-1 rounded-[8px] px-3.5 py-1.5 text-center text-[13px] font-medium sm:flex-none text-muted-foreground hover:text-foreground aria-[current=page]:bg-card aria-[current=page]:font-semibold aria-[current=page]:text-foreground aria-[current=page]:shadow-sm ${focusRing}`}
+              className="flex-1 rounded-[8px] px-3.5 py-1.5 text-center text-[13px] font-medium sm:flex-none text-muted-foreground hover:text-foreground aria-[current=page]:bg-card aria-[current=page]:font-semibold aria-[current=page]:text-foreground aria-[current=page]:shadow-sm focus-ring"
             >
               {t(`filters.${option}`)}
             </Link>
@@ -298,26 +298,26 @@ export default async function TransactionsPage({ searchParams }: SearchParams) {
       </div>
 
       <LiveStatusProvider>
-        <section aria-labelledby={LIST_HEADING_ID} className="rounded-lg border border-border bg-card">
+        <Card as="section" aria-labelledby={LIST_HEADING_ID}>
           <h2
             id={LIST_HEADING_ID}
             tabIndex={-1}
-            className={`mx-4 mt-4 mb-2 w-fit rounded-sm text-[15px] font-semibold sm:mx-6 sm:mt-5 sm:mb-3 sm:text-base ${focusRing}`}
+            className="focus-ring mx-4 mt-4 mb-2 w-fit rounded-sm text-[15px] font-semibold sm:mx-6 sm:mt-5 sm:mb-3 sm:text-base"
           >
             {t("listTitle")}
           </h2>
 
           {visible.length === 0 ? (
-            <p className="px-4 py-8 text-center text-[13px] text-muted-foreground sm:px-6 sm:py-10 sm:text-sm">
+            <EmptyState className="px-4 py-8 sm:px-6 sm:py-10">
               {filter !== "all" ? t("emptyFiltered", { filter }) : account ? t("empty") : t("emptyAll")}
-            </p>
+            </EmptyState>
           ) : (
             <table className="w-full text-[13px] sm:text-sm">
               <caption className="sr-only">
                 {account ? t("caption", { account: account.name }) : t("captionAll")}
               </caption>
               <thead>
-                <tr className="bg-muted text-[11px] font-semibold tracking-[.06em] text-muted-foreground uppercase">
+                <tr className="bg-muted text-[11px] font-semibold tracking-[.06em] wrap-anywhere text-muted-foreground uppercase">
                   <th scope="col" className="py-2 ps-4 pe-3 text-start sm:py-3 sm:ps-6">
                     {t("columns.description")}
                   </th>
@@ -363,18 +363,18 @@ export default async function TransactionsPage({ searchParams }: SearchParams) {
                   return (
                     <tr key={tx.id} className="border-t border-border">
                       <td className="py-[11px] ps-4 pe-3 sm:py-3.5 sm:ps-6">
-                        <div className="font-semibold break-words">
+                        <div className="font-semibold wrap-anywhere">
                           <bdi>{description}</bdi>
                         </div>
                         {tx.description && tx.merchant && (
-                          <div className="flex items-center gap-1 text-xs break-words text-muted-foreground sm:text-[13px]">
+                          <div className="flex items-center gap-1 text-xs wrap-anywhere text-muted-foreground sm:text-[13px]">
                             <Store size={12} aria-hidden className="shrink-0" />
                             <span className="sr-only">{t("merchant")}: </span>
                             <bdi className="min-w-0">{tx.merchant}</bdi>
                           </div>
                         )}
                         {otherLegAccount && (
-                          <div className="flex items-center gap-1 text-xs break-words text-muted-foreground sm:text-[13px]">
+                          <div className="flex items-center gap-1 text-xs wrap-anywhere text-muted-foreground sm:text-[13px]">
                             {tx.amountMinor < 0 ? (
                               <ArrowUpRight size={12} aria-hidden className="shrink-0 rtl:-scale-x-100" />
                             ) : (
@@ -389,11 +389,11 @@ export default async function TransactionsPage({ searchParams }: SearchParams) {
                           </div>
                         )}
                         {tx.notes && (
-                          <div className="text-xs break-words text-muted-foreground sm:text-[13px]">
+                          <div className="text-xs wrap-anywhere text-muted-foreground sm:text-[13px]">
                             <bdi>{tx.notes}</bdi>
                           </div>
                         )}
-                        <div className="mt-0.5 text-xs break-words text-muted-foreground sm:text-[13px] lg:hidden">
+                        <div className="mt-0.5 text-xs wrap-anywhere text-muted-foreground sm:text-[13px] lg:hidden">
                           {!account && (
                             <>
                               {accountLabel}
@@ -406,7 +406,7 @@ export default async function TransactionsPage({ searchParams }: SearchParams) {
                         </div>
                       </td>
                       {!account && (
-                        <td className="hidden px-3 py-3.5 break-words text-muted-foreground lg:table-cell">
+                        <td className="hidden px-3 py-3.5 wrap-anywhere text-muted-foreground lg:table-cell">
                           {accountLabel}
                         </td>
                       )}
@@ -503,7 +503,7 @@ export default async function TransactionsPage({ searchParams }: SearchParams) {
               </nav>
             )}
           </div>
-        </section>
+        </Card>
       </LiveStatusProvider>
     </div>
   );
@@ -524,7 +524,7 @@ async function NoAccounts() {
           role="group"
           aria-label={t("transactions.filterLabel")}
           aria-disabled="true"
-          className="flex cursor-not-allowed gap-1 rounded-[11px] border border-border bg-muted p-1 opacity-50 sm:inline-flex"
+          className="flex cursor-not-allowed flex-wrap gap-1 rounded-[11px] border border-border bg-muted p-1 opacity-50 sm:inline-flex"
         >
           {TYPE_FILTERS.map((option) => (
             <span
@@ -537,14 +537,9 @@ async function NoAccounts() {
         </div>
       </div>
 
-      <section className="rounded-lg border border-border bg-card px-4 py-8 text-center text-[13px] text-muted-foreground sm:px-6 sm:py-10 sm:text-sm">
-        <Link
-          href="/accounts"
-          className={`rounded-sm underline hover:text-foreground ${focusRing}`}
-        >
-          {t("accounts.empty")}
-        </Link>
-      </section>
+      <Card as="section" className="px-4 py-8 sm:px-6 sm:py-10">
+        <EmptyState href="/accounts">{t("accounts.empty")}</EmptyState>
+      </Card>
     </div>
   );
 }
@@ -586,7 +581,7 @@ function PageLink({ href, disabled, children }: { href: string; disabled: boolea
       href={href}
       aria-disabled={disabled || undefined}
       tabIndex={disabled ? -1 : undefined}
-      className={`inline-flex min-h-9 items-center gap-1 rounded-[8px] border border-border px-3 text-[13px] font-medium hover:bg-muted aria-disabled:pointer-events-none aria-disabled:opacity-50 ${focusRing}`}
+      className="inline-flex min-h-9 items-center gap-1 rounded-[8px] border border-border px-3 text-[13px] font-medium hover:bg-muted aria-disabled:pointer-events-none aria-disabled:opacity-50 focus-ring"
     >
       {children}
     </Link>
@@ -611,7 +606,7 @@ function StatCard({
   className?: string;
 }) {
   return (
-    <div className={`flex items-center gap-4 rounded-lg border border-border bg-card p-3.5 sm:p-5 ${className}`}>
+    <Card className={`flex items-center gap-4 p-3.5 sm:p-5 ${className}`}>
       <span className={`flex size-11 shrink-0 max-sm:hidden items-center justify-center rounded-xl ${iconClassName}`}>
         <Icon size={20} aria-hidden />
       </span>
@@ -624,6 +619,6 @@ function StatCard({
         </div>
         {note && <div className="truncate text-xs text-muted-foreground">{note}</div>}
       </div>
-    </div>
+    </Card>
   );
 }

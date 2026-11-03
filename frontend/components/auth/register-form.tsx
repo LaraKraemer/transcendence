@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation";
 import { useActionState, useState } from "react";
 
 import {
-  FormAlert,
   PasswordVisibilityButton,
   SocialSignIn,
   formErrorFor,
@@ -17,10 +16,12 @@ import {
 } from "@/components/auth/form-parts";
 import { PasswordStrength } from "@/components/auth/password-strength";
 import { Button } from "@/components/ui/button";
+import { FormAlert } from "@/components/ui/form-alert";
 import { TextField } from "@/components/ui/text-field";
 import { useAuth } from "@/lib/auth-context";
 import {
   MAX_DISPLAY_NAME_LENGTH,
+  MIN_PASSWORD_LENGTH,
   validateRegister,
   type RegisterFields,
   type ValidationErrorCode,
@@ -118,6 +119,7 @@ export function RegisterForm() {
             type={showPassword ? "text" : "password"}
             dir="ltr"
             autoComplete="new-password"
+            hint={t("auth.passwordHint", { min: MIN_PASSWORD_LENGTH })}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             error={fieldErrors.password && errorText(fieldErrors.password)}

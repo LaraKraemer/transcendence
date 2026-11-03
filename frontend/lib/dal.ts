@@ -16,6 +16,8 @@ import { ApiError, fetchApi } from "@/lib/api";
 import { getSessionCookieHeader } from "@/lib/session";
 import type { Account, Category, Currency, User } from "@/lib/types";
 
+const sessionRequestTimeoutMs = 10_000;
+
 /**
  * Server-side `fetchApi` that forwards the inbound session cookie to the
  * backend. Needed because `credentials: "include"` is a browser-only concept:
@@ -36,7 +38,7 @@ export async function fetchApiServer<T>(path: string, init?: RequestInit): Promi
  * Forwards the inbound session cookie to the backend `GET /auth/me`. A `401`
  * means "not logged in" and maps to `null`; any other failure is logged and
  * also treated as `null` so a transient backend error degrades to logged-out
- * rather than crashing the render.
+ * rather than crashing the render. A ten-second timeout also bounds a stalled backend.
  *
  * Wrapped in React `cache()` so the root layout and the route-group layouts
  * share one `/auth/me` call per request instead of each making their own.
@@ -46,7 +48,9 @@ export const getCurrentUser = cache(async (): Promise<User | null> => {
   if (!(await getSessionCookieHeader())) return null;
 
   try {
-    const { user } = await fetchApiServer<{ user: User }>("/auth/me");
+    const { user } = await fetchApiServer<{ user: User }>("/auth/me", {
+      signal: AbortSignal.timeout(sessionRequestTimeoutMs),
+    });
     return user;
   } catch (error) {
     if (error instanceof ApiError && error.status === 401) return null;

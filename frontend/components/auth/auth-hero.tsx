@@ -5,7 +5,8 @@ import type { ReactNode } from "react";
 
 function AuthHero({ title, description, children }: { title: string; description: string; children: ReactNode }) {
   return (
-    <div className="flex w-full flex-col bg-(image:--grad-panel) p-12 text-[#e6ecf5]">
+    // White text: the gradient's green end is the darkest spot it sits on, and white is 5:1 there.
+    <div className="flex w-full flex-col bg-(image:--grad-panel) p-12 text-white">
       <Link href="/" className="flex items-center gap-2.5 font-bold hover:opacity-80">
         <span className="flex size-[34px] items-center justify-center rounded-[9px] border-[1.5px] border-white/40">
           P
@@ -14,7 +15,7 @@ function AuthHero({ title, description, children }: { title: string; description
       </Link>
       <div className="mt-auto">
         <h2 className="mb-4 text-4xl leading-[1.12] font-bold tracking-[-0.02em]">{title}</h2>
-        <p className="mb-[30px] max-w-[380px] text-[15px] leading-relaxed text-[#e6ecf5]/70">{description}</p>
+        <p className="mb-[30px] max-w-[380px] text-[15px] leading-relaxed">{description}</p>
         <div
           aria-hidden
           className="rounded-2xl bg-card p-5 text-card-foreground shadow-[0_20px_40px_rgba(0,0,0,.22)]"

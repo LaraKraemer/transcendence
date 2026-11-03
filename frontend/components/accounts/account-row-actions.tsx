@@ -1,23 +1,20 @@
 "use client";
 
-import { Archive, ArchiveRestore, Pencil } from "lucide-react";
+import { Archive, ArchiveRestore, Pencil, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { startTransition, useActionState, useEffect, useRef, useState } from "react";
+import { startTransition, useActionState, useEffect, useRef, useState, type ReactNode } from "react";
 
 import { AccountForm } from "@/components/accounts/account-form";
 import { formErrorFor } from "@/components/auth/form-parts";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { IconButton } from "@/components/ui/icon-button";
 import { useAnnounce } from "@/components/ui/live-status";
-import { setAccountArchived } from "@/lib/actions/accounts";
+import { deleteAccount, setAccountArchived } from "@/lib/actions/accounts";
 import type { Account } from "@/lib/types";
 
-/** Small row action button; the transactions list uses it too, so both lists look alike. */
-export const iconButtonClasses =
-  "flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-[9px] bg-muted text-muted-foreground transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none";
-
 /**
- * Edit and Archive for one account row. Edit expands the shared account form
- * under the row; Archive asks for confirmation in a native dialog first.
+ * Edit expands the shared account form, containing Archive and Delete actions.
+ * Both destructive actions ask for confirmation before changing the account.
  * Rendered inside the row's flex container, so the form can take a full line.
  * `headingId` is where focus goes after archiving, since this row disappears.
  */
@@ -38,7 +35,7 @@ export function AccountRowActions({
   const returnFocusTo = useRef<"edit" | "archive" | null>(null);
 
   useEffect(() => {
-    if (panel !== "none" || !returnFocusTo.current) return;
+    if (!returnFocusTo.current) return;
     (returnFocusTo.current === "edit" ? editButtonRef : archiveButtonRef).current?.focus();
     returnFocusTo.current = null;
   }, [panel]);
@@ -56,39 +53,40 @@ export function AccountRowActions({
 
   function close(from: "edit" | "archive") {
     returnFocusTo.current = from;
-    setPanel("none");
+    setPanel(from === "archive" ? "edit" : "none");
   }
 
   return (
     <>
-      {panel !== "edit" && (
+      {panel === "none" && (
         // On narrow screens the buttons move to their own line, so the name isn't squeezed.
         <div className="flex basis-full justify-end gap-1.5 sm:basis-auto">
-          <button
-            ref={editButtonRef}
-            type="button"
-            onClick={() => setPanel("edit")}
-            aria-label={t("actions.edit", { name: account.name })}
-            title={t("actions.edit", { name: account.name })}
-            className={`${iconButtonClasses} hover:text-foreground`}
-          >
+          <IconButton ref={editButtonRef} label={t("actions.edit", { name: account.name })} onClick={() => setPanel("edit")}>
             <Pencil size={15} aria-hidden />
-          </button>
-          <button
-            ref={archiveButtonRef}
-            type="button"
-            onClick={() => setPanel("archive")}
-            aria-label={t("actions.archive", { name: account.name })}
-            title={t("actions.archive", { name: account.name })}
-            className={`${iconButtonClasses} hover:text-destructive`}
-          >
-            <Archive size={15} aria-hidden />
-          </button>
+          </IconButton>
         </div>
       )}
 
-      {panel === "edit" && (
-        <AccountForm mode="edit" account={account} minorUnit={minorUnit} onClose={() => close("edit")} />
+      {panel !== "none" && (
+        <AccountForm
+          mode="edit"
+          account={account}
+          minorUnit={minorUnit}
+          onClose={() => close("edit")}
+          editActions={
+            <div className="ms-auto flex shrink-0 items-center gap-1.5">
+              <IconButton
+                ref={archiveButtonRef}
+                label={t("actions.archive", { name: account.name })}
+                variant="muted-warning"
+                onClick={() => setPanel("archive")}
+              >
+                <Archive size={15} aria-hidden />
+              </IconButton>
+              <DeleteAccountButton account={account} headingId={headingId} />
+            </div>
+          }
+        />
       )}
 
       {/* Mounted only while open, so a previous failure's error doesn't reappear. */}
@@ -142,16 +140,15 @@ export function UnarchiveButton({ account, headingId }: { account: Account; head
         </p>
       )}
       {/* aria-disabled, not disabled: a disabled button loses keyboard focus. */}
-      <button
-        type="button"
+      <IconButton
+        label={t("actions.unarchive", { name: account.name })}
         onClick={() => !isRestoring && startTransition(() => runRestore())}
         aria-disabled={isRestoring}
-        aria-label={t("actions.unarchive", { name: account.name })}
-        className="flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-[9px] bg-muted px-3 text-[13px] font-semibold text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none aria-disabled:cursor-wait aria-disabled:opacity-60"
+        className="aria-disabled:cursor-wait aria-disabled:opacity-60"
       >
         <ArchiveRestore size={15} aria-hidden />
-        {isRestoring ? t("unarchiving") : t("unarchive")}
-      </button>
+      </IconButton>
+      <DeleteAccountButton account={account} headingId={headingId} />
     </div>
   );
 }
@@ -186,7 +183,10 @@ function ArchiveDialog({
   return (
     <ConfirmDialog
       open
-      title={t("archiveDialog.title", { name: account.name })}
+      title={t.rich("archiveDialog.title", {
+        name: account.name,
+        account: (name) => <bdi className="rounded bg-muted px-1.5 py-0.5 text-foreground">{name}</bdi>,
+      })}
       confirmLabel={isArchiving ? t("archiveDialog.confirming") : t("archiveDialog.confirm")}
       onConfirm={() => startTransition(() => runArchive())}
       onCancel={onCancel}
@@ -194,6 +194,103 @@ function ArchiveDialog({
       error={archiveError && t(`errors.${archiveError}`)}
     >
       {t("archiveDialog.description")}
+    </ConfirmDialog>
+  );
+}
+
+/** Shared permanent deletion action for active and archived account rows. */
+function DeleteAccountButton({ account, headingId }: { account: Account; headingId: string }) {
+  const t = useTranslations("accounts");
+  const [open, setOpen] = useState(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const returnFocus = useRef(false);
+  const wasDeleted = useRef(false);
+
+  useEffect(() => {
+    if (open || !returnFocus.current) return;
+    buttonRef.current?.focus();
+    returnFocus.current = false;
+  }, [open]);
+
+  useEffect(
+    () => () => {
+      if (wasDeleted.current) document.getElementById(headingId)?.focus();
+    },
+    [headingId],
+  );
+
+  return (
+    <>
+      <IconButton ref={buttonRef} label={t("actions.delete", { name: account.name })} variant="danger" onClick={() => setOpen(true)}>
+        <Trash2 size={15} aria-hidden />
+      </IconButton>
+      {open && (
+        <DeleteAccountDialog
+          account={account}
+          onDeleted={() => (wasDeleted.current = true)}
+          onCancel={() => {
+            returnFocus.current = true;
+            setOpen(false);
+          }}
+        />
+      )}
+    </>
+  );
+}
+
+/** Keeps failures in the confirmation dialog and requires an explicit destructive click. */
+function DeleteAccountDialog({
+  account,
+  onDeleted,
+  onCancel,
+}: {
+  account: Account;
+  onDeleted: () => void;
+  onCancel: () => void;
+}) {
+  const t = useTranslations("accounts");
+  const announce = useAnnounce();
+  const [isFinalConfirmation, setIsFinalConfirmation] = useState(false);
+  const [deleteError, runDelete, isDeleting] = useActionState(async (): Promise<"network" | "generic" | null> => {
+    try {
+      const result = await deleteAccount(account.id);
+      if (result.success) {
+        announce(t("announcements.deleted", { name: account.name }));
+        onDeleted();
+        return null;
+      }
+      return formErrorFor(result) === "network" ? "network" : "generic";
+    } catch {
+      return "network";
+    }
+  }, null);
+
+  const accountNameValues = {
+    name: account.name,
+    account: (name: ReactNode) => (
+      <bdi className="rounded bg-muted px-1.5 py-0.5 text-foreground">{name}</bdi>
+    ),
+  };
+
+  return (
+    <ConfirmDialog
+      key={isFinalConfirmation ? "final" : "initial"}
+      open
+      title={t.rich(isFinalConfirmation ? "deleteDialog.finalTitle" : "deleteDialog.title", accountNameValues)}
+      confirmLabel={
+        isDeleting
+          ? t("deleteDialog.confirming")
+          : t(isFinalConfirmation ? "deleteDialog.confirm" : "deleteDialog.continue")
+      }
+      onConfirm={() => {
+        if (isFinalConfirmation) startTransition(() => runDelete());
+        else setIsFinalConfirmation(true);
+      }}
+      onCancel={onCancel}
+      pending={isDeleting}
+      error={deleteError && t(`errors.${deleteError}`)}
+    >
+      {t.rich(isFinalConfirmation ? "deleteDialog.finalDescription" : "deleteDialog.description", accountNameValues)}
     </ConfirmDialog>
   );
 }

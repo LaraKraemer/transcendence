@@ -52,7 +52,7 @@ export function NavLinks({ variant }: { variant: keyof typeof variantClasses }) 
               <Link
                 href={href}
                 aria-current={isActive ? "page" : undefined}
-                className={`${classes.link} ${isActive ? classes.active : classes.inactive} focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none`}
+                className={`${classes.link} ${isActive ? classes.active : classes.inactive} focus-ring`}
               >
                 <Icon size={classes.iconSize} aria-hidden />
                 {t(labelKey)}

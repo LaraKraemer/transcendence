@@ -21,7 +21,7 @@ export function SelectField({
   const describedBy = [hint && hintId, error && errorId].filter(Boolean).join(" ") || undefined;
   return (
     <div className="mb-[18px]">
-      <label htmlFor={id} className="mb-[7px] block text-[13px] font-semibold">
+      <label htmlFor={id} className="mb-[7px] block text-label">
         {label}
       </label>
       {/* The native arrow can't be spaced from the edge, so it's hidden and drawn
@@ -46,12 +46,12 @@ export function SelectField({
         />
       </div>
       {hint && (
-        <p id={hintId} className="mt-1.5 text-xs text-muted-foreground">
+        <p id={hintId} className="mt-1.5 text-caption text-muted-foreground">
           {hint}
         </p>
       )}
       {error && (
-        <p id={errorId} className="mt-1.5 text-xs font-medium text-destructive">
+        <p id={errorId} className="mt-1.5 text-caption font-medium text-destructive">
           {error}
         </p>
       )}
