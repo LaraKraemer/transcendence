@@ -17,11 +17,18 @@ import {
 } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 
-import type { AnalyticsFilters } from "../validation.ts";
 import type { TransactionImport } from "../transaction-import.ts";
 import { db } from "./client.ts";
 import { accounts, categories, currencies, transactions } from "./schema.ts";
 import type { NewTransaction, Transaction } from "./schema.ts";
+
+export type AnalyticsFilters = {
+  from: string;
+  to: string;
+  accountId?: string;
+  categoryId?: string;
+  type?: "expense" | "income";
+};
 
 /** Finds a transaction only when its account belongs to the authenticated user, including archived accounts. */
 export async function findOwnedTransaction(transactionId: string, userId: string) {

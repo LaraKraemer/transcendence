@@ -5,7 +5,42 @@ import { requireAuthenticatedUser } from "../auth.ts";
 import { findOwnedAccount } from "../db/accounts.ts";
 import { findOwnedCategory } from "../db/categories.ts";
 import { summarizeTransactionsByCategory, transactionsForExport, transactionTimeSeries } from "../db/transactions.ts";
-import { parseAnalyticsFilters } from "../validation.ts";
+import type { AnalyticsFilters } from "../db/transactions.ts";
+import { isDateOnly, isUuid } from "../validation.ts";
+
+const REPORT_TYPES = ["expense", "income"] as const;
+const GRANULARITIES = ["day", "week", "month"] as const;
+
+function isReportType(value: unknown): value is (typeof REPORT_TYPES)[number] {
+  return REPORT_TYPES.includes(value as (typeof REPORT_TYPES)[number]);
+}
+
+function isGranularity(value: unknown): value is (typeof GRANULARITIES)[number] {
+  return GRANULARITIES.includes(value as (typeof GRANULARITIES)[number]);
+}
+
+/** Validates a bounded, inclusive reporting range and optional transaction filters. */
+function parseAnalyticsFilters(query: Record<string, unknown>): AnalyticsFilters | { error: string } {
+  const { from, to, accountId, categoryId, type } = query;
+  if (!isDateOnly(from)) return { error: "from must be a valid YYYY-MM-DD date" };
+  if (!isDateOnly(to)) return { error: "to must be a valid YYYY-MM-DD date" };
+  if (from > to) return { error: "from must be on or before to" };
+  const millisecondsPerDay = 86_400_000;
+  const maxRangeDays = 1827;
+  if ((Date.parse(to) - Date.parse(from)) / millisecondsPerDay > maxRangeDays) {
+    return { error: `Date range must not exceed ${maxRangeDays} days (about five years)` };
+  }
+  if (accountId !== undefined && !isUuid(accountId)) return { error: "accountId must be a valid UUID" };
+  if (categoryId !== undefined && !isUuid(categoryId)) return { error: "categoryId must be a valid UUID" };
+  if (type !== undefined && !isReportType(type)) return { error: "type must be expense or income" };
+  return {
+    from,
+    to,
+    ...(accountId === undefined ? {} : { accountId }),
+    ...(categoryId === undefined ? {} : { categoryId }),
+    ...(type === undefined ? {} : { type }),
+  };
+}
 
 /** Validates reporting filters and resolves optional resources without revealing foreign ones. */
 async function ownedFilters(query: Record<string, unknown>, userId: string) {
@@ -26,7 +61,7 @@ analyticsRouter.use(requireAuthenticatedUser);
 /** Returns signed income/expense totals per period and currency, including zero periods, plus informational transfer-out/in totals (never part of income/expense). */
 analyticsRouter.get("/timeseries", async (req, res, next) => {
   const { granularity } = req.query;
-  if (granularity !== "day" && granularity !== "week" && granularity !== "month") {
+  if (!isGranularity(granularity)) {
     res.status(400).json({ error: "granularity must be day, week, or month" });
     return;
   }
