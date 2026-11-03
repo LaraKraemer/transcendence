@@ -1,6 +1,6 @@
 "use server";
 
-import { refresh } from "next/cache";
+import { refresh, revalidatePath } from "next/cache";
 import { getLocale } from "next-intl/server";
 import { z } from "zod";
 
@@ -86,6 +86,8 @@ export async function createTransaction(accountId: string, data: CreateTransacti
   }
 
   refresh();
+  // Also drops the cached /analytics page, so going Back to it shows the change (transfers are not charted).
+  revalidatePath("/analytics");
   return { success: true, message: "Transaction created" };
 }
 
@@ -146,6 +148,7 @@ export async function updateTransaction(
   }
 
   refresh();
+  revalidatePath("/analytics");
   return { success: true, message: "Transaction updated" };
 }
 
@@ -269,5 +272,6 @@ export async function deleteTransaction(transactionId: string): Promise<ActionRe
   }
 
   refresh();
+  revalidatePath("/analytics");
   return { success: true, message: "Transaction deleted" };
 }
