@@ -125,6 +125,8 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("transaction list with PostgreSQ
         ["%", 1],
         ["_", 1],
         ["\\", 1],
+        // The category name "Search".
+        ["EARC", 2],
       ] as const) {
         const result = await listTransactions(owner, { searchTerm, limit: 50, offset: 0 });
         expect(result.total).toBe(total);
@@ -140,7 +142,22 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("transaction list with PostgreSQ
         to: "2025-02-01",
       };
       expect((await listTransactions(owner, { ...combined, limit: 50, offset: 0 })).total).toBe(2);
-      expect(await listTransactions(owner, { ...combined, limit: 1, offset: 2 })).toEqual({ items: [], total: 2 });
+      expect(await listTransactions(owner, { ...combined, limit: 1, offset: 2 })).toEqual({
+        items: [],
+        total: 2,
+        moneyInMinor: 0,
+        moneyOutMinor: -200,
+      });
+      // The sums cover every match, not only the page.
+      expect(await listTransactions(owner, { limit: 1, offset: 0 })).toMatchObject({
+        total: 6,
+        moneyInMinor: 500,
+        moneyOutMinor: -1100,
+      });
+      expect(await listTransactions(owner, { searchTerm: "caf", limit: 1, offset: 0 })).toMatchObject({
+        moneyInMinor: 0,
+        moneyOutMinor: -400,
+      });
       expect(
         (await listTransactions(owner, { searchTerm: "caf", categoryId: "none", limit: 50, offset: 0 })).items,
       ).toMatchObject([{ amountMinor: -200, categoryId: null }]);

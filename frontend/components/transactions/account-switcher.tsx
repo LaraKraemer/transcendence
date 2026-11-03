@@ -46,7 +46,7 @@ export function AccountSwitcher({
     // Before navigating: /transactions reads the cookie on the server when it has no accountId.
     rememberAccount(accountId);
     const params = new URLSearchParams(searchParams);
-    params.delete("offset");
+    params.delete("page");
     if (accountId === ALL_ACCOUNTS) params.delete("accountId");
     else params.set("accountId", accountId);
     const query = params.toString();
