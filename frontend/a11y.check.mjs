@@ -28,6 +28,9 @@ const protectedPages = [
   "/accounts",
   "/accounts?archived=true",
   "/transactions",
+  // The open "More filters" panel, and the empty result of a search.
+  "/transactions?sort=amountMinor&order=asc&minAmountMinor=100",
+  "/transactions?q=no-such-transaction",
   "/categories",
   "/profile",
 ];

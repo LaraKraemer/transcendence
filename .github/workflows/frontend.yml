@@ -38,6 +38,7 @@ jobs:
       - run: npm run lint
       - run: npm run check:format
       - run: npm run check:import
+      - run: npm run check:filters
       - run: npm run build
 
   a11y:
