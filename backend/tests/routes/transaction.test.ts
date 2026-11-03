@@ -196,19 +196,20 @@ describe("GET /transactions", () => {
 
   it.each(["caf", "%", "_", "\\", "a%_\\b"])("escapes and trims q=%s in both queries", async (term) => {
     query.mockResolvedValueOnce({ rows: [] });
-    query.mockResolvedValueOnce({ rows: [["0"]] });
+    query.mockResolvedValueOnce({ rows: [["0", "0", "0"]] });
     await dispatch(transactionsRouter, { url: "/", query: { q: `  ${term}  ` } });
     const pattern = `%${term.replace(/[\\%_]/g, "\\$&")}%`;
     for (const index of [0, 1]) {
-      expect(query.mock.calls[index]![1]).toEqual(expect.arrayContaining([pattern, pattern, pattern]));
+      expect(query.mock.calls[index]![1]).toEqual(expect.arrayContaining([pattern, pattern, pattern, pattern]));
       for (const field of ["description", "merchant_name", "notes"])
         expect(query.mock.calls[index]![0].text).toContain(`"transaction"."${field}" ilike`);
+      expect(query.mock.calls[index]![0].text).toContain(`"category"."name" ilike`);
     }
   });
 
   it("treats blank search as no filter", async () => {
     query.mockResolvedValueOnce({ rows: [] });
-    query.mockResolvedValueOnce({ rows: [["0"]] });
+    query.mockResolvedValueOnce({ rows: [["0", "0", "0"]] });
     await dispatch(transactionsRouter, { url: "/", query: { q: "   " } });
     expect(query.mock.calls[0]![0].text).not.toContain("ilike");
   });
@@ -219,7 +220,7 @@ describe("GET /transactions", () => {
       for (const order of ["asc", "desc"]) {
         query.mockReset();
         query.mockResolvedValueOnce({ rows: [] });
-        query.mockResolvedValueOnce({ rows: [["0"]] });
+        query.mockResolvedValueOnce({ rows: [["0", "0", "0"]] });
         await dispatch(transactionsRouter, { url: "/", query: { sort, order } });
         const column = { bookedOn: "booked_on", amountMinor: "amount_minor", createdAt: "created_at" }[sort];
         expect(query.mock.calls[0]![0].text).toContain(`order by "transaction"."${column}" ${order}`);
@@ -234,7 +235,7 @@ describe("GET /transactions", () => {
         rows: [[categoryId, userId, "Food", null, null, ["expense"], new Date().toISOString()]],
       });
     query.mockResolvedValueOnce({ rows: [] });
-    query.mockResolvedValueOnce({ rows: [["3"]] });
+    query.mockResolvedValueOnce({ rows: [["3", "0", "0"]] });
     const result = await dispatch(transactionsRouter, {
       url: "/",
       query: {
@@ -249,7 +250,7 @@ describe("GET /transactions", () => {
         offset: "4",
       },
     });
-    expect(result).toEqual({ status: 200, body: { items: [], total: 3 } });
+    expect(result).toEqual({ status: 200, body: { items: [], total: 3, moneyInMinor: 0, moneyOutMinor: 0 } });
     const calls = query.mock.calls.slice(-2);
     expect(calls[0]![1].slice(0, -2)).toEqual(calls[1]![1]);
     for (const call of calls) {
@@ -295,14 +296,14 @@ describe("GET /transactions", () => {
   it.each(["20", "200"])("accepts limit=%s with offset=0 and returns a separate total", async (limit) => {
     query.mockResolvedValueOnce({ rows: [acctRow()] });
     query.mockResolvedValueOnce({ rows: [txRow()] });
-    query.mockResolvedValueOnce({ rows: [["87"]] });
+    query.mockResolvedValueOnce({ rows: [["87", "0", "0"]] });
     const result = await dispatch(transactionsRouter, {
       url: "/",
       query: { accountId, limit, offset: "0" },
     });
     expect(result).toMatchObject({
       status: 200,
-      body: { items: [{ id: transactionId }], total: 87 },
+      body: { items: [{ id: transactionId }], total: 87, moneyInMinor: 0, moneyOutMinor: 0 },
     });
     expect(query.mock.calls[1]![0].text).toContain("limit $");
     expect(query.mock.calls[1]![1]).toEqual([accountId, Number(limit)]);
@@ -311,15 +312,34 @@ describe("GET /transactions", () => {
     expect(query.mock.calls[2]![1]).toEqual([accountId]);
   });
 
+  it("returns money in and out of all filtered matches as numbers", async () => {
+    query.mockResolvedValueOnce({ rows: [acctRow()] });
+    query.mockResolvedValueOnce({ rows: [] });
+    query.mockResolvedValueOnce({ rows: [["4", "250000", "-4250"]] });
+    const result = await dispatch(transactionsRouter, { url: "/", query: { accountId, q: "shop", limit: "1" } });
+    expect(result).toEqual({
+      status: 200,
+      body: { items: [], total: 4, moneyInMinor: 250000, moneyOutMinor: -4250 },
+    });
+    const sql: string = query.mock.calls[2]![0].text;
+    expect(sql).toContain('sum("transaction"."amount_minor") filter (where "transaction"."amount_minor" > 0)');
+    expect(sql).toContain('sum("transaction"."amount_minor") filter (where "transaction"."amount_minor" < 0)');
+    expect(sql).toContain("ilike");
+    expect(sql).not.toMatch(/limit|offset/);
+  });
+
   it("applies inclusive dates to both queries", async () => {
     query.mockResolvedValueOnce({ rows: [acctRow()] });
     query.mockResolvedValueOnce({ rows: [txRow()] });
-    query.mockResolvedValueOnce({ rows: [["42"]] });
+    query.mockResolvedValueOnce({ rows: [["42", "0", "0"]] });
     const result = await dispatch(transactionsRouter, {
       url: "/",
       query: { accountId, from: "2025-01-01", to: "2025-03-31", limit: "20", offset: "20" },
     });
-    expect(result).toMatchObject({ status: 200, body: { items: [{ id: transactionId }], total: 42 } });
+    expect(result).toMatchObject({
+      status: 200,
+      body: { items: [{ id: transactionId }], total: 42, moneyInMinor: 0, moneyOutMinor: 0 },
+    });
     for (const index of [1, 2]) {
       const sql = query.mock.calls[index]![0].text;
       expect(sql).toContain('"transaction"."account_id" =');
@@ -337,10 +357,10 @@ describe("GET /transactions", () => {
     async (filters) => {
       query.mockResolvedValueOnce({ rows: [acctRow()] });
       query.mockResolvedValueOnce({ rows: [] });
-      query.mockResolvedValueOnce({ rows: [["0"]] });
+      query.mockResolvedValueOnce({ rows: [["0", "0", "0"]] });
       expect(await dispatch(transactionsRouter, { url: "/", query: { accountId, ...filters } })).toEqual({
         status: 200,
-        body: { items: [], total: 0 },
+        body: { items: [], total: 0, moneyInMinor: 0, moneyOutMinor: 0 },
       });
       expect(query.mock.calls[1]![1]).toEqual([accountId, ...Object.values(filters), 50]);
       expect(query.mock.calls[2]![1]).toEqual([accountId, ...Object.values(filters)]);
@@ -350,21 +370,21 @@ describe("GET /transactions", () => {
   it("preserves total when offset is beyond the last match", async () => {
     query.mockResolvedValueOnce({ rows: [acctRow()] });
     query.mockResolvedValueOnce({ rows: [] });
-    query.mockResolvedValueOnce({ rows: [["3"]] });
+    query.mockResolvedValueOnce({ rows: [["3", "0", "0"]] });
     expect(await dispatch(transactionsRouter, { url: "/", query: { accountId, offset: "50" } })).toEqual({
       status: 200,
-      body: { items: [], total: 3 },
+      body: { items: [], total: 3, moneyInMinor: 0, moneyOutMinor: 0 },
     });
     expect(query.mock.calls[1]![1]).toEqual([accountId, 50, 50]);
   });
 
   it("lists the transactions of all the user's accounts, archived included, when accountId is missing", async () => {
     query.mockResolvedValueOnce({ rows: [txRow(), txRow({ id: otherAccountId, accountId: otherAccountId })] });
-    query.mockResolvedValueOnce({ rows: [["2"]] });
+    query.mockResolvedValueOnce({ rows: [["2", "0", "0"]] });
     const result = await dispatch(transactionsRouter, { url: "/" });
     expect(result).toMatchObject({
       status: 200,
-      body: { items: [{ accountId }, { accountId: otherAccountId }], total: 2 },
+      body: { items: [{ accountId }, { accountId: otherAccountId }], total: 2, moneyInMinor: 0, moneyOutMinor: 0 },
     });
     for (const index of [0, 1]) {
       const sql: string = query.mock.calls[index]![0].text;
@@ -380,12 +400,12 @@ describe("GET /transactions", () => {
 
   it("applies limit, offset, type and dates without accountId", async () => {
     query.mockResolvedValueOnce({ rows: [] });
-    query.mockResolvedValueOnce({ rows: [["0"]] });
+    query.mockResolvedValueOnce({ rows: [["0", "0", "0"]] });
     const result = await dispatch(transactionsRouter, {
       url: "/",
       query: { type: "income", from: "2025-01-01", to: "2025-03-31", limit: "20", offset: "20" },
     });
-    expect(result).toEqual({ status: 200, body: { items: [], total: 0 } });
+    expect(result).toEqual({ status: 200, body: { items: [], total: 0, moneyInMinor: 0, moneyOutMinor: 0 } });
     expect(query.mock.calls[0]![1]).toEqual([userId, "income", "2025-01-01", "2025-03-31", 0, 20, 20]);
     expect(query.mock.calls[1]![1]).toEqual([userId, "income", "2025-01-01", "2025-03-31", 0]);
   });
@@ -393,9 +413,9 @@ describe("GET /transactions", () => {
   it.each(["expense", "income", "transfer"])("filters items and total by type=%s", async (type) => {
     query.mockResolvedValueOnce({ rows: [acctRow()] });
     query.mockResolvedValueOnce({ rows: [] });
-    query.mockResolvedValueOnce({ rows: [["7"]] });
+    query.mockResolvedValueOnce({ rows: [["7", "0", "0"]] });
     const result = await dispatch(transactionsRouter, { url: "/", query: { accountId, type } });
-    expect(result).toEqual({ status: 200, body: { items: [], total: 7 } });
+    expect(result).toEqual({ status: 200, body: { items: [], total: 7, moneyInMinor: 0, moneyOutMinor: 0 } });
     for (const index of [1, 2]) expect(query.mock.calls[index]![0].text).toContain('"transaction"."type" =');
     expect(query.mock.calls[1]![1]).toEqual([accountId, type, 50]);
     expect(query.mock.calls[2]![1]).toEqual([accountId, type]);
@@ -413,7 +433,7 @@ describe("GET /transactions", () => {
         ],
       ],
     });
-    query.mockResolvedValueOnce({ rows: [["2"]] });
+    query.mockResolvedValueOnce({ rows: [["2", "0", "0"]] });
     const result = await dispatch(transactionsRouter, { url: "/" });
     expect(result).toMatchObject({
       status: 200,
@@ -437,7 +457,7 @@ describe("GET /transactions", () => {
   it("keeps destination legs in one account's list, where the other leg is never listed", async () => {
     query.mockResolvedValueOnce({ rows: [acctRow()] });
     query.mockResolvedValueOnce({ rows: [] });
-    query.mockResolvedValueOnce({ rows: [["0"]] });
+    query.mockResolvedValueOnce({ rows: [["0", "0", "0"]] });
     await dispatch(transactionsRouter, { url: "/", query: { accountId } });
     for (const index of [1, 2]) expect(query.mock.calls[index]![0].text).not.toContain('"other_leg"."id" is null');
   });
@@ -457,7 +477,7 @@ describe("GET /transactions", () => {
   it("returns transaction list ordered by booked_on desc, created_at desc", async () => {
     query.mockResolvedValueOnce({ rows: [acctRow()] }); // findOwnedAccount
     query.mockResolvedValueOnce({ rows: [txRow()] }); // listTransactions
-    query.mockResolvedValueOnce({ rows: [["1"]] });
+    query.mockResolvedValueOnce({ rows: [["1", "0", "0"]] });
     const result = await dispatch(transactionsRouter, { url: "/", query: { accountId } });
     expect(result.status).toBe(200);
     const sql: string = query.mock.calls[1]![0].text;
@@ -465,13 +485,13 @@ describe("GET /transactions", () => {
       'order by "transaction"."booked_on" desc, "transaction"."created_at" desc, "transaction"."id" desc',
     );
     expect(query.mock.calls[1]![1]).toEqual([accountId, 50]);
-    expect(result.body).toMatchObject({ items: [{ id: transactionId }], total: 1 });
+    expect(result.body).toMatchObject({ items: [{ id: transactionId }], total: 1, moneyInMinor: 0, moneyOutMinor: 0 });
   });
 
   it("includes archived account's transactions", async () => {
     query.mockResolvedValueOnce({ rows: [acctRow({ isArchived: true })] });
     query.mockResolvedValueOnce({ rows: [txRow()] });
-    query.mockResolvedValueOnce({ rows: [["1"]] });
+    query.mockResolvedValueOnce({ rows: [["1", "0", "0"]] });
     const result = await dispatch(transactionsRouter, { url: "/", query: { accountId } });
     expect(result.status).toBe(200);
     const listSql: string = query.mock.calls[1]![0].text;
@@ -485,7 +505,7 @@ describe("GET /transactions", () => {
     query.mockResolvedValueOnce({
       rows: [[...txRow({ type: "transfer", transferGroupId }).slice(0, 14), otherAccountId, "1000"]],
     });
-    query.mockResolvedValueOnce({ rows: [["1"]] });
+    query.mockResolvedValueOnce({ rows: [["1", "0", "0"]] });
     const result = await dispatch(transactionsRouter, { url: "/", query: { accountId } });
     expect(result.body).toMatchObject({
       items: [{ transferGroupId, transferAccountId: otherAccountId, transferAmountMinor: 1000 }],
@@ -498,7 +518,7 @@ describe("GET /transactions", () => {
   it("converts amountMinor bigint string to number", async () => {
     query.mockResolvedValueOnce({ rows: [acctRow()] });
     query.mockResolvedValueOnce({ rows: [txRow({ amountMinor: "-3000" })] });
-    query.mockResolvedValueOnce({ rows: [["1"]] });
+    query.mockResolvedValueOnce({ rows: [["1", "0", "0"]] });
     const result = await dispatch(transactionsRouter, { url: "/", query: { accountId } });
     const { items: body } = result.body as { items: Array<{ amountMinor: number }> };
     expect(typeof body[0]!.amountMinor).toBe("number");

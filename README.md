@@ -315,7 +315,7 @@ Restore with `PATCH /accounts/:accountId` using only `{"isArchived": false}`, th
 separately. Repeated archiving returns `200`; missing or foreign resources return `404`.
 Permanent account deletion is handled separately in #48.
 
-`GET /transactions` lists one account with `?accountId=`, or without it the transactions of all your accounts, archived ones included. Search with `q` (case-insensitive, max 500 characters), filter with `categoryId` (owned UUID or `none`) and `minAmountMinor`/`maxAmountMinor` (absolute amounts). Sort with `sort=bookedOn|amountMinor|createdAt` and `order=asc|desc` (default: `bookedOn desc`; amount sorting uses signed amounts). `total` includes all active filters.
+`GET /transactions` lists one account with `?accountId=`, or without it the transactions of all your accounts, archived ones included. Search with `q` (case-insensitive, max 500 characters), filter with `categoryId` (owned UUID or `none`) and `minAmountMinor`/`maxAmountMinor` (absolute amounts). Sort with `sort=bookedOn|amountMinor|createdAt` and `order=asc|desc` (default: `bookedOn desc`; amount sorting uses signed amounts). `total`, `moneyInMinor` and `moneyOutMinor` (the sums of the positive and negative amounts, regardless of currency) cover all filtered matches, not only the page.
 `GET /accounts` lists active accounts; `GET /accounts?archived=true`
 lists only archived ones. Category and
 transaction deletion is permanent; deleting a category sets `categoryId = null` on its linked
@@ -450,7 +450,7 @@ with `TEST_DATABASE_URL` set using
 API startup applies migrations; CI waits for `/health`, then runs requests and
 prints the API log if a step fails.
 
-From `frontend/`, run `npm ci`, `npm run lint`, `npm run check:format`, `npm run check:import` and `npm run build`.
+From `frontend/`, run `npm ci`, `npm run lint`, `npm run check:format`, `npm run check:import`, `npm run check:filters` and `npm run build`.
 With the stack running (`make up`), `npm run check:a11y` scans every page with axe (run `npx playwright install chromium` once first); see `docs/accessibility.md`.
 Frontend CI runs lint, the `formatAmount` self-check and build, and the accessibility scan against a production build. Both workflows run on relevant pull requests and pushes to
 `main`, with read-only repository permissions and cancellation of superseded runs.

@@ -80,12 +80,15 @@ export type Transaction = {
 };
 
 /**
- * Response body of `GET /transactions`: one page, newest first, plus the number of matches. Without
- * `accountId` a transfer is one item: its source leg, with `transferAccountId` and `transferAmountMinor`.
+ * Response body of `GET /transactions`: one page, plus the number of matches and the sums of their positive
+ * and negative amounts (whatever their currency). Without `accountId` a transfer is one item: its source
+ * leg, with `transferAccountId` and `transferAmountMinor`.
  */
 export type TransactionPage = {
   items: Transaction[];
   total: number;
+  moneyInMinor: number;
+  moneyOutMinor: number;
 };
 
 /** One row of `GET /transactions/summary`: the signed total and count per (category, type); null = uncategorised. */
