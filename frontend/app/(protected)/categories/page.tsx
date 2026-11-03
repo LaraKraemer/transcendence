@@ -4,13 +4,13 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { CategoryIcon } from "@/components/categories/category-icon";
 import { NewCategoryButton } from "@/components/categories/category-form-dialog";
 import { CategoryTileActions } from "@/components/categories/category-tile-actions";
+import { Card } from "@/components/ui/card";
 import { LiveStatusProvider } from "@/components/ui/live-status";
 import { getCategories } from "@/lib/dal";
 import { HEX_COLOR_PATTERN, readableOn, type CategoryType } from "@/lib/validation";
 
 const TYPE_BADGE: Record<CategoryType, string> = {
-  // The light-mode red on its tint is 3.95:1 at this size; red-700 is 5.3:1 (dark mode passes as is).
-  expense: "bg-danger-bg text-red-700 dark:text-destructive",
+  expense: "bg-danger-bg text-destructive",
   income: "bg-success-bg text-success",
 };
 
@@ -39,26 +39,22 @@ export default async function CategoriesPage() {
         <div className="mb-6 flex flex-wrap items-start gap-4">
           <div className="min-w-0">
             {/* tabIndex -1: focus lands here after a deleted tile disappears. */}
-            <h1
-              id={CATEGORIES_HEADING_ID}
-              tabIndex={-1}
-              className="text-[26px] font-bold tracking-[-0.02em] outline-none"
-            >
-              {t("title")}
-            </h1>
+            <div className="flex flex-wrap items-center gap-3">
+              <h1 id={CATEGORIES_HEADING_ID} tabIndex={-1} className="text-title outline-none">
+                {t("title")}
+              </h1>
+              <NewCategoryButton variant="header" />
+            </div>
             <p className="mt-1 text-sm text-muted-foreground">{t("subtitle", { count: categories.length })}</p>
-          </div>
-          <div className="ms-auto">
-            <NewCategoryButton variant="header" />
           </div>
         </div>
 
         {categories.length === 0 ? (
-          <section className="rounded-lg border border-dashed border-border bg-card px-6 py-14 text-center">
+          <Card as="section" className="border-dashed px-6 py-14 text-center">
             <p className="text-sm text-muted-foreground">{t("empty")}</p>
-          </section>
+          </Card>
         ) : (
-          <div className="rounded-lg border border-border bg-card p-4 sm:p-[22px]">
+          <Card className="p-4 sm:p-[22px]">
             {/* As many 15rem columns as fit, so long names have room whether or not the sidebar is shown. */}
             <ul className="grid grid-cols-[repeat(auto-fill,minmax(15rem,1fr))] gap-3.5">
               {sortedCategories.map((category) => {
@@ -100,7 +96,7 @@ export default async function CategoriesPage() {
                 <NewCategoryButton variant="tile" />
               </li>
             </ul>
-          </div>
+          </Card>
         )}
       </div>
     </LiveStatusProvider>

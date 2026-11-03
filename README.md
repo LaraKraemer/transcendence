@@ -194,9 +194,15 @@ Run `docker compose exec backend npm run db:generate` only after changing
 Database data is stored in the `db-data` Docker volume and survives normal
 container restarts. Profile images are stored in the `avatar-data` volume
 mounted at `/app/avatars` inside the backend container; override the path with
-the `AVATAR_DIR` environment variable. `make clean` removes both volumes. PostgreSQL reads its initial user, password, and
-database name only when this volume is first created, so changing those values
-later requires recreating the volume.
+the `AVATAR_DIR` environment variable. `make clean` removes both volumes.
+PostgreSQL reads its initial user, password, and database name only when this
+volume is first created, so changing those values later requires recreating the volume.
+
+### Backups and recovery
+
+Daily database/avatar backups live in the host `./backups` directory and survive
+cleanup. See [disaster recovery](docs/disaster-recovery.md) for retention,
+limitations and the restore procedure and its confirmation argument.
 
 
 <br>
@@ -309,8 +315,8 @@ Restore with `PATCH /accounts/:accountId` using only `{"isArchived": false}`, th
 separately. Repeated archiving returns `200`; missing or foreign resources return `404`.
 Permanent account deletion is handled separately in #48.
 
-`GET /transactions` lists one account with `?accountId=`, or without it the transactions of all
-your accounts, archived ones included. `GET /accounts` lists active accounts; `GET /accounts?archived=true`
+`GET /transactions` lists one account with `?accountId=`, or without it the transactions of all your accounts, archived ones included. Search with `q` (case-insensitive, max 500 characters), filter with `categoryId` (owned UUID or `none`) and `minAmountMinor`/`maxAmountMinor` (absolute amounts). Sort with `sort=bookedOn|amountMinor|createdAt` and `order=asc|desc` (default: `bookedOn desc`; amount sorting uses signed amounts). `total` includes all active filters.
+`GET /accounts` lists active accounts; `GET /accounts?archived=true`
 lists only archived ones. Category and
 transaction deletion is permanent; deleting a category sets `categoryId = null` on its linked
 transactions. `GET /transactions/count/:categoryId` returns how many transactions use a category.
@@ -445,7 +451,8 @@ API startup applies migrations; CI waits for `/health`, then runs requests and
 prints the API log if a step fails.
 
 From `frontend/`, run `npm ci`, `npm run lint`, `npm run check:format`, `npm run check:import` and `npm run build`.
-Frontend CI runs lint, the `formatAmount` self-check and build. Both workflows run on relevant pull requests and pushes to
+With the stack running (`make up`), `npm run check:a11y` scans every page with axe (run `npx playwright install chromium` once first); see `docs/accessibility.md`.
+Frontend CI runs lint, the `formatAmount` self-check and build, and the accessibility scan against a production build. Both workflows run on relevant pull requests and pushes to
 `main`, with read-only repository permissions and cancellation of superseded runs.
 
 <br>
@@ -489,12 +496,15 @@ Test files live in `backend/tests/`, mirroring `backend/srcs/`:
 | Command | Description |
 |---|---|
 | `make up` | Start containers |
-| `make down` | Stop containers |
+| `make down` | Stop and remove containers |
+| `make stop` | Stop containers without removing them or their volumes |
 | `make build` | Rebuild containers |
 | `make rebuild` | Rebuild and renew dependency volumes after Dockerfile or dependency changes |
 | `make restart` | Restart containers |
 | `make logs` | View container logs |
-| `make clean` | Remove containers and volumes |
+| `make clean` | Remove containers and volumes (preserves host backups) |
+| `make backup` | Back up the database and avatars now |
+| `make restore BACKUP=backups/<snapshot> CONFIRM=--confirm` | Replace database and avatars from a trusted snapshot |
 | `make prune` | Remove unused images to free storage |
 <br>
 
@@ -720,3 +730,44 @@ Success returns `201 { "imported": <count> }`. Validation failures return 400,
 missing/foreign accounts 404, archived accounts 409 and oversized bodies 413.
 
 Frontend import preview regression check: `cd frontend && npm run check:import`.
+
+Public status page: `/status` is available without signing in, linked in the footer, and refreshes every 30 seconds, with a pause/resume control. It shows dependency health and the latest backup, or an unreachable message when the backend is offline. Run its browser regression check against the running frontend with `cd frontend && node status.check.mjs`.
+
+Public operational status: `GET /status` reports database latency, avatar storage
+permission, process uptime, version and the latest successful backup. `/health`
+remains the database readiness endpoint used by CI.
+
+## Design system
+
+`/design-system` (linked in the footer, public) shows the colour palette with light/dark
+values and contrast ratios, the type scale, the icons and every component below in the
+current theme and language. Reuse these instead of copying class strings:
+
+- Colours are tokens in `frontend/app/globals.css` (`bg-card`, `text-muted-foreground`, …).
+- Type roles set size, weight and tracking together: `text-title` (page `<h1>`),
+  `text-heading` (dialog title), `text-subheading` (card heading), `text-body`,
+  `text-label` (form label), `text-caption` (hint, error), `text-overline` (with `uppercase`).
+- `focus-ring` is the keyboard focus ring of links and buttons; add
+  `focus-visible:ring-offset-*` where the ring needs a gap.
+- Icons are `lucide-react`, `aria-hidden` next to visible text; add `rtl:-scale-x-100` to
+  arrows. Category icons come from `CATEGORY_ICONS` in `components/categories/category-icon.tsx`.
+
+| Component (`components/ui/`) | Props | When to use |
+|---|---|---|
+| `Button`, `buttonClassName` | `variant`: `primary` \| `success` \| `outline` \| `danger`, plus `<button>` props | Full-width form and dialog actions. Show loading as `disabled` with a "…ing" label. `buttonClassName(variant)` styles a `<Link>` as a button. |
+| `IconButton` | `label`, `children` (the icon, `aria-hidden`), `variant?` (default `muted`), `size?`: `inline` \| `sm` (default) \| `md` \| `lg` \| `xl` \| `fab`, plus `<button>` props | Every button that shows only an icon: add, edit, archive, delete, close, import, log out. `label` is its accessible name and tooltip. Variants: `primary`, `success`, `danger` (filled); `muted`, `muted-danger`, `muted-warning` (row actions); `card`, `card-danger` (on a muted tile); `ghost`, `plain`, `outline`, `outline-danger`. |
+| `ToggleButton` | `label`, `pressed`, `onPressedChange`, plus `IconButton` props | An icon button that is on or off, e.g. show password. The label stays the same; `aria-pressed` tells the state. |
+| `TextField` | `id`, `label`, `error?`, `trailing?`, `children?`, plus `<input>` props | Every text, email, password, number or date input. `error` marks it invalid and links the message. |
+| `SelectField` | `id`, `label`, `error?`, `hint?`, `children` (`<option>`s), plus `<select>` props | A choice from a list. Required unless `required={false}`. |
+| `ChoiceGroup`, `choiceSegmentsClassName`, `choiceSegmentClassName` | `legend`, `idPrefix`, `error?`, `children` | A labelled group of radios or checkboxes with one error. The two class names give the choices the segmented look (`peer sr-only` input, then a styled `<span>`). |
+| `Modal` | `open`, `title`, `onClose`, `busy?`, `describedBy?`, `closeOnBackdropClick?` | Forms in a dialog. Mark the first field `data-autofocus`. `busy` blocks closing while saving. |
+| `ConfirmDialog` | `open`, `title`, `children`, `confirmLabel`, `onConfirm`, `onCancel`, `pending?`, `confirmDisabled?`, `error?` | Before a destructive action. Focus starts on Cancel. |
+| `LiveStatusProvider`, `useAnnounce` | `announce(message)` | Tell screen readers the result of an action whose row disappears ("“Savings” archived"). |
+| `FormAlert` | `message` (`null` hides it) | A form-level error at the top of a form, e.g. a network failure. |
+| `Card` | `as?`: `div` \| `section` \| `article` \| `details`, `className` (padding), plus HTML props | Every bordered panel. Use `as="section"` with `aria-labelledby` when it has a heading. |
+| `Badge`, `badgeToneClassName` | `tone?`: `neutral` \| `info` \| `success` \| `warning` \| `danger`, `variant?`: `label` \| `pill` | `label`: short uppercase status next to a name. `pill`: a value with an icon. The text must make sense without the colour. |
+| `EmptyState` | `href?`, `className` (spacing), `children` | The message where a list has nothing to show. `href` makes it a link to where the user can add something. |
+| `StrengthMeter` | `score`, `segments?` (3), `label`, `tone`: `danger` \| `success` | A segmented level with a text label, e.g. password strength (`PasswordStrength` in `components/auth`). |
+| `UserAvatar` | `displayName`, `avatarUrl`, `alt` (`""` = decorative), `className` (size and colours) | A user's photo, with initials when there is none or it fails to load. |
+| `ThemeToggle` | `variant?`: `auth` (42 px) \| `app` (40 px) | Light/dark switch in page headers. An `IconButton` whose label names the theme it switches to. |
+| `LocaleSwitcher` | `variant?`: `select` \| `pill` \| `list` | Language picker: `select` on public pages, `pill` in the app header, `list` on the mobile More page. |

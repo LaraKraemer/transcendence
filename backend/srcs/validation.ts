@@ -41,39 +41,6 @@ export function isDateOnly(value: unknown): value is string {
   );
 }
 
-export type AnalyticsFilters = {
-  from: string;
-  to: string;
-  accountId?: string;
-  categoryId?: string;
-  type?: "expense" | "income";
-};
-
-/** Validates a bounded, inclusive reporting range and optional transaction filters. */
-export function parseAnalyticsFilters(query: Record<string, unknown>): AnalyticsFilters | { error: string } {
-  const { from, to, accountId, categoryId, type } = query;
-  if (!isDateOnly(from)) return { error: "from must be a valid YYYY-MM-DD date" };
-  if (!isDateOnly(to)) return { error: "to must be a valid YYYY-MM-DD date" };
-  if (from > to) return { error: "from must be on or before to" };
-  const millisecondsPerDay = 86_400_000;
-  const maxRangeDays = 1827;
-  if ((Date.parse(to) - Date.parse(from)) / millisecondsPerDay > maxRangeDays) {
-    return { error: `Date range must not exceed ${maxRangeDays} days (about five years)` };
-  }
-  if (accountId !== undefined && !isUuid(accountId)) return { error: "accountId must be a valid UUID" };
-  if (categoryId !== undefined && !isUuid(categoryId)) return { error: "categoryId must be a valid UUID" };
-  if (type !== undefined && type !== "expense" && type !== "income") {
-    return { error: "type must be expense or income" };
-  }
-  return {
-    from,
-    to,
-    ...(accountId === undefined ? {} : { accountId }),
-    ...(categoryId === undefined ? {} : { categoryId }),
-    ...(type === undefined ? {} : { type }),
-  };
-}
-
 /** Returns whether a value is a CSS hex color string (e.g. #2563EB). */
 export function isHexColor(value: unknown): value is string {
   return typeof value === "string" && /^#[0-9A-Fa-f]{6}$/.test(value);

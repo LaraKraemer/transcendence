@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 
 import { LegalFooter } from "@/components/legal/legal-footer";
-import { LocaleSwitcher } from "@/components/locale-switcher";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { LocaleSwitcher } from "@/components/ui/locale-switcher";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 export async function AuthShell({ hero, children }: { hero: ReactNode; children: ReactNode }) {
   return (

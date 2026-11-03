@@ -15,7 +15,8 @@ Bruno keeps the session cookie after registration, so the following protected
 requests run as that user.
 
 The collection lists transactions across all accounts, where a transfer is one item,
-and filters one account's transactions by type: the income is listed, the transfer leg is not.
+and combines text, uncategorised, type and absolute-amount filters with sorting and pagination:
+the income is listed, the transfer leg is not.
 It archives the savings account and checks that only it appears in `GET /accounts?archived=true`.
 
 The collection deletes the created transaction, then permanently deletes the account,

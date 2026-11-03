@@ -5,9 +5,10 @@ import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useEffect, type ReactNode } from "react";
 
-import { LocaleSwitcher } from "@/components/locale-switcher";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { Button, buttonClassName, type ButtonVariant } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { LocaleSwitcher } from "@/components/ui/locale-switcher";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useAuth } from "@/lib/auth-context";
 
 /** The heading's id, so the error page can move focus to it. */
@@ -50,7 +51,7 @@ function StatusPage({
           <ThemeToggle />
         </div>
       )}
-      <div className="w-full max-w-md rounded-(--radius) border border-border bg-card p-7 text-center sm:p-9">
+      <Card className="w-full max-w-md p-7 text-center sm:p-9">
         <span className="mx-auto mb-5 flex size-14 items-center justify-center rounded-full bg-muted text-muted-foreground">
           <Icon size={26} aria-hidden />
         </span>
@@ -61,7 +62,7 @@ function StatusPage({
         <p className="mt-2 text-sm text-muted-foreground">{description}</p>
         {reference && <p className="mt-3 text-xs text-muted-foreground">{reference}</p>}
         <div className="mt-7 flex flex-col gap-3">{children}</div>
-      </div>
+      </Card>
     </Wrapper>
   );
 }

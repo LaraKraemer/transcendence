@@ -2,7 +2,6 @@ services:
 
   db:
     image: postgres:17-alpine
-    container_name: expense-db
 
     ports:
       - "127.0.0.1:5432:5432"
@@ -30,7 +29,6 @@ services:
     build:
       context: ./backend
 
-    container_name: expense-backend
 
     ports:
       - "3001:3001"
@@ -41,6 +39,7 @@ services:
       - ./.prettierrc.json:/.prettierrc.json:ro
       - /app/node_modules
       - avatar-data:/app/avatars
+      - ./backups:/backups:ro
 
     environment:
       NODE_ENV: development
@@ -52,6 +51,13 @@ services:
       db:
         condition: service_healthy
 
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3001/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
+
     command: npm run dev
 
 
@@ -59,7 +65,6 @@ services:
     build:
       context: ./frontend
 
-    container_name: expense-frontend
 
     ports:
       - "3000:3000"
@@ -77,10 +82,38 @@ services:
       API_URL: http://backend:3001
 
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 10s
+      retries: 6
+      start_period: 60s
 
     command: npm run dev
 
+
+  backup:
+    build:
+      context: ./scripts
+      dockerfile: backup.Dockerfile
+    environment:
+      PGHOST: db
+      PGUSER: expense
+      PGPASSWORD: expense
+      PGDATABASE: expense_tracker
+    volumes:
+      - ./backups:/backups
+      - avatar-data:/avatars
+      - ./scripts:/scripts:ro
+    depends_on:
+      db:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
 
 volumes:
   db-data:

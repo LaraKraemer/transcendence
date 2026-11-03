@@ -18,6 +18,7 @@
   "auth": {
     "continueWithGoogle": "Weiter mit Google",
     "showPassword": "Passwort anzeigen",
+    "passwordHint": "Mindestens {min, number} Zeichen",
     "fields": {
       "email": "E-Mail-Adresse",
       "emailPlaceholder": "erika.mustermann@email.com",
@@ -231,10 +232,11 @@
     "actions": {
       "edit": "{name} bearbeiten",
       "archive": "{name} archivieren",
-      "unarchive": "{name} wiederherstellen"
+      "unarchive": "{name} wiederherstellen",
+      "delete": "Konto dauerhaft löschen: {name}"
     },
     "archiveDialog": {
-      "title": "„{name}“ archivieren?",
+      "title": "<account>{name}</account> archivieren?",
       "description": "Dieses Konto archivieren? Deine Transaktionen bleiben erhalten.",
       "confirm": "Archivieren",
       "confirming": "Wird archiviert…"
@@ -243,7 +245,17 @@
       "created": "„{name}“ angelegt",
       "saved": "„{name}“ gespeichert",
       "archived": "„{name}“ archiviert",
-      "restored": "„{name}“ wiederhergestellt"
+      "restored": "„{name}“ wiederhergestellt",
+      "deleted": "„{name}“ dauerhaft gelöscht"
+    },
+    "deleteDialog": {
+      "title": "<account>{name}</account> dauerhaft löschen?",
+      "description": "Dieses Konto und alle zugehörigen Transaktionen werden dauerhaft gelöscht und können nicht wiederhergestellt werden.",
+      "confirm": "Konto dauerhaft löschen",
+      "confirming": "Wird gelöscht…",
+      "continue": "Weiter",
+      "finalTitle": "Letzte Warnung: <account>{name}</account> löschen?",
+      "finalDescription": "Wenn du jetzt bestätigst, werden <account>{name}</account> und alle zugehörigen Transaktionen unwiderruflich gelöscht. Diese Aktion kann nicht rückgängig gemacht werden."
     }
   },
   "transactions": {
@@ -475,9 +487,10 @@
     "network": "Der Server ist nicht erreichbar. Prüfe vor einem erneuten Versuch die Buchungsliste: Der Import könnte bereits abgeschlossen sein."
   },
   "legal": {
-    "navLabel": "Rechtliches",
+    "navLabel": "Seiteninformationen",
     "privacyLink": "Datenschutzerklärung",
     "termsLink": "Nutzungsbedingungen",
+    "designSystemLink": "Designsystem",
     "lastUpdated": "Zuletzt aktualisiert: <time>{date}</time>",
     "privacy": {
       "title": "Datenschutzerklärung",
@@ -581,7 +594,9 @@
         },
         "acceptableUse": {
           "title": "Zulässige Nutzung",
-          "paragraphs": ["Wenn du Poolaki nutzt, darfst du nicht:"],
+          "paragraphs": [
+            "Wenn du Poolaki nutzt, darfst du nicht:"
+          ],
           "items": [
             "versuchen, auf Profile oder Daten anderer Personen zuzugreifen;",
             "den Dienst ausspähen, angreifen oder überlasten, zum Beispiel mit automatisierten Massenanfragen, oder versuchen, seine Sicherheitsmaßnahmen zu umgehen;",
@@ -617,6 +632,73 @@
           ]
         }
       }
+    },
+    "statusLink": "Systemstatus"
+  },
+  "designSystem": {
+    "title": "Designsystem",
+    "intro": "Die Farben, Schriften, Icons und Komponenten, aus denen die App besteht. Jedes Beispiel ist die echte Komponente im aktuellen Design und in der aktuellen Sprache; wechsle sie, um die anderen Varianten zu sehen. Die README beschreibt, wie jede Komponente verwendet wird.",
+    "colors": {
+      "title": "Farbpalette",
+      "description": "Farb-Tokens aus app/globals.css mit ihren Werten im hellen und dunklen Design.",
+      "light": "Hell",
+      "dark": "Dunkel",
+      "gradient": "Markenverlauf"
+    },
+    "contrast": {
+      "title": "Kontrast",
+      "description": "WCAG-Kontrast der wichtigsten Textfarben auf ihrem Hintergrund. AA verlangt mindestens 4,5:1 für normalen und 3:1 für großen Text.",
+      "caption": "Kontrastverhältnisse im hellen und dunklen Design",
+      "pair": "Text auf Hintergrund",
+      "pairLabel": "<code>{text}</code> auf <code>{surface}</code>",
+      "ratio": "{ratio}:1",
+      "aa": "AA",
+      "aaLarge": "AA für großen Text",
+      "fails": "Nicht AA"
+    },
+    "typography": {
+      "title": "Typografie",
+      "description": "Jede Rolle legt Größe, Schriftstärke und Laufweite gemeinsam fest. Verwende ihre Klasse, z. B. text-title, statt einzelner Klassen für Größe und Stärke.",
+      "sample": "Lebensmittel, Miete und ein Wochenendausflug"
+    },
+    "icons": {
+      "title": "Icons",
+      "description": "Lucide-Icons in 14 bis 20 px, für Screenreader verborgen, wenn sichtbarer Text daneben steht. Pfeile werden in Sprachen mit Schreibrichtung von rechts nach links gespiegelt.",
+      "interface": "Oberfläche",
+      "categories": "Kategorie-Icons"
+    },
+    "components": {
+      "title": "Komponenten",
+      "description": "Wiederverwendbare Komponenten aus components/ui. Fahre mit der Maus darüber oder drücke Tab, um die Hover- und Fokus-Stile zu sehen."
+    },
+    "states": {
+      "default": "Standard",
+      "disabled": "Deaktiviert",
+      "error": "Fehler",
+      "loading": "Lädt"
+    },
+    "demo": {
+      "openDialog": "Dialog öffnen",
+      "dialogText": "Ein Modal hält den Fokus, bis es geschlossen wird. Drücke Esc oder die Schließen-Schaltfläche.",
+      "announced": "Screenreader haben gerade gehört: {message}",
+      "cardText": "Eine Karte fasst zusammengehörige Inhalte zusammen."
     }
+  },
+  "systemStatus": {
+    "pause": "Statusprüfungen pausieren",
+    "resume": "Statusprüfungen fortsetzen",
+    "paused": "Statusprüfungen sind pausiert. Die angezeigten Ergebnisse können veraltet sein.",
+    "title": "Systemstatus",
+    "refresh": "Der Status wird alle 30 Sekunden automatisch geprüft.",
+    "ok": "Funktionsfähig",
+    "degraded": "Eingeschränkt",
+    "down": "Ausgefallen",
+    "unreachable": "Das Backend ist nicht erreichbar. Die Abfrage wird automatisch wiederholt.",
+    "overall": "Gesamtzustand",
+    "loading": "Status wird geladen…",
+    "database": "Datenbank",
+    "storage": "Avatar-Speicher",
+    "lastBackup": "Letztes erfolgreiches Backup",
+    "noBackup": "Kein erfolgreicher Backup-Zeitpunkt bekannt."
   }
 }

@@ -5,7 +5,7 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/transactions?accountId={{accountId}}&type=income
+  url: {{baseUrl}}/transactions?accountId={{accountId}}&type=income&q=%20SAL%20&categoryId=none&minAmountMinor=10000&maxAmountMinor=10000&sort=amountMinor&order=asc&limit=1&offset=0
   body: none
   auth: none
 }
