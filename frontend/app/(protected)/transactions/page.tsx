@@ -18,12 +18,14 @@ import type { ReactNode } from "react";
 import { ImportTransactionsButton } from "@/components/transactions/import-transactions-button";
 import { AccountSwitcher } from "@/components/transactions/account-switcher";
 import { DeleteTransactionButton } from "@/components/transactions/delete-transaction-button";
+import { ClearFiltersLink, TransactionFilterBar } from "@/components/transactions/transaction-filters";
 import {
   EditTransactionButton,
   NewTransactionButton,
   type AccountOption,
 } from "@/components/transactions/transaction-form-dialog";
 import { Badge } from "@/components/ui/badge";
+import { buttonClassName } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LiveStatusProvider } from "@/components/ui/live-status";
@@ -38,16 +40,19 @@ import {
 } from "@/lib/dal";
 import { formatAmount, transactionLabel } from "@/lib/format";
 import { LAST_ACCOUNT_COOKIE } from "@/lib/last-account";
+import {
+  DEFAULT_FILTERS,
+  isFiltered,
+  pageNumbers,
+  parseTransactionFilters,
+  transactionsApiQuery,
+  transactionsHref,
+} from "@/lib/transaction-filters";
 import type { Account, AccountBalance, Transaction, TransactionPage } from "@/lib/types";
 
-const PAGE_SIZE = 50;
-// Money in / Money out add up the newest transactions of the account, whatever the filter and page.
-const STATS_LIMIT = 200;
-
 const TYPE_FILTERS = ["all", "income", "expense", "transfer"] as const;
-type TypeFilter = (typeof TYPE_FILTERS)[number];
 
-// The list heading takes focus after a delete removes the focused row's button.
+// The list heading takes focus after a delete removes the focused row's button, and after clearing the filters.
 const LIST_HEADING_ID = "transactions-heading";
 
 
@@ -56,20 +61,6 @@ type SearchParams = { searchParams: Promise<{ [key: string]: string | string[] |
 /** The account requested with `?accountId=`; an empty or repeated one counts as none (all accounts). */
 const requestedAccountId = (accountId: string | string[] | undefined) =>
   typeof accountId === "string" && accountId !== "" ? accountId : undefined;
-
-/** The `?offset=` of the page; anything but a non-negative integer counts as the first page. */
-const requestedOffset = (offset: string | string[] | undefined) =>
-  typeof offset === "string" && /^\d+$/.test(offset) && Number.isSafeInteger(Number(offset)) ? Number(offset) : 0;
-
-/** This page for one account (or all accounts) with a type filter, from the transaction at `offset` on. */
-function transactionsHref(accountId: string | undefined, filter: TypeFilter, offset = 0) {
-  const query = new URLSearchParams({
-    ...(accountId === undefined ? {} : { accountId }),
-    ...(filter === "all" ? {} : { type: filter }),
-    ...(offset === 0 ? {} : { offset: String(offset) }),
-  }).toString();
-  return query ? `/transactions?${query}` : "/transactions";
-}
 
 export async function generateMetadata({ searchParams }: SearchParams): Promise<Metadata> {
   const [{ accountId }, t] = await Promise.all([searchParams, getTranslations()]);
@@ -85,19 +76,17 @@ export async function generateMetadata({ searchParams }: SearchParams): Promise<
  * last used account (the lastAccountId cookie, written by the account switcher), otherwise all accounts.
  */
 export default async function TransactionsPage({ searchParams }: SearchParams) {
-  const { accountId, type, offset: offsetParam } = await searchParams;
-  const filter: TypeFilter = type === "income" || type === "expense" || type === "transfer" ? type : "all";
-  const selectedAccountId = requestedAccountId(accountId);
-  const requestedPageOffset = requestedOffset(offsetParam);
+  const [params, activeCategories] = await Promise.all([searchParams, getCategories()]);
+  const selectedAccountId = requestedAccountId(params.accountId);
+  // An unknown category would be a 404 from the backend, so it is checked against the user's categories.
+  const filters = parseTransactionFilters(
+    params,
+    activeCategories.map((category) => category.id),
+  );
   const accountQuery: Record<string, string> = selectedAccountId === undefined ? {} : { accountId: selectedAccountId };
-  const transactionPage = (pageOffset: number) =>
+  const transactionPage = (page: number) =>
     fetchApiServer<TransactionPage>(
-      `/transactions?${new URLSearchParams({
-        ...accountQuery,
-        ...(filter === "all" ? {} : { type: filter }),
-        limit: String(PAGE_SIZE),
-        offset: String(pageOffset),
-      })}`,
+      `/transactions?${transactionsApiQuery(filters, selectedAccountId, (page - 1) * filters.pageSize)}`,
     );
 
   if (selectedAccountId === undefined) {
@@ -108,7 +97,7 @@ export default async function TransactionsPage({ searchParams }: SearchParams) {
     ]);
     const lastAccountId = cookieStore.get(LAST_ACCOUNT_COOKIE)?.value;
     if ([...activeAccounts, ...archivedAccounts].some((account) => account.id === lastAccountId)) {
-      redirect(transactionsHref(lastAccountId, filter));
+      redirect(transactionsHref(filters, lastAccountId));
     }
     if (activeAccounts.length === 0 && archivedAccounts.length === 0) return <NoAccounts />;
   }
@@ -120,7 +109,6 @@ export default async function TransactionsPage({ searchParams }: SearchParams) {
     account,
     requestedPage,
     overview,
-    activeCategories,
     currencies,
     activeAccounts,
     archivedAccounts,
@@ -130,16 +118,9 @@ export default async function TransactionsPage({ searchParams }: SearchParams) {
     getFormatter(),
     getLocale(),
     selectedAccountId === undefined ? undefined : getAccount(selectedAccountId),
-    transactionPage(requestedPageOffset),
-    // Unfiltered, so the subtitle and the stat cards don't change with the filter or the page. All accounts
-    // have no stat cards and need only the total.
-    fetchApiServer<TransactionPage>(
-      `/transactions?${new URLSearchParams({
-        ...accountQuery,
-        limit: String(selectedAccountId === undefined ? 1 : STATS_LIMIT),
-      })}`,
-    ),
-    getCategories(),
+    transactionPage(filters.page),
+    // Unfiltered, so the subtitle counts all the account's transactions whatever the filters.
+    fetchApiServer<TransactionPage>(`/transactions?${new URLSearchParams({ ...accountQuery, limit: "1" })}`),
     getCurrencies(),
     getAccounts(),
     getArchivedAccounts(),
@@ -152,11 +133,12 @@ export default async function TransactionsPage({ searchParams }: SearchParams) {
   ]).catch(notFoundOnMissingResource);
   // Past the last page (e.g. its only row was deleted) the last page is shown. A redirect would unmount the
   // deleted row's button before it moves the focus to the list heading.
-  const lastPageOffset = Math.floor(Math.max(requestedPage.total - 1, 0) / PAGE_SIZE) * PAGE_SIZE;
-  const offset =
-    requestedPage.items.length === 0 ? Math.min(requestedPageOffset, lastPageOffset) : requestedPageOffset;
-  const { items, total } =
-    offset === requestedPageOffset ? requestedPage : await transactionPage(offset).catch(notFoundOnMissingResource);
+  const pageCount = Math.max(Math.ceil(requestedPage.total / filters.pageSize), 1);
+  const page = requestedPage.items.length === 0 ? Math.min(filters.page, pageCount) : filters.page;
+  const offset = (page - 1) * filters.pageSize;
+  // Money in / Money out are the sums of every filtered match, not only of this page.
+  const { items, total, moneyInMinor, moneyOutMinor } =
+    page === filters.page ? requestedPage : await transactionPage(page).catch(notFoundOnMissingResource);
   const categories = new Map(activeCategories.map((c) => [c.id, c]));
   // Transfer legs have no category, so they are labelled by their type instead of "Uncategorised".
   const noCategoryLabel = (tx: Transaction) => (tx.type === "transfer" ? t("form.types.transfer") : t("uncategorised"));
@@ -181,9 +163,7 @@ export default async function TransactionsPage({ searchParams }: SearchParams) {
   const bookedOn = (date: string) =>
     format.dateTime(new Date(date), { dateStyle: "medium", timeZone: "UTC", calendar: "gregory" });
 
-  const moneyInMinor = overview.items.reduce((sum, tx) => (tx.amountMinor > 0 ? sum + tx.amountMinor : sum), 0);
-  const moneyOutMinor = overview.items.reduce((sum, tx) => (tx.amountMinor < 0 ? sum + tx.amountMinor : sum), 0);
-  const statNote = overview.total > overview.items.length ? t("latestOnly", { count: overview.items.length }) : undefined;
+  const statNote = isFiltered(filters) ? t("filteredOnly") : undefined;
 
   // Across all accounts a transfer is one item: its source leg, with the other leg's account and amount.
   const transferTo = (tx: Transaction) =>
@@ -195,11 +175,7 @@ export default async function TransactionsPage({ searchParams }: SearchParams) {
     const to = transferTo(tx);
     return accountOptions.has(tx.accountId) && (to === undefined || to.account !== undefined);
   });
-  const newerOffset = offset > 0 ? Math.max(offset - PAGE_SIZE, 0) : undefined;
-  const olderOffset = offset + items.length < total ? offset + items.length : undefined;
-  // Counted from the offset, so a hand-edited `?offset=` that is not a multiple of PAGE_SIZE still adds up.
-  const pageNumber = Math.ceil(offset / PAGE_SIZE) + 1;
-  const pageCount = pageNumber + Math.ceil(Math.max(total - offset - items.length, 0) / PAGE_SIZE);
+  const pageHref = (pageNumber: number) => transactionsHref({ ...filters, page: pageNumber }, account?.id);
 
   return (
     <div className="mx-auto w-full max-w-5xl pt-2">
@@ -273,31 +249,23 @@ export default async function TransactionsPage({ searchParams }: SearchParams) {
         </div>
       )}
 
-      <div className="mb-3.5 flex flex-col gap-3 sm:mb-5 sm:flex-row-reverse sm:items-center sm:justify-between">
-        <AccountSwitcher
+      <LiveStatusProvider>
+        <TransactionFilterBar
+          filters={filters}
+          accountId={account?.id}
           accounts={activeAccounts}
           archivedAccounts={archivedAccounts}
-          currentAccountId={account?.id}
+          categories={categoryOptions}
+          currencyCode={pageAccountOption?.currencyCode}
+          // ponytail: all catalogue currencies have 2 decimals; across accounts with mixed decimals the
+          // amount range would need one per currency.
+          minorUnit={pageAccountOption?.minorUnit ?? 2}
+          total={total}
+          page={page}
+          pageCount={pageCount}
+          focusAfterClearId={LIST_HEADING_ID}
         />
-        <nav
-          aria-label={t("filterLabel")}
-          className="flex flex-wrap gap-1 rounded-[11px] border border-border bg-muted p-1 sm:inline-flex"
-        >
-          {TYPE_FILTERS.map((option) => (
-            <Link
-              key={option}
-              href={transactionsHref(account?.id, option)}
-              scroll={false}
-              aria-current={option === filter ? "page" : undefined}
-              className="flex-1 rounded-[8px] px-3.5 py-1.5 text-center text-[13px] font-medium sm:flex-none text-muted-foreground hover:text-foreground aria-[current=page]:bg-card aria-[current=page]:font-semibold aria-[current=page]:text-foreground aria-[current=page]:shadow-sm focus-ring"
-            >
-              {t(`filters.${option}`)}
-            </Link>
-          ))}
-        </nav>
-      </div>
 
-      <LiveStatusProvider>
         <Card as="section" aria-labelledby={LIST_HEADING_ID}>
           <h2
             id={LIST_HEADING_ID}
@@ -308,9 +276,20 @@ export default async function TransactionsPage({ searchParams }: SearchParams) {
           </h2>
 
           {visible.length === 0 ? (
-            <EmptyState className="px-4 py-8 sm:px-6 sm:py-10">
-              {filter !== "all" ? t("emptyFiltered", { filter }) : account ? t("empty") : t("emptyAll")}
-            </EmptyState>
+            isFiltered(filters) ? (
+              <div className="px-4 py-8 sm:px-6 sm:py-10">
+                <EmptyState>{t("noMatches")}</EmptyState>
+                <ClearFiltersLink
+                  href={transactionsHref(DEFAULT_FILTERS, account?.id)}
+                  focusId={LIST_HEADING_ID}
+                  className={buttonClassName("outline", "mx-auto mt-4 max-w-xs")}
+                >
+                  {t("search.clear")}
+                </ClearFiltersLink>
+              </div>
+            ) : (
+              <EmptyState className="px-4 py-8 sm:px-6 sm:py-10">{account ? t("empty") : t("emptyAll")}</EmptyState>
+            )
           ) : (
             <table className="w-full text-[13px] sm:text-sm">
               <caption className="sr-only">
@@ -476,28 +455,43 @@ export default async function TransactionsPage({ searchParams }: SearchParams) {
           )}
 
           <div className="flex flex-col items-center gap-x-4 gap-y-2 border-t border-border px-4 py-3 sm:flex-row sm:flex-wrap sm:justify-between sm:px-6 sm:py-4">
-            <p aria-live="polite" className="text-xs text-muted-foreground sm:text-[13px]">
+            {/* Not a live region: the filter bar announces the results of every new page. */}
+            <p className="text-xs text-muted-foreground sm:text-[13px]">
               {items.length === 0
                 ? t("showing", { shown: 0, total })
                 : t("showingRange", { from: offset + 1, to: offset + items.length, total })}
             </p>
-            {(newerOffset !== undefined || olderOffset !== undefined) && (
+            {pageCount > 1 && (
               <nav aria-label={t("pagination")} className="flex items-center gap-2">
-                <PageLink
-                  href={transactionsHref(account?.id, filter, newerOffset ?? offset)}
-                  disabled={newerOffset === undefined}
-                >
+                <PageLink href={pageHref(Math.max(page - 1, 1))} disabled={page === 1}>
                   <ChevronLeft size={14} aria-hidden className="shrink-0 rtl:-scale-x-100" />
-                  {t("newer")}
+                  {t("previous")}
                 </PageLink>
-                <span className="px-1 text-xs whitespace-nowrap text-muted-foreground sm:text-[13px]">
-                  {t("pageOf", { page: pageNumber, pages: pageCount })}
+                {/* Page numbers don't fit a phone screen; it shows "Page 2 of 9" instead. */}
+                <span className="px-1 text-xs whitespace-nowrap text-muted-foreground sm:hidden">
+                  {t("pageOf", { page, pages: pageCount })}
                 </span>
-                <PageLink
-                  href={transactionsHref(account?.id, filter, olderOffset ?? offset)}
-                  disabled={olderOffset === undefined}
-                >
-                  {t("older")}
+                <ul className="hidden items-center gap-1 sm:flex">
+                  {pageNumbers(page, pageCount).map((pageNumber, index) =>
+                    pageNumber === null ? (
+                      <li key={`gap-${index}`} aria-hidden className="px-1 text-muted-foreground">
+                        …
+                      </li>
+                    ) : (
+                      <li key={pageNumber}>
+                        <PageLink
+                          href={pageHref(pageNumber)}
+                          current={pageNumber === page}
+                          label={t("goToPage", { page: pageNumber })}
+                        >
+                          {format.number(pageNumber)}
+                        </PageLink>
+                      </li>
+                    ),
+                  )}
+                </ul>
+                <PageLink href={pageHref(Math.min(page + 1, pageCount))} disabled={page === pageCount}>
+                  {t("next")}
                   <ChevronRight size={14} aria-hidden className="shrink-0 rtl:-scale-x-100" />
                 </PageLink>
               </nav>
@@ -572,16 +566,30 @@ function TransferRoute({
 }
 
 /**
- * "Newer" or "Older". On the first or last page it stays a link marked as disabled instead of disappearing,
- * so the focus stays on it after the click that reached that page.
+ * "Previous", "Next" or a page number. On the first or last page "Previous" and "Next" stay links marked as
+ * disabled instead of disappearing, so the focus stays on them after the click that reached that page.
  */
-function PageLink({ href, disabled, children }: { href: string; disabled: boolean; children: ReactNode }) {
+function PageLink({
+  href,
+  disabled = false,
+  current = false,
+  label,
+  children,
+}: {
+  href: string;
+  disabled?: boolean;
+  current?: boolean;
+  label?: string;
+  children: ReactNode;
+}) {
   return (
     <Link
       href={href}
+      aria-label={label}
+      aria-current={current ? "page" : undefined}
       aria-disabled={disabled || undefined}
       tabIndex={disabled ? -1 : undefined}
-      className="inline-flex min-h-9 items-center gap-1 rounded-[8px] border border-border px-3 text-[13px] font-medium hover:bg-muted aria-disabled:pointer-events-none aria-disabled:opacity-50 focus-ring"
+      className="inline-flex min-h-9 min-w-9 items-center justify-center gap-1 rounded-[8px] border border-border px-3 text-[13px] font-medium tabular-nums hover:bg-muted aria-disabled:pointer-events-none aria-disabled:opacity-50 aria-[current=page]:border-primary aria-[current=page]:bg-primary aria-[current=page]:text-primary-foreground focus-ring"
     >
       {children}
     </Link>
