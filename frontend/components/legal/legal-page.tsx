@@ -19,8 +19,17 @@ type LegalSection = { title: string; paragraphs?: string[]; items?: string[] };
  * The frame of a page anyone can open from the footer: the app shell when signed in, otherwise a
  * back link to sign-in with the language and theme switchers. `from` is the page's `?from=` value:
  * only "register" changes anything (the back link returns to sign-up), so it can't redirect elsewhere.
+ * `maxWidthClassName` must match the content's max width, so the header lines up with its edges.
  */
-export async function PublicPageShell({ from, children }: { from: string | string[] | undefined; children: ReactNode }) {
+export async function PublicPageShell({
+  from,
+  maxWidthClassName = "max-w-3xl",
+  children,
+}: {
+  from: string | string[] | undefined;
+  maxWidthClassName?: string;
+  children: ReactNode;
+}) {
   const [user, t] = await Promise.all([getCurrentUser(), getTranslations()]);
   const fromSignUp = from === "register";
 
@@ -36,7 +45,7 @@ export async function PublicPageShell({ from, children }: { from: string | strin
     <>
       {/* Not fixed like on the auth pages: on a long page the switchers would cover the text while scrolling. */}
       <header className="px-4 pt-5">
-        <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
+        <div className={`mx-auto flex ${maxWidthClassName} items-center justify-between gap-3`}>
           <Link
             href={fromSignUp ? "/register" : "/login"}
             className="flex items-center gap-1.5 rounded-[11px] border border-border bg-card px-3.5 py-2.5 text-sm font-semibold hover:border-ring focus-ring"

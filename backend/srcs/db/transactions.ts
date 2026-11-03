@@ -46,7 +46,8 @@ export async function findCategoryTypes(categoryId: string, userId: string) {
 }
 
 /**
- * Lists one filtered, sorted page of transactions, plus the total number of matches. The owner is one
+ * Lists one filtered, sorted page of transactions, plus the number of matches and the sums of their
+ * positive and negative amounts (in any currency, so meaningful for one account). The owner is one
  * account, or a user: then the transactions of all their accounts, archived ones included. Across all
  * accounts a transfer is one item: its source leg, with the other leg's account and amount.
  */
@@ -115,6 +116,11 @@ export async function listTransactions(
           ilike(transactions.description, searchPattern),
           ilike(transactions.merchant, searchPattern),
           ilike(transactions.notes, searchPattern),
+          // A transaction's category is always the owner's, so the name match needs no user filter.
+          inArray(
+            transactions.categoryId,
+            db.select({ id: categories.id }).from(categories).where(ilike(categories.name, searchPattern)),
+          ),
         ),
     from === undefined ? undefined : gte(transactions.bookedOn, from),
     to === undefined ? undefined : lte(transactions.bookedOn, to),
@@ -138,10 +144,24 @@ export async function listTransactions(
       )
       .limit(limit)
       .offset(offset),
-    db.select({ total: count() }).from(transactions).leftJoin(otherLeg, otherLegJoin).where(whereClause),
+    db
+      .select({
+        total: count(),
+        moneyInMinor:
+          sql<number>`coalesce(sum(${transactions.amountMinor}) filter (where ${transactions.amountMinor} > 0), 0)`.mapWith(
+            Number,
+          ),
+        moneyOutMinor:
+          sql<number>`coalesce(sum(${transactions.amountMinor}) filter (where ${transactions.amountMinor} < 0), 0)`.mapWith(
+            Number,
+          ),
+      })
+      .from(transactions)
+      .leftJoin(otherLeg, otherLegJoin)
+      .where(whereClause),
   ]);
 
-  return { items, total: totals[0]!.total };
+  return { items, ...totals[0]! };
 }
 
 export async function summarizeTransactionsByCategory(accountId: string, from?: string, to?: string) {

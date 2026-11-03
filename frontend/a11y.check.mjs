@@ -28,6 +28,11 @@ const protectedPages = [
   "/accounts",
   "/accounts?archived=true",
   "/transactions",
+  // The open "More filters" panel, and the empty result of a search.
+  "/transactions?sort=amountMinor&order=asc&minAmountMinor=100",
+  "/transactions?q=no-such-transaction",
+  // The page links, on the last page so Next is disabled.
+  "/transactions?pageSize=25&page=2",
   "/categories",
   "/profile",
 ];
@@ -108,6 +113,12 @@ try {
     bookedOn: today,
   });
   await post("/transactions", { accountId: checking.id, type: "income", amountMinor: 250000, bookedOn: today });
+  // Enough for a second page at the smallest page size (25), so the page links render.
+  await Promise.all(
+    Array.from({ length: 25 }, () =>
+      post("/transactions", { accountId: checking.id, type: "expense", amountMinor: -100, bookedOn: today }),
+    ),
+  );
   await post("/transactions/transfers", {
     fromAccountId: checking.id,
     toAccountId: savings.id,
