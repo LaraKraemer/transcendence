@@ -28,6 +28,7 @@ const protectedPages = [
   "/accounts",
   "/accounts?archived=true",
   "/transactions",
+  "/analytics",
   "/categories",
   "/profile",
 ];
