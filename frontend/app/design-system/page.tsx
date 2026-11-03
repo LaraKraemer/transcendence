@@ -13,7 +13,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function DesignSystemPage({ searchParams }: PageProps<"/design-system">) {
   const { from } = await searchParams;
   return (
-    <PublicPageShell from={from}>
+    <PublicPageShell from={from} maxWidthClassName="max-w-5xl">
       <DesignSystemShowcase />
     </PublicPageShell>
   );
