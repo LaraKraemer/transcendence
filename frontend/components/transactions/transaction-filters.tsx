@@ -114,7 +114,10 @@ export function TransactionFilterBar({
     setSyncedHref(href);
     // Back, Forward or a link changed the filters: show them. After this bar's own change the fields
     // keep what is typed, which may already be ahead of the URL.
-    if (href !== pushedHref) setTyped(typedFields(filters, minorUnit));
+    if (href !== pushedHref) {
+      setTyped(typedFields(filters, minorUnit));
+      setPushedHref(null);
+    }
   }
 
   // Typing that hasn't applied yet would undo such a change (e.g. go back to the previous account).
