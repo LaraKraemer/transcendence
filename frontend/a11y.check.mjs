@@ -33,6 +33,7 @@ const protectedPages = [
   "/transactions?q=no-such-transaction",
   // The page links, on the last page so Next is disabled.
   "/transactions?pageSize=25&page=2",
+  "/analytics",
   "/categories",
   "/profile",
 ];

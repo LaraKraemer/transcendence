@@ -1,0 +1,25 @@
+meta {
+  name: 30 - Export spreadsheet-safe CSV
+  type: http
+  seq: 31
+}
+
+get {
+  url: {{baseUrl}}/transactions/export?format=csv&from=2025-01-01&to=2025-01-03
+  body: none
+  auth: none
+}
+
+tests {
+  test("CSV preserves UTF-8, escapes quotes, guards formulas and uses decimal amounts", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getHeader("content-type")).to.include("text/csv");
+    expect(res.getHeader("content-disposition")).to.include("transactions.csv");
+    const csv = res.getBody();
+    expect(csv).to.include("account,currency,date,type,category,merchant,description,amount\r\n");
+    expect(csv).to.include('"Analytics EUR","EUR","2025-01-01","expense","Groceries Category","\'+Shop","\'=Café, ""tea""",-12.34\r\n');
+    expect(csv).to.include('"Analytics USD","USD","2025-01-03","income","","","",25.00\r\n');
+    expect(csv).to.include('"Analytics EUR","EUR","2025-01-02","transfer","","","",-5.00\r\n');
+    expect(csv).to.include('"Analytics USD","USD","2025-01-02","transfer","","","",5.50\r\n');
+  });
+}

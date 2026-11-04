@@ -1,0 +1,31 @@
+meta {
+  name: 26 - Create transfer shown in the time series and export
+  type: http
+  seq: 27
+}
+
+post {
+  url: {{baseUrl}}/transactions/transfers
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "fromAccountId": "{{analyticsEurAccountId}}",
+    "toAccountId": "{{analyticsUsdAccountId}}",
+    "fromAmountMinor": 500,
+    "toAmountMinor": 550,
+    "bookedOn": "2025-01-02"
+  }
+}
+
+tests {
+  test("transfer is created", function () {
+    expect(res.getStatus()).to.equal(201);
+  });
+}

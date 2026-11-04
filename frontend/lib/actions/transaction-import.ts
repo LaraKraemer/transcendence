@@ -1,6 +1,6 @@
 "use server";
 
-import { refresh } from "next/cache";
+import { refresh, revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { backendFailure } from "@/lib/action-errors";
@@ -33,5 +33,6 @@ export async function importTransactions(formData: FormData): Promise<ActionResp
     return backendFailure(error, "importTransactions");
   }
   refresh();
+  revalidatePath("/analytics");
   return { success: true, message: "Transactions imported", imported };
 }

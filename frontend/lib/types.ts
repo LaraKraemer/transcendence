@@ -100,6 +100,22 @@ export type TransactionSummaryRow = {
 };
 
 /**
+ * One row of `GET /analytics/timeseries`: signed totals of one period (its start date) in one currency. Transfer
+ * legs are counted apart from income and expenses (out negative, in positive), and are 0 under a type or category filter.
+ */
+export type TimeSeriesRow = {
+  period: string;
+  currencyCode: string;
+  incomeMinor: number;
+  expenseMinor: number;
+  transferOutMinor: number;
+  transferInMinor: number;
+};
+
+/** One row of `GET /analytics/categories`: a TransactionSummaryRow per currency, transfers left out. */
+export type CategoryTotalRow = TransactionSummaryRow & { currencyCode: string };
+
+/**
  * A category, as returned by the backend's /categories endpoints. `types` are the transaction types
  * it can be used for (transfers have no category).
  */

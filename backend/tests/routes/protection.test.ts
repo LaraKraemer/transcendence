@@ -9,6 +9,7 @@ vi.mock("../../srcs/db/client.ts", async () => {
 });
 
 import { accountsRouter } from "../../srcs/routes/account.ts";
+import { analyticsRouter } from "../../srcs/routes/analytics.ts";
 import { categoriesRouter } from "../../srcs/routes/category.ts";
 import { currenciesRouter } from "../../srcs/routes/currency.ts";
 import { transactionsRouter } from "../../srcs/routes/transaction.ts";
@@ -31,6 +32,9 @@ const ROUTES: Array<{ router: Parameters<typeof dispatch>[0]; method: string; ur
   { router: currenciesRouter, method: "GET", url: "/" },
   { router: transactionsRouter, method: "GET", url: "/" },
   { router: transactionsRouter, method: "GET", url: "/summary" },
+  { router: transactionsRouter, method: "GET", url: "/export" },
+  { router: analyticsRouter, method: "GET", url: "/timeseries" },
+  { router: analyticsRouter, method: "GET", url: "/categories" },
   { router: transactionsRouter, method: "GET", url: `/${validUuid}` },
   { router: transactionsRouter, method: "POST", url: "/" },
   { router: transactionsRouter, method: "POST", url: "/transfers" },

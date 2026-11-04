@@ -1,0 +1,30 @@
+meta {
+  name: 25 - Create analytics USD income
+  type: http
+  seq: 26
+}
+
+post {
+  url: {{baseUrl}}/transactions
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "accountId": "{{analyticsUsdAccountId}}",
+    "type": "income",
+    "amountMinor": 2500,
+    "bookedOn": "2025-01-03"
+  }
+}
+
+tests {
+  test("income is created", function () {
+    expect(res.getStatus()).to.equal(201);
+  });
+}

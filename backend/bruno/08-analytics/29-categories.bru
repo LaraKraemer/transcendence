@@ -1,0 +1,21 @@
+meta {
+  name: 29 - Analytics categories by currency
+  type: http
+  seq: 30
+}
+
+get {
+  url: {{baseUrl}}/analytics/categories?from=2025-01-01&to=2025-01-03
+  body: none
+  auth: none
+}
+
+tests {
+  test("category totals exclude transfers and never combine currencies", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody()).to.deep.equal([
+      { categoryId: bru.getVar("expenseCategoryId"), type: "expense", totalMinor: -1234, count: 1, currencyCode: "EUR" },
+      { categoryId: null, type: "income", totalMinor: 2500, count: 1, currencyCode: "USD" }
+    ]);
+  });
+}

@@ -1,0 +1,28 @@
+meta {
+  name: 27 - Archive analytics USD account
+  type: http
+  seq: 28
+}
+
+patch {
+  url: {{baseUrl}}/accounts/{{analyticsUsdAccountId}}
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "isArchived": true
+  }
+}
+
+tests {
+  test("USD account is archived", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().isArchived).to.equal(true);
+  });
+}

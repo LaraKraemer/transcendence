@@ -114,8 +114,9 @@ describe("GET /transactions/summary", () => {
     query.mockResolvedValueOnce({ rows: [[accountId]] });
     query.mockResolvedValueOnce({
       rows: [
-        [accountId, "expense", "-32000", "2"],
-        [null, "income", "100", "1"],
+        [accountId, "expense", "-32000", "2", "EUR"],
+        [null, "income", "100", "1", "EUR"],
+        [null, "transfer", "-2500", "1", "EUR"],
       ],
     });
     expect(await summary({ accountId, from: "2025-01-01", to: "2025-03-31" })).toEqual({
@@ -123,17 +124,19 @@ describe("GET /transactions/summary", () => {
       body: [
         { categoryId: accountId, type: "expense", totalMinor: -32000, count: 2 },
         { categoryId: null, type: "income", totalMinor: 100, count: 1 },
+        { categoryId: null, type: "transfer", totalMinor: -2500, count: 1 },
       ],
     });
     expect(query.mock.calls[0]![0].text.split(" where ")[1]).not.toContain("is_archived");
     const [statement, values] = query.mock.calls[1]!;
-    expect(statement.text).toContain('SUM("amount_minor")');
+    expect(statement.text).toContain('SUM("transaction"."amount_minor")');
     expect(statement.text).toContain("COUNT(*)");
     expect(statement.text).not.toContain('"status"');
+    expect(statement.text).not.toContain('"transaction"."type" in');
     expect(statement.text).toContain('"transaction"."booked_on" >=');
     expect(statement.text).toContain('"transaction"."booked_on" <=');
     expect(statement.text).toContain('group by "transaction"."category_id", "transaction"."type"');
-    expect(values).toEqual([accountId, "2025-01-01", "2025-03-31"]);
+    expect(values).toEqual([userId, accountId, "2025-01-01", "2025-03-31"]);
   });
 
   it.each([{}, { from: "2025-01-01" }, { to: "2025-03-31" }])(
@@ -142,7 +145,7 @@ describe("GET /transactions/summary", () => {
       query.mockResolvedValueOnce({ rows: [[accountId]] });
       query.mockResolvedValueOnce({ rows: [] });
       expect(await summary({ accountId, ...dates })).toEqual({ status: 200, body: [] });
-      expect(query.mock.calls[1]![1]).toEqual([accountId, ...Object.values(dates)]);
+      expect(query.mock.calls[1]![1]).toEqual([userId, accountId, ...Object.values(dates)]);
     },
   );
 

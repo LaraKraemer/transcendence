@@ -1,0 +1,30 @@
+meta {
+  name: 23 - Create analytics USD account
+  type: http
+  seq: 24
+}
+
+post {
+  url: {{baseUrl}}/accounts
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "name": "Analytics USD",
+    "type": "checking",
+    "currencyCode": "USD"
+  }
+}
+
+tests {
+  test("USD account is created", function () {
+    expect(res.getStatus()).to.equal(201);
+    bru.setVar("analyticsUsdAccountId", res.getBody().id);
+  });
+}

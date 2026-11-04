@@ -1,0 +1,33 @@
+meta {
+  name: 24 - Create analytics expense with formula-like UTF-8 text
+  type: http
+  seq: 25
+}
+
+post {
+  url: {{baseUrl}}/transactions
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "accountId": "{{analyticsEurAccountId}}",
+    "categoryId": "{{expenseCategoryId}}",
+    "type": "expense",
+    "amountMinor": -1234,
+    "description": "=Café, \"tea\"",
+    "merchant": "+Shop",
+    "bookedOn": "2025-01-01"
+  }
+}
+
+tests {
+  test("expense is created", function () {
+    expect(res.getStatus()).to.equal(201);
+  });
+}
