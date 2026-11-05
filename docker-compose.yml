@@ -46,6 +46,9 @@ services:
       # Host is the compose service name "db" — a server-side connection,
       # unlike the browser-facing NEXT_PUBLIC_API_URL below.
       DATABASE_URL: postgres://expense:expense@db:5432/expense_tracker
+      # Google sign-in, read from the git-ignored .env next to this file.
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
 
     depends_on:
       db:
@@ -80,6 +83,8 @@ services:
       # Server-side URL for server components / actions / DAL. Inside the Docker
       # network the backend is reached by its compose service name, not localhost.
       API_URL: http://backend:3001
+      # Public OAuth client ID for the Google redirect (app/auth/google/route.ts).
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
 
     depends_on:
       backend:
