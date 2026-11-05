@@ -5,6 +5,7 @@ import express, { Router } from "express";
 import {
   clearSessionCookie,
   createSession,
+  exchangeGoogleCode,
   getAuthenticatedUserId,
   hashPassword,
   revokeCurrentSession,
@@ -13,10 +14,13 @@ import {
 } from "../auth.ts";
 import {
   createUser,
+  createUserWithIdentity,
   deleteUser,
   findUserByEmail,
   findUserById,
+  findUserByIdentity,
   findUserPasswordHash,
+  linkIdentity,
   updateUserAvatarUrl,
   updateUserPassword,
   updateUserProfile,
@@ -82,7 +86,8 @@ authRouter.post("/login", async (req, res) => {
   }
 
   const user = await findUserByEmail(normalizedEmail);
-  if (!user) {
+  // Google-only accounts have no password, so they fail like unknown emails.
+  if (!user?.passwordHash) {
     await verifyPassword(password, await dummyPasswordHash);
     res.status(401).json({ error: "Invalid email or password" });
     return;
@@ -101,6 +106,57 @@ authRouter.post("/login", async (req, res) => {
       avatarUrl: user.avatarUrl,
     }),
   });
+});
+
+const googleProvider = "google";
+
+/**
+ * Signs in with a Google authorization code. An email with no account gets a new account.
+ * An existing account is linked only when its email is verified; otherwise 409, because
+ * whoever registered the unverified address would keep password access to that account.
+ */
+authRouter.post("/google", async (req, res, next) => {
+  const { code, codeVerifier, redirectUri } = req.body ?? {};
+  if (typeof code !== "string" || typeof codeVerifier !== "string" || typeof redirectUri !== "string") {
+    res.status(400).json({ error: "code, codeVerifier and redirectUri must be strings" });
+    return;
+  }
+
+  try {
+    const google = await exchangeGoogleCode(code, codeVerifier, redirectUri);
+    if (!google) {
+      res.status(401).json({ error: "Google sign-in failed" });
+      return;
+    }
+
+    const linkedUser = await findUserByIdentity(googleProvider, google.sub);
+    if (linkedUser) {
+      await createSession(req, res, linkedUser.id);
+      res.json({ user: toPublicUser(linkedUser) });
+      return;
+    }
+
+    const existingUser = await findUserByEmail(google.email);
+    if (existingUser) {
+      // linkIdentity is false when the account is already linked to a different Google account.
+      if (!existingUser.emailVerifiedAt || !(await linkIdentity(existingUser.id, googleProvider, google.sub))) {
+        res.status(409).json({ error: "An account with this email already exists" });
+        return;
+      }
+      await createSession(req, res, existingUser.id);
+      const { id, email, displayName, avatarUrl } = existingUser;
+      res.json({ user: toPublicUser({ id, email, displayName, avatarUrl }) });
+      return;
+    }
+
+    const displayName =
+      parseRequiredText(google.name, TEXT_LIMITS.displayName) ?? google.email.slice(0, TEXT_LIMITS.displayName);
+    const user = await createUserWithIdentity(google.email, displayName, googleProvider, google.sub);
+    await createSession(req, res, user.id);
+    res.status(201).json({ user: { ...user, avatarUrl: null } });
+  } catch (error) {
+    next(error);
+  }
 });
 
 // Revokes the current server-side session and clears its browser cookie.

@@ -13,6 +13,12 @@ const SESSION_LIFETIME_MS = 1000 * 60 * 60 * 24 * 30;
 const STALE_SESSION_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
 const BCRYPT_COST_FACTOR = 12;
 const isProduction = process.env.NODE_ENV === "production";
+const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
+const GOOGLE_ISSUERS = ["https://accounts.google.com", "accounts.google.com"];
+const googleRequestTimeoutMs = 10_000;
+
+/** The Google account behind a sign-in. Google has verified `email`; `sub` never changes. */
+export type GoogleIdentity = { sub: string; email: string; name: string | undefined };
 
 /** Returns a non-reversible SHA-256 value for storing a session token safely. */
 function hashToken(token: string): string {
@@ -103,6 +109,57 @@ export async function hashPassword(password: string): Promise<string> {
 /** Compares a supplied password with its stored bcrypt hash. */
 export async function verifyPassword(password: string, passwordHash: string): Promise<boolean> {
   return bcrypt.compare(password, passwordHash);
+}
+
+/**
+ * Exchanges a Google authorization code and its PKCE verifier for the Google account.
+ * Returns undefined when Google rejects the code or has not verified the account's email.
+ * The ID token comes straight from Google's token endpoint over TLS, so OpenID Connect Core
+ * 3.1.3.7 lets us skip its signature check; issuer, audience and expiry are still checked.
+ */
+export async function exchangeGoogleCode(
+  code: string,
+  codeVerifier: string,
+  redirectUri: string,
+): Promise<GoogleIdentity | undefined> {
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  if (!clientId || !clientSecret) throw new Error("GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set");
+
+  const response = await fetch(GOOGLE_TOKEN_URL, {
+    method: "POST",
+    body: new URLSearchParams({
+      grant_type: "authorization_code",
+      code,
+      code_verifier: codeVerifier,
+      redirect_uri: redirectUri,
+      client_id: clientId,
+      client_secret: clientSecret,
+    }),
+    signal: AbortSignal.timeout(googleRequestTimeoutMs),
+  });
+  if (!response.ok) return undefined;
+
+  const { id_token: idToken } = (await response.json()) as { id_token?: unknown };
+  if (typeof idToken !== "string") return undefined;
+  const claims = JSON.parse(Buffer.from(idToken.split(".")[1] ?? "", "base64url").toString("utf8")) as Record<
+    string,
+    unknown
+  >;
+
+  const isValidToken =
+    GOOGLE_ISSUERS.includes(String(claims.iss)) &&
+    claims.aud === clientId &&
+    typeof claims.exp === "number" &&
+    claims.exp * 1000 > Date.now();
+  if (!isValidToken || typeof claims.sub !== "string" || typeof claims.email !== "string") return undefined;
+  if (claims.email_verified !== true) return undefined;
+
+  return {
+    sub: claims.sub,
+    email: claims.email.trim().toLowerCase(),
+    name: typeof claims.name === "string" ? claims.name : undefined,
+  };
 }
 
 /** Marks the request's current session as revoked so its token cannot be reused. */

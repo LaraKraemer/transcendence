@@ -19,6 +19,7 @@ vi.mock("../../srcs/storage.ts", () => storageMocks);
 const authMocks = vi.hoisted(() => ({
   createSession: vi.fn(),
   clearSessionCookie: vi.fn(),
+  exchangeGoogleCode: vi.fn(),
   getAuthenticatedUserId: vi.fn(),
   revokeCurrentSession: vi.fn(),
   hashPassword: vi.fn().mockResolvedValue("$2b$12$dummy"),
@@ -28,6 +29,7 @@ vi.mock("../../srcs/auth.ts", async (importOriginal) => ({
   requireAuthenticatedUser: (await importOriginal<typeof import("../../srcs/auth.ts")>()).requireAuthenticatedUser,
   createSession: authMocks.createSession,
   clearSessionCookie: authMocks.clearSessionCookie,
+  exchangeGoogleCode: authMocks.exchangeGoogleCode,
   getAuthenticatedUserId: authMocks.getAuthenticatedUserId,
   revokeCurrentSession: authMocks.revokeCurrentSession,
   hashPassword: authMocks.hashPassword,
@@ -45,10 +47,10 @@ function userRow(overrides: Record<string, unknown> = {}) {
   return [
     overrides.id ?? userId,
     overrides.email ?? "alice@example.com",
-    overrides.passwordHash ?? "$2b$12$hashed",
+    "passwordHash" in overrides ? overrides.passwordHash : "$2b$12$hashed",
     overrides.displayName ?? "Alice",
     null, // avatarUrl
-    null, // emailVerifiedAt
+    overrides.emailVerifiedAt ?? null,
     new Date().toISOString(), // passwordChangedAt
     new Date().toISOString(), // createdAt
     new Date().toISOString(), // updatedAt
@@ -281,6 +283,14 @@ describe("POST /login", () => {
     expect(authMocks.createSession).not.toHaveBeenCalled();
   });
 
+  it("returns 401 for a Google-only account without a password", async () => {
+    query.mockResolvedValueOnce({ rows: [userRow({ passwordHash: null })] });
+    const result = await login({ email: "alice@example.com", password: "somepassword" });
+    expect(result).toEqual({ status: 401, body: { error: "Invalid email or password" } });
+    expect(authMocks.verifyPassword).toHaveBeenCalledWith("somepassword", "$2b$12$dummy");
+    expect(authMocks.createSession).not.toHaveBeenCalled();
+  });
+
   it("returns 401 for wrong password, no session", async () => {
     query.mockResolvedValueOnce({ rows: [userRow()] });
     authMocks.verifyPassword.mockResolvedValueOnce(false);
@@ -298,6 +308,100 @@ describe("POST /login", () => {
     expect(body.user.passwordHash).toBeUndefined();
     expect(body.user.id).toBe(userId);
     expect(body.user.avatarUrl).toBeNull();
+    expect(authMocks.createSession).toHaveBeenCalledWith(expect.anything(), expect.anything(), userId);
+  });
+});
+
+// ─── POST /google ─────────────────────────────────────────────────────────────
+
+describe("POST /google", () => {
+  const googleBody = { code: "auth-code", codeVerifier: "verifier", redirectUri: "http://localhost:3000/auth/google" };
+  const googleUser = { sub: "google-sub-1", email: "alice@example.com", name: "Alice G" };
+  const emailTaken = { status: 409, body: { error: "An account with this email already exists" } };
+
+  function signInWithGoogle(body: unknown = googleBody) {
+    return dispatch(authRouter, { method: "POST", url: "/google", body });
+  }
+
+  function insertedSql() {
+    return query.mock.calls
+      .map(([config]) => (config as { text: string }).text)
+      .filter((sql) => sql.startsWith("insert"));
+  }
+
+  it("rejects a body without code, codeVerifier and redirectUri", async () => {
+    const result = await signInWithGoogle({ code: "auth-code" });
+    expect(result).toEqual({ status: 400, body: { error: "code, codeVerifier and redirectUri must be strings" } });
+    expect(authMocks.exchangeGoogleCode).not.toHaveBeenCalled();
+  });
+
+  it("returns 401 when Google rejects the code or the Google email is unverified", async () => {
+    authMocks.exchangeGoogleCode.mockResolvedValueOnce(undefined);
+    expect(await signInWithGoogle()).toEqual({ status: 401, body: { error: "Google sign-in failed" } });
+    expect(authMocks.exchangeGoogleCode).toHaveBeenCalledWith("auth-code", "verifier", googleBody.redirectUri);
+    expect(authMocks.createSession).not.toHaveBeenCalled();
+  });
+
+  it("signs in the user already linked to this Google account", async () => {
+    authMocks.exchangeGoogleCode.mockResolvedValueOnce(googleUser);
+    query.mockResolvedValueOnce({ rows: [[userId, "alice@example.com", "Alice", null]] }); // findUserByIdentity
+    const result = await signInWithGoogle();
+    expect(result).toEqual({
+      status: 200,
+      body: { user: { id: userId, email: "alice@example.com", displayName: "Alice", avatarUrl: null } },
+    });
+    expect(authMocks.createSession).toHaveBeenCalledWith(expect.anything(), expect.anything(), userId);
+  });
+
+  it("links an existing account whose email is verified", async () => {
+    authMocks.exchangeGoogleCode.mockResolvedValueOnce(googleUser);
+    query.mockResolvedValueOnce({ rows: [] }); // findUserByIdentity
+    query.mockResolvedValueOnce({ rows: [userRow({ emailVerifiedAt: new Date().toISOString() })] }); // findUserByEmail
+    query.mockResolvedValueOnce({ rows: [["identity-id"]] }); // linkIdentity
+    const result = await signInWithGoogle();
+    expect(result.status).toBe(200);
+    expect(insertedSql()).toEqual([expect.stringContaining('insert into "user_identity"')]);
+    expect(query.mock.calls.at(-1)![1]).toEqual([userId, "google", "google-sub-1"]);
+    expect(authMocks.createSession).toHaveBeenCalledWith(expect.anything(), expect.anything(), userId);
+  });
+
+  it("returns 409 email taken and links nothing when the existing account's email is unverified", async () => {
+    authMocks.exchangeGoogleCode.mockResolvedValueOnce(googleUser);
+    query.mockResolvedValueOnce({ rows: [] }); // findUserByIdentity
+    query.mockResolvedValueOnce({ rows: [userRow()] }); // findUserByEmail, emailVerifiedAt null
+    expect(await signInWithGoogle()).toEqual(emailTaken);
+    expect(insertedSql()).toEqual([]);
+    expect(authMocks.createSession).not.toHaveBeenCalled();
+  });
+
+  it("returns 409 when the verified account is already linked to another Google account", async () => {
+    authMocks.exchangeGoogleCode.mockResolvedValueOnce(googleUser);
+    query.mockResolvedValueOnce({ rows: [] }); // findUserByIdentity
+    query.mockResolvedValueOnce({ rows: [userRow({ emailVerifiedAt: new Date().toISOString() })] });
+    query.mockResolvedValueOnce({ rows: [] }); // linkIdentity hits user_identity_user_provider_unique
+    expect(await signInWithGoogle()).toEqual(emailTaken);
+    expect(authMocks.createSession).not.toHaveBeenCalled();
+  });
+
+  it("creates a verified passwordless user and its Google identity for a new email", async () => {
+    authMocks.exchangeGoogleCode.mockResolvedValueOnce(googleUser);
+    query.mockResolvedValueOnce({ rows: [] }); // findUserByIdentity
+    query.mockResolvedValueOnce({ rows: [] }); // findUserByEmail
+    query.mockResolvedValueOnce({ rows: [] }); // begin
+    query.mockResolvedValueOnce({ rows: [createdUserRow({ displayName: "Alice G" })] }); // insert app_user
+    query.mockResolvedValueOnce({ rows: [] }); // insert user_identity
+    query.mockResolvedValueOnce({ rows: [] }); // commit
+    const result = await signInWithGoogle();
+    expect(result).toEqual({
+      status: 201,
+      body: { user: { id: userId, email: "alice@example.com", displayName: "Alice G", avatarUrl: null } },
+    });
+    const [userInsert, identityInsert] = query.mock.calls.filter(([config]) =>
+      (config as { text: string }).text.startsWith("insert"),
+    );
+    // No password hash is bound; the third value is email_verified_at.
+    expect(userInsert![1]).toEqual(["alice@example.com", "Alice G", expect.any(String)]);
+    expect(identityInsert![1]).toEqual([userId, "google", "google-sub-1"]);
     expect(authMocks.createSession).toHaveBeenCalledWith(expect.anything(), expect.anything(), userId);
   });
 });

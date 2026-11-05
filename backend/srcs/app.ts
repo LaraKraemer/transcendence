@@ -39,6 +39,7 @@ export function createApp() {
   app.use(express.json());
   app.post("/auth/register", authRateLimiter);
   app.post("/auth/login", authRateLimiter, loginRateLimiter);
+  app.post("/auth/google", authRateLimiter);
   app.use("/accounts", accountsRouter);
   app.use("/analytics", analyticsRouter);
   app.use("/auth", authRouter);
