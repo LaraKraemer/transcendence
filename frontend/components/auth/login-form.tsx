@@ -9,6 +9,7 @@ import {
   PasswordVisibilityButton,
   SocialSignIn,
   formErrorFor,
+  googleErrorFor,
   serverFieldErrors,
   useAuthErrorText,
   type FormErrorCode,
@@ -24,7 +25,7 @@ type LoginState = { fieldErrors: FieldErrors<keyof LoginFields>; error: FormErro
 
 const initialState: LoginState = { fieldErrors: {}, error: null };
 
-export function LoginForm() {
+export function LoginForm({ googleError }: { googleError?: string }) {
   const t = useTranslations();
   const errorText = useAuthErrorText();
   const { login } = useAuth();
@@ -57,7 +58,7 @@ export function LoginForm() {
         return { fieldErrors: {}, error: "generic" };
       }
     },
-    initialState,
+    { ...initialState, error: googleErrorFor(googleError) },
   );
 
   return (

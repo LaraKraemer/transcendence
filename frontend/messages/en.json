@@ -9,7 +9,6 @@
   },
   "common": {
     "language": "Language",
-    "comingSoon": "Coming soon",
     "switchToDark": "Switch to dark theme",
     "switchToLight": "Switch to light theme",
     "close": "Close",
@@ -70,6 +69,8 @@
       "displayNameRequired": "Display name is required",
       "displayNameTooLong": "Display name is too long",
       "emailTaken": "An account with this email already exists",
+      "googleEmailTaken": "This email already belongs to an account. Sign in with your email and password instead.",
+      "googleFailed": "Google sign-in failed. Please try again.",
       "invalidCredentials": "Invalid email or password",
       "network": "Could not reach the server. Please try again later.",
       "generic": "Something went wrong. Please try again."

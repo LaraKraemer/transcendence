@@ -9,7 +9,6 @@
   },
   "common": {
     "language": "Sprache",
-    "comingSoon": "Demnächst verfügbar",
     "switchToDark": "Zum dunklen Design wechseln",
     "switchToLight": "Zum hellen Design wechseln",
     "close": "Schließen",
@@ -70,6 +69,8 @@
       "displayNameRequired": "Bitte gib deinen Namen ein",
       "displayNameTooLong": "Der Name ist zu lang",
       "emailTaken": "Mit dieser E-Mail-Adresse existiert bereits ein Konto",
+      "googleEmailTaken": "Diese E-Mail-Adresse gehört bereits zu einem Konto. Melde dich stattdessen mit E-Mail und Passwort an.",
+      "googleFailed": "Die Anmeldung mit Google ist fehlgeschlagen. Bitte versuche es erneut.",
       "invalidCredentials": "E-Mail-Adresse oder Passwort ist falsch",
       "network": "Der Server ist nicht erreichbar. Bitte versuche es später erneut.",
       "generic": "Etwas ist schiefgelaufen. Bitte versuche es erneut."
