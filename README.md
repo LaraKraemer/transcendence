@@ -125,6 +125,28 @@ PostgreSQL connection string:
 DATABASE_URL=postgres://expense:expense@localhost:5432/expense_tracker
 ```
 
+### Google sign-in (optional)
+
+Without these variables, the "Continue with Google" button returns to the login
+page with an error. To turn it on:
+
+1. In the [Google Cloud Console](https://console.cloud.google.com/), create a project.
+2. Configure the OAuth consent screen: choose **External**, keep it in **Testing**,
+   and add the Google accounts that may sign in as test users.
+3. Under **Credentials**, create an **OAuth client ID** of type **Web application**
+   with the authorized redirect URI `http://localhost:3000/auth/google`
+   (it must match exactly; add your deployed origin's `/auth/google` too).
+4. Create `.env` in the repository root (ignored by Git). Docker Compose passes it
+   to the backend and frontend:
+
+   ```env
+   GOOGLE_CLIENT_ID=xxxx.apps.googleusercontent.com
+   GOOGLE_CLIENT_SECRET=xxxx
+   ```
+
+5. Run `make up`. Running without Docker, put both variables in `backend/.env`
+   and `GOOGLE_CLIENT_ID` in `frontend/.env.local`.
+
 <br>
 
 # Start the Application
@@ -218,6 +240,7 @@ deleted at startup and every six hours.
 |---|---|---|
 | `POST` | `/auth/register` | Create an account and start a session |
 | `POST` | `/auth/login` | Start a session with email and password |
+| `POST` | `/auth/google` | Start a session with a Google authorization code (called by the frontend) |
 | `PATCH` | `/auth/password` | Change password and revoke every session |
 | `POST` | `/auth/logout` | Revoke the current session |
 | `GET` | `/auth/me` | Return the current authenticated user |
@@ -252,8 +275,38 @@ curl -i -c cookies.txt \
 ```
 
 Passwords must have at least 12 characters (`.length >= 12`) and at most 72 UTF-8
-bytes. Password hashes, not passwords, are stored in the database. Google and other provider logins will be added later through
-a separate account-identity table.
+bytes. Password hashes, not passwords, are stored in the database.
+
+### Google sign-in
+
+The "Continue with Google" button opens the frontend route `/auth/google`, which
+sends the browser to Google with a random state and a PKCE challenge. Google
+sends the browser back to the same route, which checks the state and calls
+`POST /auth/google` with `{"code", "codeVerifier", "redirectUri"}`. The backend
+exchanges the code with Google, then:
+
+- rejects the sign-in (`401`) if Google has not verified the account's email;
+- signs in the user already linked to this Google account (`200`);
+- links the Google account to an existing account with the same email only when
+  that account's `email_verified_at` is set (`200`);
+- otherwise returns `409` (`An account with this email already exists`), and the
+  login page shows a dedicated "email taken" message. This also happens when
+  the account is already linked to a different Google account;
+- creates a new account (`201`) when no account uses the email. The account has
+  no password, and its email counts as verified.
+
+Linking to an unverified account is refused because whoever registered that
+email first would keep password access to the Google user's account. Nothing
+sets `email_verified_at` for password accounts yet, so until email verification
+exists, they always get the `409`. To test linking locally:
+
+```bash
+docker compose exec db psql -U expense -d expense_tracker \
+  -c "UPDATE app_user SET email_verified_at = now() WHERE email = 'you@gmail.com';"
+```
+
+Linked Google accounts are stored in `user_identity` (one per provider per
+user). Accounts created with Google cannot log in with a password or change it.
 
 `PATCH /auth/password` requires authentication and a JSON body:
 `{"currentPassword":"a-secure-password","newPassword":"another-secure-password"}`.
@@ -265,7 +318,7 @@ with the new password. Missing/non-string fields or invalid new passwords return
 `401` with `{"error":"Invalid current password"}`. Rejected requests leave the
 password and sessions unchanged.
 
-Registration and login share a per-IP limit of 100 requests per 15 minutes.
+Registration, login and Google sign-in share a per-IP limit of 100 requests per 15 minutes.
 Login also allows 10 attempts per client IP and normalized email per 15
 minutes. Override the maximum request counts with `AUTH_RATE_LIMIT_MAX` and
 `LOGIN_RATE_LIMIT_MAX`. The default limiter stores counts in memory, so they
@@ -654,20 +707,26 @@ Create Pull Request on GitHub.
 
 ### Completed
 
-- [x] Simple Next.js frontend setup
-- [x] Simple TypeScript backend setup
-- [x] Docker development environment
-- [x] Makefile development commands
+- [x] Next.js frontend and TypeScript (Express) backend
+- [x] Docker development environment and Makefile commands
+- [x] PostgreSQL integration (Drizzle ORM, automatic migrations)
+- [x] Database schema
+- [x] Authentication (email/password, sessions, password change, account deletion)
+- [x] Expense management (accounts, categories, transactions, multi-currency transfers)
+- [x] File upload management (avatars, JSON transaction import)
+- [x] Advanced search and filtering
+- [x] Custom design system
+- [x] Analytics dashboard and CSV export
+- [x] Internationalization (EN, DE, FA with RTL, UK)
+- [x] Accessibility (WCAG 2.1 AA, automated axe check)
+- [x] Security hardening (rate limiting, HTTP-only sessions)
+- [x] Status page, healthchecks, automated backups and disaster recovery
+- [x] CI pipelines (tests, lint, API smoke test, a11y)
+- [x] Google sign-in
 
 ### Planned (List is work in progress)
 
-- [ ] PostgreSQL integration
-- [ ] Database schema
-- [ ] Authentication
-- [ ] Expense management
-- [ ] File upload management
-- [ ] Advanced search and filtering
-- [ ] Custom design system
+- [ ] Two-factor authentication
 - [ ] Prometheus monitoring
 - [ ] Grafana dashboards
 
