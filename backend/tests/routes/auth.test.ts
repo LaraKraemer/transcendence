@@ -432,24 +432,27 @@ describe("GET /me", () => {
     expect(query).not.toHaveBeenCalled();
   });
 
-  it("returns 200 with user, select does not include password_hash", async () => {
+  it.each([
+    ["$2b$12$hashed", true],
+    [null, false],
+  ])("returns 200 with hasPassword but never the hash (%s)", async (passwordHash, hasPassword) => {
     authMocks.getAuthenticatedUserId.mockResolvedValueOnce(userId);
     // findUserById returns { id, email, displayName, avatarUrl }
     query.mockResolvedValueOnce({ rows: [[userId, "alice@example.com", "Alice", null]] });
+    query.mockResolvedValueOnce({ rows: [[passwordHash]] }); // findUserPasswordHash
 
     const result = await dispatch(authRouter, { method: "GET", url: "/me" });
 
     expect(result.status).toBe(200);
     expect(result.body).toEqual({
-      user: { id: userId, email: "alice@example.com", displayName: "Alice", avatarUrl: null },
+      user: { id: userId, email: "alice@example.com", displayName: "Alice", avatarUrl: null, hasPassword },
     });
-    const sql: string = query.mock.calls[0]![0].text;
-    expect(sql).not.toContain("password_hash");
   });
 
   it("exposes the avatar route instead of the storage key", async () => {
     authMocks.getAuthenticatedUserId.mockResolvedValueOnce(userId);
     query.mockResolvedValueOnce({ rows: [[userId, "alice@example.com", "Alice", "secret-key.png"]] });
+    query.mockResolvedValueOnce({ rows: [["$2b$12$hashed"]] });
     const result = await dispatch(authRouter, { method: "GET", url: "/me" });
     const { avatarUrl } = (result.body as { user: { avatarUrl: string } }).user;
     expect(avatarUrl).toMatch(/^\/auth\/me\/avatar\?v=[0-9a-f]{16}$/);
@@ -460,6 +463,7 @@ describe("GET /me", () => {
     const versionFor = async (key: string) => {
       authMocks.getAuthenticatedUserId.mockResolvedValueOnce(userId);
       query.mockResolvedValueOnce({ rows: [[userId, "alice@example.com", "Alice", key]] });
+      query.mockResolvedValueOnce({ rows: [["$2b$12$hashed"]] });
       const result = await dispatch(authRouter, { method: "GET", url: "/me" });
       return (result.body as { user: { avatarUrl: string } }).user.avatarUrl;
     };
@@ -561,6 +565,15 @@ describe("PATCH /password", () => {
     expect(authMocks.verifyPassword).toHaveBeenCalledWith(body.currentPassword, "old-hash");
     expect(query).toHaveBeenCalledTimes(2);
     expect(authMocks.hashPassword).not.toHaveBeenCalled();
+    expect(authMocks.clearSessionCookie).not.toHaveBeenCalled();
+  });
+
+  it("rejects a Google-only user, who has no password, without writes", async () => {
+    query.mockResolvedValueOnce({ rows: [[userId]] });
+    query.mockResolvedValueOnce({ rows: [[null]] });
+    expect(await change()).toEqual({ status: 400, body: { error: "This account has no password" } });
+    expect(authMocks.verifyPassword).not.toHaveBeenCalled();
+    expect(query).toHaveBeenCalledTimes(2);
     expect(authMocks.clearSessionCookie).not.toHaveBeenCalled();
   });
 

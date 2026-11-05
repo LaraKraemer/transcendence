@@ -306,7 +306,8 @@ docker compose exec db psql -U expense -d expense_tracker \
 ```
 
 Linked Google accounts are stored in `user_identity` (one per provider per
-user). Accounts created with Google cannot log in with a password or change it.
+user). Accounts created with Google cannot log in with a password (`401`) or
+change it (`400`). `GET /auth/me` returns `hasPassword: false` for them.
 
 `PATCH /auth/password` requires authentication and a JSON body:
 `{"currentPassword":"a-secure-password","newPassword":"another-secure-password"}`.
