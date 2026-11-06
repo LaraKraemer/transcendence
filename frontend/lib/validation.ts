@@ -7,6 +7,7 @@ export const validationErrorCodes = [
   "passwordRequired",
   "passwordTooShort",
   "passwordTooLong",
+  "passwordMismatch",
   "displayNameRequired",
   "displayNameTooLong",
 ] as const;
@@ -17,6 +18,7 @@ export type FieldErrors<F extends string> = Partial<Record<F, ValidationErrorCod
 
 export type LoginFields = { email: string; password: string };
 export type RegisterFields = LoginFields & { displayName: string };
+export type ChangePasswordFields = { currentPassword: string; newPassword: string; confirmPassword: string };
 
 export function isValidationErrorCode(value: unknown): value is ValidationErrorCode {
   return typeof value === "string" && (validationErrorCodes as readonly string[]).includes(value);
@@ -52,6 +54,19 @@ export function validateRegister({ email, displayName, password }: RegisterField
     displayName: displayName.trim() ? undefined : "displayNameRequired",
     email: validateEmail(email),
     password: validatePassword(password),
+  });
+}
+
+// The current password only needs to be present, like at login; the new one follows the sign-up rule.
+export function validateChangePassword({
+  currentPassword,
+  newPassword,
+  confirmPassword,
+}: ChangePasswordFields): FieldErrors<keyof ChangePasswordFields> {
+  return compact({
+    currentPassword: currentPassword ? undefined : "passwordRequired",
+    newPassword: validatePassword(newPassword),
+    confirmPassword: confirmPassword === newPassword ? undefined : "passwordMismatch",
   });
 }
 

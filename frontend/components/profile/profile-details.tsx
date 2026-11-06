@@ -1,6 +1,6 @@
 "use client";
 
-import { Camera, ChevronLeft, Mail, Pencil, UserRound, type LucideIcon } from "lucide-react";
+import { Camera, ChevronLeft, LockKeyhole, Mail, Pencil, Trash2, UserRound, type LucideIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import {
@@ -15,6 +15,7 @@ import {
 } from "react";
 
 import { formErrorFor, serverFieldErrors, useAuthErrorText } from "@/components/auth/form-parts";
+import { ChangePasswordButton, DeleteProfileButton } from "@/components/profile/profile-row-actions";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { FormAlert } from "@/components/ui/form-alert";
@@ -43,7 +44,8 @@ function photoErrorFor(result: ActionResponse): PhotoError {
 
 /**
  * The profile page body after docs/design/desktop/profile.html: the header card
- * (cover, photo, name, email) and the Personal Information card. Photo changes
+ * (cover, photo, name, email) and the Profile Information card, whose password and
+ * delete-profile rows open dialogs from components/profile/profile-row-actions.tsx. Photo changes
  * and the name form go through lib/actions/profile.ts, which refreshes the route,
  * so the header and the app shell re-render with the new user.
  */
@@ -105,20 +107,10 @@ export function ProfileDetails({ user }: { user: User }) {
 
   return (
     <div className="mx-auto w-full max-w-6xl pt-2">
-      <div className="flex flex-wrap items-start gap-4 lg:mb-6">
-        {/* The mobile design has no page title, only the cover with a back button. */}
-        <div className="min-w-0 max-lg:sr-only">
-          <h1 className="text-[26px] font-bold tracking-[-0.02em]">{t("nav.profile")}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{t("profile.subtitle")}</p>
-        </div>
-        <button
-          type="button"
-          onClick={() => setIsEditingName(true)}
-          className="ms-auto flex shrink-0 cursor-pointer items-center gap-[7px] rounded-[10px] bg-primary px-[18px] py-[11px] text-sm font-semibold text-primary-foreground hover:opacity-90 focus-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background max-lg:hidden"
-        >
-          <Pencil size={15} aria-hidden />
-          {t("profile.editProfile")}
-        </button>
+      {/* The mobile design has no page title, only the cover with a back button. */}
+      <div className="min-w-0 max-lg:sr-only lg:mb-6">
+        <h1 className="text-[26px] font-bold tracking-[-0.02em]">{t("nav.profile")}</h1>
+        <p className="mt-1 text-sm text-muted-foreground">{t("profile.subtitle")}</p>
       </div>
 
       <Card as="section" className="mb-5 overflow-hidden">
@@ -242,28 +234,40 @@ export function ProfileDetails({ user }: { user: User }) {
 
       <Card
         as="section"
-        aria-labelledby="personal-info"
+        aria-labelledby="profile-info"
         className="p-[18px] lg:max-w-[60%] lg:p-6"
       >
-        <div className="mb-1.5 flex items-center gap-3">
-          <h2 id="personal-info" className="text-base font-semibold">
-            {t("profile.personalInfo")}
-          </h2>
-          <button
-            type="button"
-            onClick={() => setIsEditingName(true)}
-            className="ms-auto flex cursor-pointer items-center gap-[5px] rounded-[6px] text-[13px] font-semibold text-primary hover:opacity-80 focus-ring dark:text-accent-foreground"
-          >
-            <Pencil size={13} aria-hidden />
-            {t("profile.edit")}
-          </button>
-        </div>
+        <h2 id="profile-info" className="mb-1.5 text-base font-semibold">
+          {t("profile.profileInfo")}
+        </h2>
         <div>
-          <InfoRow icon={UserRound} label={t("profile.name")}>
+          <InfoRow
+            icon={UserRound}
+            label={t("profile.name")}
+            action={
+              <button
+                type="button"
+                onClick={() => setIsEditingName(true)}
+                className="flex cursor-pointer items-center gap-[5px] rounded-[6px] text-[13px] font-semibold text-primary hover:opacity-80 focus-ring dark:text-accent-foreground"
+              >
+                <Pencil size={13} aria-hidden />
+                {t("profile.edit")}
+              </button>
+            }
+          >
             {user.displayName}
           </InfoRow>
           <InfoRow icon={Mail} label={t("profile.email")}>
             <bdi>{user.email}</bdi>
+          </InfoRow>
+          {/* By hasPassword, not by a Google link: a later "set password" can give Google users one. */}
+          {user.hasPassword && (
+            <InfoRow icon={LockKeyhole} label={t("auth.fields.password")} action={<ChangePasswordButton />}>
+              <span aria-hidden>••••••••••••</span>
+            </InfoRow>
+          )}
+          <InfoRow icon={Trash2} label={t("profile.deleteProfile.title")} action={<DeleteProfileButton />}>
+            <span className="font-normal text-muted-foreground">{t("profile.deleteProfile.description")}</span>
           </InfoRow>
         </div>
       </Card>
@@ -287,7 +291,18 @@ export function ProfileDetails({ user }: { user: User }) {
   );
 }
 
-function InfoRow({ icon: Icon, label, children }: { icon: LucideIcon; label: string; children: ReactNode }) {
+/** One row of the Profile Information card; `action` is an optional button at its end. */
+function InfoRow({
+  icon: Icon,
+  label,
+  action,
+  children,
+}: {
+  icon: LucideIcon;
+  label: string;
+  action?: ReactNode;
+  children: ReactNode;
+}) {
   return (
     <div className="flex items-center gap-3 border-b border-border py-[11px] last:border-b-0 lg:gap-3.5 lg:py-3.5">
       <span className="flex size-[38px] shrink-0 items-center justify-center rounded-[10px] bg-muted text-muted-foreground">
@@ -297,6 +312,7 @@ function InfoRow({ icon: Icon, label, children }: { icon: LucideIcon; label: str
         <div className="text-[11px] font-semibold tracking-[.05em] text-muted-foreground uppercase">{label}</div>
         <div className="mt-0.5 text-[13px] font-medium wrap-anywhere lg:text-sm">{children}</div>
       </div>
+      {action && <div className="ms-auto shrink-0">{action}</div>}
     </div>
   );
 }
