@@ -36,6 +36,7 @@ import {
   updateUserPassword,
   updateUserProfile,
 } from "../db/users.ts";
+import { logins } from "../metrics.ts";
 import { deleteAvatar, readAvatar, writeAvatar } from "../storage.ts";
 import {
   decryptSecret,
@@ -72,6 +73,7 @@ async function startSession<User extends { id: string; avatarUrl: string | null 
   user: User,
 ): Promise<void> {
   const twoFactorRequired = await createSession(req, res, user.id);
+  logins.inc({ result: "success" });
   res.json(twoFactorRequired ? { twoFactorRequired } : { user: toPublicUser(user) });
 }
 
@@ -115,6 +117,7 @@ authRouter.post("/login", async (req, res) => {
   const normalizedEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
 
   if (!normalizedEmail || typeof password !== "string") {
+    logins.inc({ result: "failure" });
     res.status(401).json({ error: "Invalid email or password" });
     return;
   }
@@ -123,10 +126,12 @@ authRouter.post("/login", async (req, res) => {
   // Google-only accounts have no password, so they fail like unknown emails.
   if (!user?.passwordHash) {
     await verifyPassword(password, await dummyPasswordHash);
+    logins.inc({ result: "failure" });
     res.status(401).json({ error: "Invalid email or password" });
     return;
   }
   if (!(await verifyPassword(password, user.passwordHash))) {
+    logins.inc({ result: "failure" });
     res.status(401).json({ error: "Invalid email or password" });
     return;
   }

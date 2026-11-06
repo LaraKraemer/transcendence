@@ -4,7 +4,8 @@ import { isNotNull } from "drizzle-orm";
 
 import { purgeStaleSessions } from "./auth.ts";
 import { createApp } from "./app.ts";
-import { db } from "./db/client.ts";
+import { db, pool } from "./db/client.ts";
+import { createMetricsApp } from "./metrics.ts";
 import { runMigrations } from "./db/migrate.ts";
 import { appUsers } from "./db/schema.ts";
 import { isTwoFactorConfigured } from "./totp.ts";
@@ -27,6 +28,11 @@ if (!isTwoFactorConfigured()) {
 
 createApp().listen(3001, () => {
   console.log("Server running on port 3001");
+});
+
+const metricsPort = 9100;
+createMetricsApp(pool).listen(metricsPort, "0.0.0.0", () => {
+  console.log(`Internal metrics server running on port ${metricsPort}`);
 });
 
 const runPurge = () => purgeStaleSessions().catch((error) => console.error("Session purge failed:", error));
