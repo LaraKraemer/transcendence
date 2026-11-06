@@ -17,6 +17,7 @@ import {
 } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 
+import { transactionsCreated } from "../metrics.ts";
 import type { TransactionImport } from "../transaction-import.ts";
 import { db } from "./client.ts";
 import { accounts, categories, currencies, transactions } from "./schema.ts";
@@ -308,12 +309,15 @@ export async function countTransactionsByCategory(categoryId: string, userId: st
 
 export async function insertTransaction(values: NewTransaction) {
   const [transaction] = await db.insert(transactions).values(values).returning();
+  if (transaction) transactionsCreated.inc();
   return transaction;
 }
 
 /** Inserts both legs of a transfer in one statement, so either both exist or neither does. */
 export async function insertTransferLegs(legs: NewTransaction[]) {
-  return db.insert(transactions).values(legs).returning();
+  const inserted = await db.insert(transactions).values(legs).returning();
+  transactionsCreated.inc(inserted.length);
+  return inserted;
 }
 
 export async function updateTransaction(
@@ -342,7 +346,7 @@ export async function importTransactions(
   userId: string,
   document: TransactionImport,
 ): Promise<{ imported: number } | { status: number; error: string }> {
-  return db.transaction(async (transaction) => {
+  const result = await db.transaction(async (transaction) => {
     const [account] = await transaction
       .select()
       .from(accounts)
@@ -376,4 +380,6 @@ export async function importTransactions(
     const inserted = await transaction.insert(transactions).values(entries).returning({ id: transactions.id });
     return { imported: inserted.length };
   });
+  if ("imported" in result) transactionsCreated.inc(result.imported);
+  return result;
 }

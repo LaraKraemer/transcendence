@@ -14,6 +14,7 @@ vi.mock("../../srcs/auth.ts", () => ({
   },
 }));
 
+import { transactionsCreated } from "../../srcs/metrics.ts";
 import { transactionsRouter } from "../../srcs/routes/transaction.ts";
 import { isUuid } from "../../srcs/validation.ts";
 import { accountsRouter } from "../../srcs/routes/account.ts";
@@ -84,7 +85,10 @@ function summary(params: Record<string, unknown>) {
   });
 }
 
-beforeEach(() => query.mockReset());
+beforeEach(() => {
+  query.mockReset();
+  transactionsCreated.reset();
+});
 
 describe("GET /transactions/summary", () => {
   it.each([
@@ -682,6 +686,7 @@ describe("POST /transactions", () => {
     query.mockResolvedValueOnce({ rows: [txRow()] }); // insertTransaction
     const result = await post(validBody);
     expect(result.status).toBe(201);
+    expect((await transactionsCreated.get()).values[0]?.value).toBe(1);
     const insertParams: unknown[] = query.mock.calls[1]![1];
     expect(insertParams).toContain(userId);
   });
@@ -1081,6 +1086,7 @@ describe("POST /transactions/transfers", () => {
       status: 201,
       body: { from: { accountId, amountMinor: -5000 }, to: { accountId: otherAccountId, amountMinor: 5000 } },
     });
+    expect((await transactionsCreated.get()).values[0]?.value).toBe(2);
     expect(query).toHaveBeenCalledTimes(3);
     const insertSql: string = query.mock.calls[2]![0].text;
     expect(insertSql.match(/insert into "transaction"/g)).toHaveLength(1);

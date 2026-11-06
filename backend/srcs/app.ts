@@ -5,6 +5,7 @@ import express from "express";
 
 import { requireAuthenticatedUser } from "./auth.ts";
 import { pool } from "./db/client.ts";
+import { captureMetricsRoutePrefix, measureHttpRequests } from "./metrics.ts";
 import { createAuthRateLimiter, createLoginRateLimiter } from "./rate-limit.ts";
 import { accountsRouter } from "./routes/account.ts";
 import { analyticsRouter } from "./routes/analytics.ts";
@@ -28,6 +29,7 @@ export function createApp() {
     app.set("trust proxy", hops);
   }
 
+  app.use(measureHttpRequests);
   app.use(
     cors({
       origin: process.env.FRONTEND_ORIGIN ?? "http://localhost:3000",
@@ -40,12 +42,12 @@ export function createApp() {
   app.post("/auth/register", authRateLimiter);
   app.post("/auth/login", authRateLimiter, loginRateLimiter);
   app.post("/auth/google", authRateLimiter);
-  app.use("/accounts", accountsRouter);
-  app.use("/analytics", analyticsRouter);
-  app.use("/auth", authRouter);
-  app.use("/categories", categoriesRouter);
-  app.use("/currencies", currenciesRouter);
-  app.use("/transactions", transactionsRouter);
+  app.use("/accounts", captureMetricsRoutePrefix, accountsRouter);
+  app.use("/analytics", captureMetricsRoutePrefix, analyticsRouter);
+  app.use("/auth", captureMetricsRoutePrefix, authRouter);
+  app.use("/categories", captureMetricsRoutePrefix, categoriesRouter);
+  app.use("/currencies", captureMetricsRoutePrefix, currenciesRouter);
+  app.use("/transactions", captureMetricsRoutePrefix, transactionsRouter);
 
   app.get("/", (_, res) => {
     res.send("Expense Tracker API");

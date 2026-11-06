@@ -7,6 +7,8 @@ const { purgeStaleSessions, runMigrations, listen } = vi.hoisted(() => ({
 }));
 vi.mock("../srcs/auth.ts", () => ({ purgeStaleSessions }));
 vi.mock("../srcs/db/migrate.ts", () => ({ runMigrations }));
+vi.mock("../srcs/db/client.ts", () => ({ pool: {} }));
+vi.mock("../srcs/metrics.ts", () => ({ createMetricsApp: () => ({ listen }) }));
 vi.mock("../srcs/app.ts", () => ({ createApp: () => ({ listen }) }));
 
 afterEach(() => {
@@ -26,6 +28,7 @@ it("purges at startup and every six hours, logs failures, and unrefs the timer",
   await vi.advanceTimersByTimeAsync(0);
   expect(runMigrations).toHaveBeenCalledOnce();
   expect(listen).toHaveBeenCalledWith(3001, expect.any(Function));
+  expect(listen).toHaveBeenCalledWith(9100, "0.0.0.0", expect.any(Function));
   expect(purgeStaleSessions).toHaveBeenCalledTimes(1);
   expect(errorLog).toHaveBeenCalledWith("Session purge failed:", error);
   expect(interval.mock.results[0]!.value.hasRef()).toBe(false);
