@@ -9,11 +9,18 @@ import type { ActionResponse } from "@/lib/types";
 import { MIN_PASSWORD_LENGTH, isValidationErrorCode, type ValidationErrorCode } from "@/lib/validation";
 
 export type GoogleErrorCode = "googleEmailTaken" | "googleFailed";
-export type FormErrorCode = "emailTaken" | "invalidCredentials" | "network" | "generic" | GoogleErrorCode;
+export type FormErrorCode =
+  "emailTaken" | "invalidCredentials" | "currentPasswordInvalid" | "network" | "generic" | GoogleErrorCode;
+export type AuthNotice = "passwordChanged" | "profileDeleted";
 
 /** Narrows the `?error=` that app/auth/google/route.ts adds to /login to a known code. */
 export function googleErrorFor(param: string | undefined): GoogleErrorCode | null {
   return param === "googleEmailTaken" || param === "googleFailed" ? param : null;
+}
+
+/** Narrows the `?notice=` that the profile page adds to /login after ending the session. */
+export function authNoticeFor(param: string | undefined): AuthNotice | null {
+  return param === "passwordChanged" || param === "profileDeleted" ? param : null;
 }
 
 /** Gives back a function that turns an error code into a message in the user's language. */

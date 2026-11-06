@@ -823,7 +823,7 @@ current theme and language. Reuse these instead of copying class strings:
 | `Modal` | `open`, `title`, `onClose`, `busy?`, `describedBy?`, `closeOnBackdropClick?` | Forms in a dialog. Mark the first field `data-autofocus`. `busy` blocks closing while saving. |
 | `ConfirmDialog` | `open`, `title`, `children`, `confirmLabel`, `onConfirm`, `onCancel`, `pending?`, `confirmDisabled?`, `error?` | Before a destructive action. Focus starts on Cancel. |
 | `LiveStatusProvider`, `useAnnounce` | `announce(message)` | Tell screen readers the result of an action whose row disappears ("“Savings” archived"). |
-| `FormAlert` | `message` (`null` hides it) | A form-level error at the top of a form, e.g. a network failure. |
+| `FormAlert` | `message` (`null` hides it), `tone?`: `danger` \| `success` | A form-level error at the top of a form, e.g. a network failure, or with `tone="success"` a result such as "Password changed". |
 | `Card` | `as?`: `div` \| `section` \| `article` \| `details`, `className` (padding), plus HTML props | Every bordered panel. Use `as="section"` with `aria-labelledby` when it has a heading. |
 | `Badge`, `badgeToneClassName` | `tone?`: `neutral` \| `info` \| `success` \| `warning` \| `danger`, `variant?`: `label` \| `pill` | `label`: short uppercase status next to a name. `pill`: a value with an icon. The text must make sense without the colour. |
 | `EmptyState` | `href?`, `className` (spacing), `children` | The message where a list has nothing to show. `href` makes it a link to where the user can add something. |

@@ -66,14 +66,20 @@
       "passwordRequired": "Gib dein Passwort ein",
       "passwordTooShort": "Das Passwort muss mindestens {min, number} Zeichen lang sein",
       "passwordTooLong": "Das Passwort ist zu lang",
+      "passwordMismatch": "Die Passwörter stimmen nicht überein",
       "displayNameRequired": "Bitte gib deinen Namen ein",
       "displayNameTooLong": "Der Name ist zu lang",
       "emailTaken": "Mit dieser E-Mail-Adresse existiert bereits ein Konto",
       "googleEmailTaken": "Diese E-Mail-Adresse gehört bereits zu einem Konto. Melde dich stattdessen mit E-Mail und Passwort an.",
       "googleFailed": "Die Anmeldung mit Google ist fehlgeschlagen. Bitte versuche es erneut.",
       "invalidCredentials": "E-Mail-Adresse oder Passwort ist falsch",
+      "currentPasswordInvalid": "Das aktuelle Passwort ist falsch",
       "network": "Der Server ist nicht erreichbar. Bitte versuche es später erneut.",
       "generic": "Etwas ist schiefgelaufen. Bitte versuche es erneut."
+    },
+    "notices": {
+      "passwordChanged": "Passwort geändert. Melde dich mit deinem neuen Passwort an.",
+      "profileDeleted": "Dein Profil wurde gelöscht."
     }
   },
   "nav": {
@@ -155,9 +161,8 @@
   },
   "profile": {
     "subtitle": "Verwalte deine persönlichen Daten und dein Profilfoto",
-    "editProfile": "Profil bearbeiten",
     "edit": "Bearbeiten",
-    "personalInfo": "Persönliche Daten",
+    "profileInfo": "Profilinformationen",
     "name": "Vollständiger Name",
     "email": "E-Mail-Adresse",
     "changePhoto": "Profilfoto ändern",
@@ -181,7 +186,31 @@
     "photoPreview": "Vorschau des ausgewählten Fotos",
     "uploadPhoto": "Hochladen",
     "replaceSelection": "Auswahl ersetzen",
-    "savingPhoto": "Foto wird gespeichert…"
+    "savingPhoto": "Foto wird gespeichert…",
+    "password": {
+      "title": "Passwort ändern",
+      "description": "Nach der Änderung wirst du auf allen Geräten abgemeldet.",
+      "currentPassword": "Aktuelles Passwort",
+      "newPassword": "Neues Passwort",
+      "confirmPassword": "Neues Passwort bestätigen",
+      "submit": "Passwort ändern",
+      "submitting": "Wird geändert…",
+      "change": "Ändern"
+    },
+    "deleteProfile": {
+      "title": "Profil löschen",
+      "description": "Lösche dein Profil und alle zugehörigen Daten dauerhaft.",
+      "button": "Löschen"
+    },
+    "deleteDialog": {
+      "title": "Dein Profil löschen?",
+      "description": "Dein Profil und alle zugehörigen Konten (auch archivierte), Kategorien, Transaktionen und dein Profilfoto werden dauerhaft gelöscht und können nicht wiederhergestellt werden.",
+      "continue": "Weiter",
+      "finalTitle": "Letzte Warnung: Dein Profil löschen?",
+      "finalDescription": "Wenn du jetzt bestätigst, werden dein Profil und alle zugehörigen Daten unwiderruflich gelöscht, und du wirst auf allen Geräten abgemeldet. Diese Aktion kann nicht rückgängig gemacht werden.",
+      "confirm": "Profil dauerhaft löschen",
+      "confirming": "Wird gelöscht…"
+    }
   },
   "accounts": {
     "title": "Konten",
@@ -577,7 +606,7 @@
           "paragraphs": [
             "Du kannst einzelne Transaktionen und Kategorien jederzeit löschen und dein Profilfoto auf der Profilseite entfernen. Wenn du eine Kategorie löschst, bleiben ihre Transaktionen ohne Kategorie erhalten. Wenn du eine Seite einer Umbuchung löschst, werden beide Seiten gelöscht.",
             "Wird ein Profil gelöscht, entfernt Poolaki es zusammen mit allen Konten (auch archivierten), Kategorien, Transaktionen, Sitzungen und dem Profilfoto dauerhaft in einem Schritt. Es wird keine Kopie aufbewahrt, und die Daten lassen sich nicht wiederherstellen.",
-            "Dein ganzes Profil oder ein Konto mit allen Transaktionen zu löschen, ist in der App noch nicht möglich."
+            "Ein Konto mit allen Transaktionen kannst du auf der Seite „Konten“ löschen, dein ganzes Profil auf der Profilseite."
           ]
         },
         "rights": {
