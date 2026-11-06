@@ -1,0 +1,29 @@
+meta {
+  name: 36 - Log in asks for a code
+  type: http
+  seq: 37
+}
+
+post {
+  url: {{baseUrl}}/auth/login
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "{{twoFaEmail}}",
+    "password": "{{testPassword}}"
+  }
+}
+
+tests {
+  test("login is pending and exposes no user", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody()).to.eql({ twoFactorRequired: true });
+  });
+}

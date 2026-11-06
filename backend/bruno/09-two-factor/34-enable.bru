@@ -1,0 +1,47 @@
+meta {
+  name: 34 - Enable 2FA
+  type: http
+  seq: 35
+}
+
+post {
+  url: {{baseUrl}}/auth/2fa/enable
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+script:pre-request {
+  const CryptoJS = require("crypto-js");
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+  const bits = [...bru.getVar("totpSecret")].map((c) => alphabet.indexOf(c).toString(2).padStart(5, "0")).join("");
+  const keyHex = bits.match(/.{8}/g).map((b) => parseInt(b, 2).toString(16).padStart(2, "0")).join("");
+  // Offset 0 is the current step. Disable uses offset 1: the next step is still inside the server window
+  // but newer than the step enable used, so it passes the replay check without waiting 30 seconds.
+  const step = Math.floor(Date.now() / 30000) + 0;
+  const hmac = CryptoJS.HmacSHA1(
+    CryptoJS.enc.Hex.parse(step.toString(16).padStart(16, "0")),
+    CryptoJS.enc.Hex.parse(keyHex),
+  ).toString();
+  const offset = parseInt(hmac.slice(-1), 16);
+  const binary = parseInt(hmac.substr(offset * 2, 8), 16) & 0x7fffffff;
+  bru.setVar("totpCode", String(binary % 1000000).padStart(6, "0"));
+}
+
+body:json {
+  {
+    "code": "{{totpCode}}"
+  }
+}
+
+tests {
+  test("2FA is on and 10 recovery codes are returned once", function () {
+    expect(res.getStatus()).to.equal(200);
+    const { recoveryCodes } = res.getBody();
+    expect(recoveryCodes).to.have.length(10);
+    bru.setVar("recoveryCode", recoveryCodes[0]);
+  });
+}

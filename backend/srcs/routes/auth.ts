@@ -1,17 +1,28 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 
 import express, { Router } from "express";
+import type { Request, Response } from "express";
 
 import {
   clearSessionCookie,
+  completePendingSession,
   createSession,
   exchangeGoogleCode,
   getAuthenticatedUserId,
   hashPassword,
   revokeCurrentSession,
   requireAuthenticatedUser,
+  requirePendingSession,
   verifyPassword,
 } from "../auth.ts";
+import {
+  activateTotp,
+  burnRecoveryCode,
+  claimTotpStep,
+  deactivateTotp,
+  findTotpState,
+  saveTotpSecret,
+} from "../db/twofactor.ts";
 import {
   createUser,
   createUserWithIdentity,
@@ -26,6 +37,16 @@ import {
   updateUserProfile,
 } from "../db/users.ts";
 import { deleteAvatar, readAvatar, writeAvatar } from "../storage.ts";
+import {
+  decryptSecret,
+  encryptSecret,
+  generateRecoveryCodes,
+  generateSecret,
+  hashRecoveryCode,
+  isTwoFactorConfigured,
+  otpauthUri,
+  verifyTotp,
+} from "../totp.ts";
 import { isJpegOrPng, isValidPassword, parseRequiredText, TEXT_LIMITS } from "../validation.ts";
 
 export const authRouter = Router();
@@ -39,6 +60,19 @@ const avatarRoute = "/auth/me/avatar";
 function toPublicUser<User extends { avatarUrl: string | null }>(user: User) {
   const version = user.avatarUrl && createHash("sha256").update(user.avatarUrl).digest("hex").slice(0, 16);
   return { ...user, avatarUrl: user.avatarUrl ? `${avatarRoute}?v=${version}` : null };
+}
+
+/**
+ * Starts a session for a user who just proved their identity. When the user has 2FA on, the session
+ * is pending and the response only says a code is needed; no user data is sent before the code.
+ */
+async function startSession<User extends { id: string; avatarUrl: string | null }>(
+  req: Request,
+  res: Response,
+  user: User,
+): Promise<void> {
+  const twoFactorRequired = await createSession(req, res, user.id);
+  res.json(twoFactorRequired ? { twoFactorRequired } : { user: toPublicUser(user) });
 }
 
 // Unknown emails must do the same bcrypt work as a wrong password for an existing user.
@@ -97,15 +131,8 @@ authRouter.post("/login", async (req, res) => {
     return;
   }
 
-  await createSession(req, res, user.id);
-  res.json({
-    user: toPublicUser({
-      id: user.id,
-      email: user.email,
-      displayName: user.displayName,
-      avatarUrl: user.avatarUrl,
-    }),
-  });
+  const { id, email: userEmail, displayName, avatarUrl } = user;
+  await startSession(req, res, { id, email: userEmail, displayName, avatarUrl });
 });
 
 const googleProvider = "google";
@@ -131,8 +158,7 @@ authRouter.post("/google", async (req, res, next) => {
 
     const linkedUser = await findUserByIdentity(googleProvider, google.sub);
     if (linkedUser) {
-      await createSession(req, res, linkedUser.id);
-      res.json({ user: toPublicUser(linkedUser) });
+      await startSession(req, res, linkedUser);
       return;
     }
 
@@ -143,9 +169,8 @@ authRouter.post("/google", async (req, res, next) => {
         res.status(409).json({ error: "An account with this email already exists" });
         return;
       }
-      await createSession(req, res, existingUser.id);
       const { id, email, displayName, avatarUrl } = existingUser;
-      res.json({ user: toPublicUser({ id, email, displayName, avatarUrl }) });
+      await startSession(req, res, { id, email, displayName, avatarUrl });
       return;
     }
 
@@ -315,6 +340,167 @@ authRouter.patch("/password", requireAuthenticatedUser, async (req, res, next) =
       return;
     }
     clearSessionCookie(res);
+    res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+});
+
+const invalidCodeError = { error: "Invalid code" };
+
+/** Reads a string body field and returns it, or undefined when it is missing or not a string. */
+function bodyString(body: unknown, field: string): string | undefined {
+  const value = (body as Record<string, unknown> | undefined)?.[field];
+  return typeof value === "string" ? value : undefined;
+}
+
+/**
+ * Checks a TOTP code for a user with 2FA on and claims its step so it cannot be used again.
+ * Returns false for a wrong, expired or already used code.
+ */
+async function consumeTotpCode(
+  userId: string,
+  state: NonNullable<Awaited<ReturnType<typeof findTotpState>>>,
+  code: string,
+): Promise<boolean> {
+  if (!state.totpSecretEncrypted) return false;
+  const step = verifyTotp(decryptSecret(state.totpSecretEncrypted), code, state.totpLastUsedStep);
+  return step !== undefined && (await claimTotpStep(userId, step));
+}
+
+/** Creates a TOTP secret and returns it with the `otpauth://` URI. 2FA stays off until `enable`. */
+authRouter.post("/2fa/setup", requireAuthenticatedUser, async (_req, res, next) => {
+  if (!isTwoFactorConfigured()) {
+    res.status(404).json({ error: "Two-factor authentication is not available" });
+    return;
+  }
+
+  try {
+    const userId = res.locals.userId as string;
+    const state = await findTotpState(userId);
+    if (!state) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+    const secret = generateSecret();
+    if (!(await saveTotpSecret(userId, encryptSecret(secret)))) {
+      res.status(409).json({ error: "Two-factor authentication is already enabled" });
+      return;
+    }
+    res.json({ secret, otpauthUri: otpauthUri(secret, state.email) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/** Verifies the first code, turns 2FA on and returns the recovery codes, which are never shown again. */
+authRouter.post("/2fa/enable", requireAuthenticatedUser, async (req, res, next) => {
+  const code = bodyString(req.body, "code");
+  if (code === undefined) {
+    res.status(400).json({ error: "code must be a string" });
+    return;
+  }
+
+  try {
+    const state = await findTotpState(res.locals.userId as string);
+    if (!state?.totpSecretEncrypted || state.totpEnabledAt) {
+      res.status(409).json({ error: "Call setup first, or two-factor authentication is already enabled" });
+      return;
+    }
+    const step = verifyTotp(decryptSecret(state.totpSecretEncrypted), code, null);
+    if (step === undefined) {
+      res.status(401).json(invalidCodeError);
+      return;
+    }
+    const recoveryCodes = generateRecoveryCodes();
+    if (!(await activateTotp(res.locals.userId as string, step, recoveryCodes.map(hashRecoveryCode)))) {
+      res.status(409).json({ error: "Two-factor authentication is already enabled" });
+      return;
+    }
+    res.json({ recoveryCodes });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/** Completes a pending session with a TOTP code (current step plus or minus one, each step once). */
+authRouter.post("/2fa/verify", requirePendingSession, async (req, res, next) => {
+  const code = bodyString(req.body, "code");
+  if (code === undefined) {
+    res.status(400).json({ error: "code must be a string" });
+    return;
+  }
+
+  try {
+    const userId = res.locals.userId as string;
+    const state = await findTotpState(userId);
+    if (!state || !(await consumeTotpCode(userId, state, code))) {
+      res.status(401).json(invalidCodeError);
+      return;
+    }
+    await completePendingSession(req, res, res.locals.sessionId as string);
+    const user = await findUserById(userId);
+    res.json({ user: user && toPublicUser(user) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/** Completes a pending session with a recovery code and burns it. */
+authRouter.post("/2fa/recover", requirePendingSession, async (req, res, next) => {
+  const recoveryCode = bodyString(req.body, "recoveryCode");
+  if (recoveryCode === undefined) {
+    res.status(400).json({ error: "recoveryCode must be a string" });
+    return;
+  }
+
+  try {
+    const userId = res.locals.userId as string;
+    if (!(await burnRecoveryCode(userId, hashRecoveryCode(recoveryCode)))) {
+      res.status(401).json({ error: "Invalid recovery code" });
+      return;
+    }
+    await completePendingSession(req, res, res.locals.sessionId as string);
+    const user = await findUserById(userId);
+    res.json({ user: user && toPublicUser(user) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * Turns 2FA off after re-authentication: the password too when the account has one, plus a TOTP
+ * code or a recovery code. Revokes every other session. One generic 401 hides which check failed.
+ */
+authRouter.post("/2fa/disable", requireAuthenticatedUser, async (req, res, next) => {
+  const password = bodyString(req.body, "password");
+  const code = bodyString(req.body, "code");
+  const recoveryCode = bodyString(req.body, "recoveryCode");
+  if (code === undefined && recoveryCode === undefined) {
+    res.status(400).json({ error: "code or recoveryCode is required" });
+    return;
+  }
+
+  try {
+    const userId = res.locals.userId as string;
+    const state = await findTotpState(userId);
+    if (!state?.totpEnabledAt) {
+      res.status(409).json({ error: "Two-factor authentication is not enabled" });
+      return;
+    }
+    if (state.passwordHash && (password === undefined || !(await verifyPassword(password, state.passwordHash)))) {
+      res.status(401).json({ error: "Invalid password or code" });
+      return;
+    }
+    const isSecondFactorValid =
+      code !== undefined
+        ? await consumeTotpCode(userId, state, code)
+        : await burnRecoveryCode(userId, hashRecoveryCode(recoveryCode ?? ""));
+    if (!isSecondFactorValid) {
+      res.status(401).json({ error: "Invalid password or code" });
+      return;
+    }
+    await deactivateTotp(userId, res.locals.sessionId as string);
     res.status(204).send();
   } catch (error) {
     next(error);

@@ -1,0 +1,20 @@
+meta {
+  name: 33 - Set up 2FA
+  type: http
+  seq: 34
+}
+
+post {
+  url: {{baseUrl}}/auth/2fa/setup
+  body: none
+  auth: none
+}
+
+tests {
+  test("returns a secret and otpauth URI (needs TOTP_ENCRYPTION_KEY)", function () {
+    expect(res.getStatus()).to.equal(200);
+    const body = res.getBody();
+    expect(body.otpauthUri).to.contain("otpauth://totp/");
+    bru.setVar("totpSecret", body.secret);
+  });
+}

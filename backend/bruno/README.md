@@ -26,3 +26,8 @@ The analytics requests then create EUR and USD data, including an archived accou
 and a transfer. They check separate currency totals, zero-filled periods, and
 UTF-8 CSV with formula-safe text and decimal amounts. Reporting requires both
 `from` and `to`; the range is inclusive and capped at 1827 days (about five years).
+
+The final `09-two-factor` folder registers another disposable user and runs the whole 2FA flow:
+setup, enable, a pending login that cannot read `/auth/me`, recovery-code login and disable. It computes
+the TOTP codes in a pre-request script and needs `TOTP_ENCRYPTION_KEY` set on the running backend
+(`openssl rand -base64 32`).

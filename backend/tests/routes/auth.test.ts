@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const { query } = vi.hoisted(() => ({ query: vi.fn() }));
 vi.mock("../../srcs/db/client.ts", async () => {
@@ -18,6 +18,7 @@ vi.mock("../../srcs/storage.ts", () => storageMocks);
 // Mock auth helpers to keep bcrypt out of these tests.
 const authMocks = vi.hoisted(() => ({
   createSession: vi.fn(),
+  completePendingSession: vi.fn(),
   clearSessionCookie: vi.fn(),
   exchangeGoogleCode: vi.fn(),
   getAuthenticatedUserId: vi.fn(),
@@ -27,7 +28,9 @@ const authMocks = vi.hoisted(() => ({
 }));
 vi.mock("../../srcs/auth.ts", async (importOriginal) => ({
   requireAuthenticatedUser: (await importOriginal<typeof import("../../srcs/auth.ts")>()).requireAuthenticatedUser,
+  requirePendingSession: (await importOriginal<typeof import("../../srcs/auth.ts")>()).requirePendingSession,
   createSession: authMocks.createSession,
+  completePendingSession: authMocks.completePendingSession,
   clearSessionCookie: authMocks.clearSessionCookie,
   exchangeGoogleCode: authMocks.exchangeGoogleCode,
   getAuthenticatedUserId: authMocks.getAuthenticatedUserId,
@@ -37,6 +40,7 @@ vi.mock("../../srcs/auth.ts", async (importOriginal) => ({
 }));
 
 import { authRouter } from "../../srcs/routes/auth.ts";
+import { encryptSecret, generateSecret, hashRecoveryCode, totpCode, currentStep } from "../../srcs/totp.ts";
 import { dispatch } from "../helpers/dispatch.ts";
 
 const userId = "550e8400-e29b-41d4-a716-446655440001";
@@ -299,6 +303,13 @@ describe("POST /login", () => {
     expect(authMocks.createSession).not.toHaveBeenCalled();
   });
 
+  it("returns only twoFactorRequired, no user data, when the session is pending a 2FA code", async () => {
+    query.mockResolvedValueOnce({ rows: [userRow()] });
+    authMocks.createSession.mockResolvedValueOnce(true);
+    const result = await login({ email: "alice@example.com", password: "correctpassword" });
+    expect(result).toEqual({ status: 200, body: { twoFactorRequired: true } });
+  });
+
   it("returns 200 with user on success, calls createSession, no passwordHash", async () => {
     query.mockResolvedValueOnce({ rows: [userRow()] });
     const result = await login({ email: "alice@example.com", password: "correctpassword" });
@@ -432,20 +443,30 @@ describe("GET /me", () => {
     expect(query).not.toHaveBeenCalled();
   });
 
-  it.each([true, false])("returns 200 with hasPassword but never the hash (%s)", async (hasPassword) => {
-    authMocks.getAuthenticatedUserId.mockResolvedValueOnce(userId);
-    // findUserById returns { id, email, displayName, avatarUrl, hasPassword }
-    query.mockResolvedValueOnce({ rows: [[userId, "alice@example.com", "Alice", null, hasPassword]] });
+  it.each([true, false])(
+    "returns 200 with hasPassword and twoFactorEnabled but never the hash (%s)",
+    async (hasPassword) => {
+      authMocks.getAuthenticatedUserId.mockResolvedValueOnce(userId);
+      // findUserById returns { id, email, displayName, avatarUrl, hasPassword, twoFactorEnabled }
+      query.mockResolvedValueOnce({ rows: [[userId, "alice@example.com", "Alice", null, hasPassword, true]] });
 
-    const result = await dispatch(authRouter, { method: "GET", url: "/me" });
+      const result = await dispatch(authRouter, { method: "GET", url: "/me" });
 
-    expect(result.status).toBe(200);
-    expect(result.body).toEqual({
-      user: { id: userId, email: "alice@example.com", displayName: "Alice", avatarUrl: null, hasPassword },
-    });
-    expect(query).toHaveBeenCalledTimes(1);
-    expect(query.mock.calls[0]![0].text).not.toMatch(/"password_hash",/);
-  });
+      expect(result.status).toBe(200);
+      expect(result.body).toEqual({
+        user: {
+          id: userId,
+          email: "alice@example.com",
+          displayName: "Alice",
+          avatarUrl: null,
+          hasPassword,
+          twoFactorEnabled: true,
+        },
+      });
+      expect(query).toHaveBeenCalledTimes(1);
+      expect(query.mock.calls[0]![0].text).not.toMatch(/"password_hash",/);
+    },
+  );
 
   it("exposes the avatar route instead of the storage key", async () => {
     authMocks.getAuthenticatedUserId.mockResolvedValueOnce(userId);
@@ -719,7 +740,7 @@ describe("PATCH /me", () => {
 
 // findUserById positional row: [id, email, displayName, avatarUrl, hasPassword]
 function meRow(avatarUrl: string | null = null) {
-  return [userId, "alice@example.com", "Alice", avatarUrl, true];
+  return [userId, "alice@example.com", "Alice", avatarUrl, true, false];
 }
 
 const jpegBytes = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00]);
@@ -761,6 +782,7 @@ describe("PUT /me/avatar", () => {
         displayName: "Alice",
         avatarUrl: expect.stringMatching(/^\/auth\/me\/avatar\?v=[0-9a-f]{16}$/),
         hasPassword: true,
+        twoFactorEnabled: false,
       },
     });
     const [storedKey, storedBytes] = storageMocks.writeAvatar.mock.calls[0]!;
@@ -869,5 +891,196 @@ describe("DELETE /me/avatar", () => {
     const result = await avatarDelete();
     expect(result.status).toBe(204);
     expect(storageMocks.deleteAvatar).not.toHaveBeenCalled();
+  });
+});
+
+// ─── Two-factor authentication ────────────────────────────────────────────────
+
+describe("two-factor authentication", () => {
+  const sessionId = "session-1";
+  const cookies = { session: "token" };
+  const secret = generateSecret();
+  const codeNow = () => totpCode(secret, currentStep());
+
+  beforeEach(() => vi.stubEnv("TOTP_ENCRYPTION_KEY", Buffer.alloc(32, 9).toString("base64")));
+  afterEach(() => vi.unstubAllEnvs());
+
+  const post = (url: string, body: unknown = {}, signedIn = true) =>
+    dispatch(authRouter, { method: "POST", url, body, ...(signedIn ? { cookies } : {}) });
+  const session = () => query.mockResolvedValueOnce({ rows: [[userId, sessionId]] });
+  // findTotpState columns: email, passwordHash, totpSecretEncrypted, totpEnabledAt, totpLastUsedStep
+  const state = (overrides: Partial<Record<string, unknown>> = {}) => {
+    const row = {
+      email: "alice@example.com",
+      hash: "hash",
+      secret: encryptSecret(secret),
+      on: null,
+      step: null,
+      ...overrides,
+    };
+    query.mockResolvedValueOnce({ rows: [[row.email, row.hash, row.secret, row.on, row.step]] });
+  };
+  const enabled = { on: new Date().toISOString() };
+
+  it.each([
+    ["/2fa/setup", true],
+    ["/2fa/enable", true],
+    ["/2fa/disable", true],
+    ["/2fa/verify", false],
+    ["/2fa/recover", false],
+  ])("%s rejects requests without a session", async (url) => {
+    expect((await post(url, {}, false)).status).toBe(401);
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  describe("setup", () => {
+    it("is 404 without TOTP_ENCRYPTION_KEY", async () => {
+      vi.stubEnv("TOTP_ENCRYPTION_KEY", "");
+      session();
+      expect((await post("/2fa/setup")).status).toBe(404);
+    });
+
+    it("stores an encrypted secret and returns it with the otpauth URI", async () => {
+      session();
+      state();
+      query.mockResolvedValueOnce({ rows: [[userId]] }); // saveTotpSecret
+      const result = await post("/2fa/setup");
+      const body = result.body as { secret: string; otpauthUri: string };
+      expect(result.status).toBe(200);
+      expect(body.otpauthUri).toContain(`secret=${body.secret}`);
+      expect(query.mock.calls[2]![1]).not.toContain(body.secret); // only the ciphertext is stored
+    });
+
+    it("is 409 when 2FA is already enabled", async () => {
+      session();
+      state(enabled);
+      query.mockResolvedValueOnce({ rows: [] }); // saveTotpSecret matches no row
+      expect((await post("/2fa/setup")).status).toBe(409);
+    });
+  });
+
+  describe("enable", () => {
+    it("rejects a wrong code without activating", async () => {
+      session();
+      state();
+      expect((await post("/2fa/enable", { code: "000000" })).status).toBe(401);
+      expect(query).toHaveBeenCalledTimes(2);
+    });
+
+    it("needs setup first and cannot run twice", async () => {
+      session();
+      state({ secret: null });
+      expect((await post("/2fa/enable", { code: codeNow() })).status).toBe(409);
+      session();
+      state(enabled);
+      expect((await post("/2fa/enable", { code: codeNow() })).status).toBe(409);
+    });
+
+    it("activates with the enrolment step and returns 10 recovery codes stored only as hashes", async () => {
+      session();
+      state();
+      query.mockResolvedValue({ rows: [[userId]] }); // begin, update, delete, insert, commit
+      const result = await post("/2fa/enable", { code: codeNow() });
+      const { recoveryCodes } = result.body as { recoveryCodes: string[] };
+      expect(result.status).toBe(200);
+      expect(recoveryCodes).toHaveLength(10);
+      const insert = query.mock.calls.find(([sql]) => sql.text?.startsWith('insert into "recovery_code"'))!;
+      expect(insert[1]).toContain(hashRecoveryCode(recoveryCodes[0]!));
+      expect(insert[1]).not.toContain(recoveryCodes[0]);
+    });
+  });
+
+  describe("verify", () => {
+    it("completes the pending session with a valid code and claims its step", async () => {
+      session();
+      state(enabled);
+      query.mockResolvedValueOnce({ rows: [[userId]] }); // claimTotpStep
+      query.mockResolvedValueOnce({ rows: [meRow()] }); // findUserById
+      const result = await post("/2fa/verify", { code: codeNow() });
+      expect(result.status).toBe(200);
+      expect(authMocks.completePendingSession).toHaveBeenCalledWith(expect.anything(), expect.anything(), sessionId);
+    });
+
+    it("rejects a replayed or wrong code and leaves the session pending", async () => {
+      session();
+      state({ ...enabled, step: currentStep() + 1 }); // every step in the window is already used
+      expect((await post("/2fa/verify", { code: codeNow() })).status).toBe(401);
+      session();
+      state(enabled);
+      query.mockResolvedValueOnce({ rows: [] }); // claimTotpStep lost a concurrent race
+      expect((await post("/2fa/verify", { code: codeNow() })).status).toBe(401);
+      expect(authMocks.completePendingSession).not.toHaveBeenCalled();
+    });
+
+    it("rejects a non-string code", async () => {
+      session();
+      expect((await post("/2fa/verify", { code: 123456 })).status).toBe(400);
+    });
+  });
+
+  describe("recover", () => {
+    it("completes the pending session once and burns the code", async () => {
+      session();
+      query.mockResolvedValueOnce({ rows: [["code-id"]] }); // burnRecoveryCode
+      query.mockResolvedValueOnce({ rows: [meRow()] });
+      expect((await post("/2fa/recover", { recoveryCode: "abcde-23456" })).status).toBe(200);
+      expect(query.mock.calls[1]![1]).toContain(hashRecoveryCode("ABCDE-23456")); // case and dash are normalised
+      expect(authMocks.completePendingSession).toHaveBeenCalledOnce();
+
+      session();
+      query.mockResolvedValueOnce({ rows: [] }); // already used
+      expect((await post("/2fa/recover", { recoveryCode: "ABCDE-23456" })).status).toBe(401);
+      expect(authMocks.completePendingSession).toHaveBeenCalledOnce();
+    });
+  });
+
+  describe("disable", () => {
+    it("is 409 when 2FA is off", async () => {
+      session();
+      state();
+      expect((await post("/2fa/disable", { code: codeNow() })).status).toBe(409);
+    });
+
+    it("requires the password for accounts that have one, with one generic error", async () => {
+      session();
+      state(enabled);
+      expect(await post("/2fa/disable", { code: codeNow() })).toEqual({
+        status: 401,
+        body: { error: "Invalid password or code" },
+      });
+      session();
+      state(enabled);
+      authMocks.verifyPassword.mockResolvedValueOnce(false);
+      expect((await post("/2fa/disable", { password: "wrong", code: codeNow() })).body).toEqual({
+        error: "Invalid password or code",
+      });
+      expect(query).toHaveBeenCalledTimes(4); // nothing was written
+    });
+
+    it("rejects a wrong code after the password check passes", async () => {
+      session();
+      state(enabled);
+      const result = await post("/2fa/disable", { password: "right", code: "000000" });
+      expect(result).toEqual({ status: 401, body: { error: "Invalid password or code" } });
+      expect(authMocks.verifyPassword).toHaveBeenCalledWith("right", "hash");
+    });
+
+    it("lets a Google-only user disable with a code alone and revokes the other sessions", async () => {
+      session();
+      state({ ...enabled, hash: null });
+      query.mockResolvedValue({ rows: [[userId]] });
+      expect((await post("/2fa/disable", { code: codeNow() })).status).toBe(204);
+      expect(authMocks.verifyPassword).not.toHaveBeenCalled();
+      const revoke = query.mock.calls.find(([sql]) => sql.text?.startsWith('update "session"'))!;
+      expect(revoke[0].text).toContain('"session"."id" <> $');
+      expect(revoke[1]).toContain(sessionId);
+    });
+
+    it("accepts a recovery code instead of a TOTP code", async () => {
+      session();
+      state({ ...enabled, hash: null });
+      query.mockResolvedValue({ rows: [[userId]] });
+      expect((await post("/2fa/disable", { recoveryCode: "ABCDE-23456" })).status).toBe(204);
+    });
   });
 });

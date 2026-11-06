@@ -83,10 +83,11 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("profile deletion with PostgreSQ
     const otherToken = randomUUID();
     for (const token of [...tokens, otherToken]) {
       await pool.query(
-        "INSERT INTO session (user_id, token_hash, expires_at) VALUES ($1, $2, NOW() + INTERVAL '1 day')",
+        "INSERT INTO session (user_id, token_hash, expires_at, twofa_verified_at) VALUES ($1, $2, NOW() + INTERVAL '1 day', NOW())",
         [token === otherToken ? otherUserId : userId, createHash("sha256").update(token).digest("hex")],
       );
     }
+    await pool.query("INSERT INTO recovery_code (user_id, code_hash) VALUES ($1, 'unused')", [userId]);
     expect((await fetch(`${baseUrl}/auth/me`, { method: "DELETE" })).status).toBe(401);
     // Force a failure after cascades run, then verify PostgreSQL undoes the entire statement.
     await pool.query(`CREATE FUNCTION pg_temp.reject_profile_deletion() RETURNS trigger
@@ -116,7 +117,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("profile deletion with PostgreSQ
       expect((await fetch(`${baseUrl}/auth/me`, { headers: { Cookie: `session=${token}` } })).status).toBe(401);
     }
     expect((await fetch(`${baseUrl}/auth/me`, { headers: { Cookie: `session=${otherToken}` } })).status).toBe(200);
-    for (const table of ["app_user", "account", "category", "session"]) {
+    for (const table of ["app_user", "account", "category", "session", "recovery_code"]) {
       const ownerColumn = table === "app_user" ? "id" : "user_id";
       expect((await pool.query(`SELECT 1 FROM "${table}" WHERE ${ownerColumn} = $1`, [userId])).rows).toEqual([]);
     }
