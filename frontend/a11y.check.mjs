@@ -54,6 +54,9 @@ const dialogs = [
   { path: "/transactions", button: (m) => m.transactions.edit.replace("{description}", "Weekly shop") },
   { path: "/transactions", button: (m) => m.transactions.delete.replace("{description}", "Weekly shop") },
   { path: "/profile", button: (m) => m.profile.edit },
+  { path: "/profile", button: (m) => m.profile.password.title },
+  { path: "/profile", button: (m) => m.profile.deleteProfile.title },
+  { path: "/profile", before: (m) => m.profile.deleteProfile.title, button: (m) => m.profile.deleteDialog.continue },
 ];
 
 const browser = await chromium.launch();
