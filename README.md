@@ -12,6 +12,7 @@ Final group project as part of the 42 curriculum, building a full-stack expense 
 - [Node Version Setup](#node-version-setup)
 - [Project Structure](#project-structure)
 - [Environment Setup](#environment-setup)
+- [Monitoring](#monitoring)
 - [Start the Application](#start-the-application)
 - [Database](#database)
 - [Authentication API](#authentication-api)
@@ -117,6 +118,14 @@ transcendence/
 
 # Environment Setup
 
+Before starting Compose, copy the root environment template and set the exporter password and Grafana admin credentials:
+
+```bash
+cp .env.example .env
+```
+
+Set up the PostgreSQL monitoring user once as described in
+[Monitoring setup](docs/monitoring.md#1-initial-setup-once-per-installation).
 Docker Compose provides the database configuration for local development.
 When running the backend outside Docker, create `backend/.env` with a local
 PostgreSQL connection string:
@@ -195,7 +204,10 @@ The application will start:
 |---|---|
 | Frontend | http://localhost:3000 |
 | Backend | http://localhost:3001 |
+| Grafana | http://localhost:3002 (login required) |
+| Prometheus | http://localhost:9090 (debug mode only) |
 
+See [Monitoring](docs/monitoring.md#temporary-prometheus-access) to enable debug access.
 
 <br>
 
@@ -760,11 +772,8 @@ Create Pull Request on GitHub.
 - [x] CI pipelines (tests, lint, API smoke test, a11y)
 - [x] Google sign-in
 - [x] Two-factor authentication
-
-### Planned (List is work in progress)
-
-- [ ] Prometheus monitoring
-- [ ] Grafana dashboards
+- [x] Prometheus monitoring
+- [x] Grafana dashboards
 
 ---
 
@@ -866,3 +875,69 @@ current theme and language. Reuse these instead of copying class strings:
 | `UserAvatar` | `displayName`, `avatarUrl`, `alt` (`""` = decorative), `className` (size and colours) | A user's photo, with initials when there is none or it fails to load. |
 | `ThemeToggle` | `variant?`: `auth` (42 px) \| `app` (40 px) | Light/dark switch in page headers. An `IconButton` whose label names the theme it switches to. |
 | `LocaleSwitcher` | `variant?`: `select` \| `pill` \| `list` | Language picker: `select` on public pages, `pill` in the app header, `list` on the mobile More page. |
+
+## Monitoring
+
+For local setup and tests, see the [Monitoring guide](docs/monitoring.md).
+“Internal” means a service is available inside Docker, without a port open on your computer.
+
+### Services and access
+
+| Service | What it does | Access |
+|---|---|---|
+| Prometheus | Collects measurements and checks the alert rules in `monitoring/alerts.yml` | Internal; use the debug Compose file for temporary browser access |
+| Grafana | Shows the Backend and Database dashboards | http://localhost:3002; log in with the admin details from the root `.env` |
+| PostgreSQL exporter | Provides database connection counts, transactions per second and database size | Internal: `postgres-exporter:9187` |
+| cAdvisor | Measures container CPU and memory use | Internal: `cadvisor:8080` |
+| Alertmanager | Groups alerts and sends Telegram messages when enabled | Internal: `alertmanager:9093` |
+| Backend metrics | Provides Node.js, request, business and database connection measurements | Internal: `backend:9100/metrics` |
+
+### Settings and security
+
+| Setting | Details |
+|---|---|
+| Automatic Grafana setup | Loads the data source and dashboards from files in `monitoring/grafana/` |
+| Grafana login | Available only on your computer; login required; users cannot sign themselves up |
+| Alert page | http://localhost:3002/alerting/list; shows the rules checked by Prometheus |
+| Notifications | Alerts appear in the browser by default; Telegram can also send FIRING and RESOLVED messages |
+| Enable Telegram | Add local `.secrets/` files and use `docker-compose.telegram.yml`; see the guide |
+| Backend package | `prom-client` in `backend/package.json`; run `make rebuild` after changing dependencies |
+| Backend setup | No extra backend environment variables or database table changes needed |
+| Metrics access | Keep port 9100 inside Docker; it has no login protection |
+| Running without Docker | Port 9100 listens on all host network interfaces (`0.0.0.0`); use Docker to keep it internal |
+
+### Backend measurements
+
+| Metric | Labels | What it measures |
+|---|---|---|
+| `http_request_duration_seconds` | `method`, `route`, `status_code` | Request times in seconds, grouped into time buckets; `_count` counts requests |
+| `users_registered_total` | — | New users saved successfully |
+| `logins_total` | `result`: `success` or `failure` | Successful logins or rejected login details |
+| `transactions_created_total` | — | Saved transaction rows: 1 for a normal transaction, 2 for a transfer, one per imported row |
+| `pg_pool_connections` | `state`: `total` or `idle` | Total database connections and connections that are free to use |
+| `pg_pool_waiting_count` | — | Requests waiting for a free database connection |
+| `process_*`, `nodejs_*` | Depends on the metric | Standard Node.js measurements, such as CPU and memory use |
+
+### How counting works
+
+| Item | Behavior |
+|---|---|
+| Counters | Start again when the backend restarts; deleting data does not reduce them |
+| Registration | Counts once the user is saved, even if creating the login session then fails |
+| Failed database changes | Changes that fail or are undone do not count |
+| Failed logins | Counts invalid login details; request metrics record rate limits and server errors |
+| Database connection values | Updated when Prometheus collects them; do not include the separate status-check connections |
+| Request measurements | Include completed public responses, `/health` and `/status`; do not include requests to the internal metrics server |
+| Route names | Use patterns such as `/transactions/:transactionId`, never actual IDs or URL query values |
+| Requests without a matched route | Use `unmatched`; this can include requests rejected before a route is selected because the user is not logged in |
+
+### Example queries from our panels
+
+PromQL means Prometheus Query Language. These queries read and calculate measurements.
+The panel files also filter backend requests with `job="backend"`.
+
+| Example | Query |
+|---|---|
+| Requests per second by route | `sum by (route) (rate(http_request_duration_seconds_count[5m]))` |
+| p95 response time by route (95% of requests are at or below this time) | `histogram_quantile(0.95, sum by (le, route) (rate(http_request_duration_seconds_bucket[5m])))` |
+| Requests waiting for a database connection | `pg_pool_waiting_count` |
