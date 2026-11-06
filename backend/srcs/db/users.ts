@@ -1,4 +1,4 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 
 import { db } from "./client.ts";
 import { appUsers, sessions, userIdentities } from "./schema.ts";
@@ -16,6 +16,8 @@ export async function findUserById(id: string) {
       email: appUsers.email,
       displayName: appUsers.displayName,
       avatarUrl: appUsers.avatarUrl,
+      // False for Google-only users
+      hasPassword: sql<boolean>`${appUsers.passwordHash} is not null`,
     })
     .from(appUsers)
     .where(eq(appUsers.id, id))

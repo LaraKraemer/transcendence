@@ -175,8 +175,7 @@ authRouter.get("/me", async (req, res) => {
   }
 
   const user = await findUserById(userId);
-  // hasPassword is false for Google-only users, who cannot change a password.
-  res.json({ user: user && { ...toPublicUser(user), hasPassword: Boolean(await findUserPasswordHash(userId)) } });
+  res.json({ user: user && toPublicUser(user) });
 });
 
 /** Permanently deletes the authenticated profile and signs out every device. */

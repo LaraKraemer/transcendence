@@ -432,14 +432,10 @@ describe("GET /me", () => {
     expect(query).not.toHaveBeenCalled();
   });
 
-  it.each([
-    ["$2b$12$hashed", true],
-    [null, false],
-  ])("returns 200 with hasPassword but never the hash (%s)", async (passwordHash, hasPassword) => {
+  it.each([true, false])("returns 200 with hasPassword but never the hash (%s)", async (hasPassword) => {
     authMocks.getAuthenticatedUserId.mockResolvedValueOnce(userId);
-    // findUserById returns { id, email, displayName, avatarUrl }
-    query.mockResolvedValueOnce({ rows: [[userId, "alice@example.com", "Alice", null]] });
-    query.mockResolvedValueOnce({ rows: [[passwordHash]] }); // findUserPasswordHash
+    // findUserById returns { id, email, displayName, avatarUrl, hasPassword }
+    query.mockResolvedValueOnce({ rows: [[userId, "alice@example.com", "Alice", null, hasPassword]] });
 
     const result = await dispatch(authRouter, { method: "GET", url: "/me" });
 
@@ -447,12 +443,13 @@ describe("GET /me", () => {
     expect(result.body).toEqual({
       user: { id: userId, email: "alice@example.com", displayName: "Alice", avatarUrl: null, hasPassword },
     });
+    expect(query).toHaveBeenCalledTimes(1);
+    expect(query.mock.calls[0]![0].text).not.toMatch(/"password_hash",/);
   });
 
   it("exposes the avatar route instead of the storage key", async () => {
     authMocks.getAuthenticatedUserId.mockResolvedValueOnce(userId);
-    query.mockResolvedValueOnce({ rows: [[userId, "alice@example.com", "Alice", "secret-key.png"]] });
-    query.mockResolvedValueOnce({ rows: [["$2b$12$hashed"]] });
+    query.mockResolvedValueOnce({ rows: [[userId, "alice@example.com", "Alice", "secret-key.png", true]] });
     const result = await dispatch(authRouter, { method: "GET", url: "/me" });
     const { avatarUrl } = (result.body as { user: { avatarUrl: string } }).user;
     expect(avatarUrl).toMatch(/^\/auth\/me\/avatar\?v=[0-9a-f]{16}$/);
@@ -462,8 +459,7 @@ describe("GET /me", () => {
   it("changes the avatar version with the stored file, not with the user", async () => {
     const versionFor = async (key: string) => {
       authMocks.getAuthenticatedUserId.mockResolvedValueOnce(userId);
-      query.mockResolvedValueOnce({ rows: [[userId, "alice@example.com", "Alice", key]] });
-      query.mockResolvedValueOnce({ rows: [["$2b$12$hashed"]] });
+      query.mockResolvedValueOnce({ rows: [[userId, "alice@example.com", "Alice", key, true]] });
       const result = await dispatch(authRouter, { method: "GET", url: "/me" });
       return (result.body as { user: { avatarUrl: string } }).user.avatarUrl;
     };
@@ -721,9 +717,9 @@ describe("PATCH /me", () => {
 
 // ─── Avatar endpoints ─────────────────────────────────────────────────────────
 
-// findUserById positional row: [id, email, displayName, avatarUrl]
+// findUserById positional row: [id, email, displayName, avatarUrl, hasPassword]
 function meRow(avatarUrl: string | null = null) {
-  return [userId, "alice@example.com", "Alice", avatarUrl];
+  return [userId, "alice@example.com", "Alice", avatarUrl, true];
 }
 
 const jpegBytes = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00]);
@@ -764,6 +760,7 @@ describe("PUT /me/avatar", () => {
         email: "alice@example.com",
         displayName: "Alice",
         avatarUrl: expect.stringMatching(/^\/auth\/me\/avatar\?v=[0-9a-f]{16}$/),
+        hasPassword: true,
       },
     });
     const [storedKey, storedBytes] = storageMocks.writeAvatar.mock.calls[0]!;
