@@ -1,0 +1,66 @@
+# Defines the five Prometheus alert rules for backend and database problems.
+groups:
+  - name: expense-tracker
+    rules:
+      - alert: BackendDown
+        expr: up{job="backend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Backend is unavailable"
+          description: "Prometheus could not scrape the backend for one minute."
+
+      - alert: BackendHighErrorRate
+        expr: |
+          (
+            sum(rate(http_request_duration_seconds_count{
+              job="backend",
+              status_code=~"5.."
+            }[5m]))
+            /
+            sum(rate(http_request_duration_seconds_count{
+              job="backend"
+            }[5m]))
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Backend server error rate exceeds 5%"
+          description: "The 5xx ratio over the last five minutes has exceeded 5% for five minutes."
+
+      - alert: BackendHighLatency
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (le, route) (
+              rate(http_request_duration_seconds_bucket{
+                job="backend"
+              }[5m])
+            )
+          ) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Backend p95 latency exceeds one second"
+          description: "Route {{ $labels.route }} has exceeded the latency threshold for five minutes."
+
+      - alert: PostgresDown
+        expr: pg_up{job="postgres-exporter"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL is unavailable"
+          description: "The PostgreSQL exporter has reported database connection failure for one minute."
+
+      - alert: DatabasePoolWaiting
+        expr: pg_pool_waiting_count{job="backend"} > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Requests are waiting for database connections"
+          description: "The application pool wait queue has remained above zero for five minutes."

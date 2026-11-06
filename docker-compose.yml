@@ -120,6 +120,72 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  # Collects metrics and checks alert rules; browser access requires the debug Compose file.
+  prometheus:
+    image: prom/prometheus:v3.15.1
+    restart: unless-stopped
+
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      # Keep measurements for 15 days.
+      - --storage.tsdb.retention.time=15d
+
+    volumes:
+      - ./monitoring:/etc/prometheus:ro
+      - prometheus-data:/prometheus
+
+  # Reads database statistics using the separate monitoring user and exposes them internally.
+  postgres-exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter:v0.20.1
+    restart: unless-stopped
+
+    environment:
+      DATA_SOURCE_URI: "db:5432/expense_tracker?sslmode=disable"
+      DATA_SOURCE_USER: monitoring
+      DATA_SOURCE_PASS: "${POSTGRES_EXPORTER_PASSWORD:?POSTGRES_EXPORTER_PASSWORD must be set in .env}"
+
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # Provides container CPU and memory measurements to Prometheus.
+  cadvisor:
+    image: ghcr.io/google/cadvisor:v0.60.6
+    restart: unless-stopped
+
+    volumes:
+      # Read system and Docker information; these mounts depend on the Docker host.
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+
+  # Loads dashboards and the Prometheus data source automatically from project files.
+  grafana:
+    image: grafana/grafana:13.3.0
+    restart: unless-stopped
+
+    ports:
+      # Allow browser access only from this computer.
+      - "127.0.0.1:3002:3000"
+
+    environment:
+      # Set the initial admin account; require login and disable public sign-up.
+      GF_SECURITY_ADMIN_USER: "${GRAFANA_ADMIN_USER:?GRAFANA_ADMIN_USER must be set in .env}"
+      GF_SECURITY_ADMIN_PASSWORD: "${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD must be set in .env}"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+
+    volumes:
+      # Keep Grafana data across restarts; load configuration files read-only.
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+
 volumes:
   db-data:
   avatar-data:
+  # Preserve collected metrics and dashboards across restarts.
+  prometheus-data:
+  grafana-data:
