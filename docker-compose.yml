@@ -137,6 +137,21 @@ services:
       - ./monitoring:/etc/prometheus:ro
       - prometheus-data:/prometheus
 
+  # Receives Prometheus alerts; the Telegram Compose file enables external messages.
+  alertmanager:
+    image: prom/alertmanager:v0.34.2
+    restart: unless-stopped
+
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+      - --storage.path=/alertmanager
+      # A single instance does not need Alertmanager cluster communication.
+      - --cluster.listen-address=
+
+    volumes:
+      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager-data:/alertmanager
+
   # Reads database statistics using the separate monitoring user and exposes them internally.
   postgres-exporter:
     image: quay.io/prometheuscommunity/postgres-exporter:v0.20.1
@@ -188,6 +203,7 @@ services:
 volumes:
   db-data:
   avatar-data:
-  # Preserve collected metrics and dashboards across restarts.
+  # Preserve collected metrics, dashboards and alert delivery state across restarts.
   prometheus-data:
   grafana-data:
+  alertmanager-data:
