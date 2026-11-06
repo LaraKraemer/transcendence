@@ -75,11 +75,31 @@
       "invalidCredentials": "Invalid email or password",
       "currentPasswordInvalid": "The current password is incorrect",
       "network": "Could not reach the server. Please try again later.",
-      "generic": "Something went wrong. Please try again."
+      "generic": "Something went wrong. Please try again.",
+      "invalidCode": "That code is not correct. Try the newest code.",
+      "invalidRecoveryCode": "That recovery code is not correct or was already used.",
+      "invalidPasswordOrCode": "The password or the code is not correct.",
+      "sessionExpired": "Your sign-in timed out. Please sign in again.",
+      "tooManyAttempts": "Too many attempts. Please wait a few minutes and try again.",
+      "twoFactorUnavailable": "Two-factor authentication is not available on this server."
     },
     "notices": {
       "passwordChanged": "Password changed. Sign in with your new password.",
       "profileDeleted": "Your profile was deleted."
+    },
+    "twoFactor": {
+      "title": "Two-step verification",
+      "subtitleCode": "Enter the 6-digit code from your authenticator app.",
+      "subtitleRecovery": "Enter one of your recovery codes. Each code works once.",
+      "codeLabel": "Authentication code",
+      "codeHint": "6 digits",
+      "recoveryLabel": "Recovery code",
+      "recoveryHint": "Looks like ABCDE-FGHIJ",
+      "submit": "Verify",
+      "submitting": "Verifying…",
+      "useRecovery": "Use a recovery code",
+      "useAuthenticator": "Use the authenticator app instead",
+      "back": "Back to sign in"
     }
   },
   "nav": {
@@ -210,6 +230,53 @@
       "finalDescription": "Confirming now will permanently delete your profile and all its data, and sign you out on all devices. This action cannot be undone.",
       "confirm": "Delete profile permanently",
       "confirming": "Deleting…"
+    },
+    "twoFactor": {
+      "title": "Two-factor authentication",
+      "on": "On",
+      "off": "Off",
+      "descriptionOn": "Signing in asks for a code from your authenticator app, besides your password or Google account.",
+      "descriptionOff": "Add a second step to signing in with a code from an authenticator app.",
+      "enable": "Enable",
+      "preparing": "Preparing…",
+      "disable": "Disable",
+      "cancel": "Cancel",
+      "enableDialog": {
+        "title": "Enable two-factor authentication",
+        "scan": "Scan this QR code with your authenticator app, or type the secret key into it. Then enter the 6-digit code it shows.",
+        "qrAlt": "QR code for your authenticator app",
+        "secretLabel": "Secret key",
+        "codeLabel": "Authentication code",
+        "codeHint": "6 digits from the app",
+        "confirm": "Confirm",
+        "confirming": "Confirming…"
+      },
+      "recovery": {
+        "intro": "Two-factor authentication is on. Save these recovery codes now: each works once if you lose your phone, and they are not shown again.",
+        "listLabel": "Recovery codes",
+        "copy": "Copy codes",
+        "copied": "Copied",
+        "download": "Download",
+        "fileHeader": "Expense Tracker recovery codes. Each code works once.",
+        "saved": "I saved these recovery codes",
+        "done": "Done"
+      },
+      "disableDialog": {
+        "title": "Disable two-factor authentication",
+        "intro": "Confirm it is you to turn the second step off. Your other devices will be signed out.",
+        "password": "Password",
+        "code": "Authentication code",
+        "recoveryCode": "Recovery code",
+        "useRecovery": "Use a recovery code",
+        "useAuthenticator": "Use the authenticator app instead",
+        "disabling": "Disabling…"
+      },
+      "announcements": {
+        "enabled": "Two-factor authentication enabled",
+        "disabled": "Two-factor authentication disabled",
+        "copied": "Recovery codes copied",
+        "copyFailed": "Could not copy the recovery codes"
+      }
     }
   },
   "accounts": {
@@ -653,9 +720,7 @@
         },
         "acceptableUse": {
           "title": "Acceptable use",
-          "paragraphs": [
-            "When you use Poolaki, you must not:"
-          ],
+          "paragraphs": ["When you use Poolaki, you must not:"],
           "items": [
             "try to access other people's profiles or records;",
             "probe, attack or overload the service, for example with automated mass requests, or try to get around its security;",

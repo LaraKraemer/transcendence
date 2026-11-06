@@ -21,6 +21,7 @@ import { Card } from "@/components/ui/card";
 import { FormAlert } from "@/components/ui/form-alert";
 import { useAnnounce } from "@/components/ui/live-status";
 import { Modal } from "@/components/ui/modal";
+import { TwoFactorSection } from "@/components/profile/two-factor-section";
 import { TextField } from "@/components/ui/text-field";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { deleteAvatar, updateDisplayName, uploadAvatar } from "@/lib/actions/profile";
@@ -271,6 +272,8 @@ export function ProfileDetails({ user }: { user: User }) {
           </InfoRow>
         </div>
       </Card>
+
+      <TwoFactorSection user={user} />
 
       <Modal
         open={isEditingName}

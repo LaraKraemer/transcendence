@@ -11,12 +11,13 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
-  const { error, notice } = await searchParams;
+  const { error, notice, step } = await searchParams;
   return (
     <AuthShell hero={<SignInHero />}>
       <LoginForm
         googleError={typeof error === "string" ? error : undefined}
         notice={typeof notice === "string" ? notice : undefined}
+        twoFactorStep={step === "2fa"}
       />
     </AuthShell>
   );

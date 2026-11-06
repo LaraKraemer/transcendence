@@ -15,6 +15,7 @@ import {
   useAuthErrorText,
   type FormErrorCode,
 } from "@/components/auth/form-parts";
+import { TwoFactorForm } from "@/components/auth/two-factor-form";
 import { Button } from "@/components/ui/button";
 import { FormAlert } from "@/components/ui/form-alert";
 import { TextField } from "@/components/ui/text-field";
@@ -26,8 +27,19 @@ type LoginState = { fieldErrors: FieldErrors<keyof LoginFields>; error: FormErro
 
 const initialState: LoginState = { fieldErrors: {}, error: null };
 
-/** `notice` is the `?notice=` the profile page sends after a password change or a profile delete. */
-export function LoginForm({ googleError, notice }: { googleError?: string; notice?: string }) {
+/**
+ * `notice` is the `?notice=` the profile page sends after a password change or a profile delete.
+ * `twoFactorStep` opens on the code step, which is where Google sign-in lands for an account with 2FA.
+ */
+export function LoginForm({
+  googleError,
+  notice,
+  twoFactorStep = false,
+}: {
+  googleError?: string;
+  notice?: string;
+  twoFactorStep?: boolean;
+}) {
   const t = useTranslations();
   const noticeCode = authNoticeFor(notice);
   const errorText = useAuthErrorText();
@@ -37,6 +49,9 @@ export function LoginForm({ googleError, notice }: { googleError?: string; notic
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [step, setStep] = useState<"password" | "code">(twoFactorStep ? "code" : "password");
+  // Set when the pending session ran out while the user was on the code step.
+  const [isSessionExpired, setIsSessionExpired] = useState(false);
 
   const [{ fieldErrors, error }, formAction, isPending] = useActionState(
     async (_prev: LoginState, formData: FormData): Promise<LoginState> => {
@@ -44,11 +59,16 @@ export function LoginForm({ googleError, notice }: { googleError?: string; notic
         email: String(formData.get("email") ?? ""),
         password: String(formData.get("password") ?? ""),
       };
+      setIsSessionExpired(false);
       const errors = validateLogin(values);
       if (Object.keys(errors).length > 0) return { fieldErrors: errors, error: null };
 
       try {
         const result = await login(values);
+        if (result.twoFactorRequired) {
+          setStep("code");
+          return initialState;
+        }
         if (result.success) {
           router.push("/dashboard");
           return initialState;
@@ -64,6 +84,18 @@ export function LoginForm({ googleError, notice }: { googleError?: string; notic
     { ...initialState, error: googleErrorFor(googleError) },
   );
 
+  if (step === "code") {
+    return (
+      <TwoFactorForm
+        onExpired={() => {
+          setIsSessionExpired(true);
+          setStep("password");
+        }}
+        onBack={() => setStep("password")}
+      />
+    );
+  }
+
   return (
     <>
       <h1 className="mb-1.5 text-[28px] font-bold tracking-[-0.02em]">{t("auth.signIn.title")}</h1>
@@ -74,7 +106,7 @@ export function LoginForm({ googleError, notice }: { googleError?: string; notic
 
       <form action={formAction} noValidate>
         <fieldset disabled={isPending}>
-          <FormAlert message={error && errorText(error)} />
+          <FormAlert message={error ? errorText(error) : isSessionExpired ? errorText("sessionExpired") : null} />
           <TextField
             id="email"
             name="email"
