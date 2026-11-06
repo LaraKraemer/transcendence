@@ -36,6 +36,7 @@ vi.mock("../../srcs/auth.ts", async (importOriginal) => ({
   verifyPassword: authMocks.verifyPassword,
 }));
 
+import { logins, usersRegistered } from "../../srcs/metrics.ts";
 import { authRouter } from "../../srcs/routes/auth.ts";
 import { dispatch } from "../helpers/dispatch.ts";
 
@@ -63,6 +64,8 @@ function createdUserRow(overrides: Record<string, unknown> = {}) {
 }
 
 beforeEach(() => {
+  usersRegistered.reset();
+  logins.reset();
   query.mockReset();
   vi.resetAllMocks();
   authMocks.hashPassword.mockResolvedValue("$2b$12$hashed");
@@ -116,6 +119,7 @@ describe("POST /register", () => {
       displayName: "Alice",
     });
     expect(result.status).toBe(201);
+    expect((await usersRegistered.get()).values[0]?.value).toBe(1);
     expect(result.body).toEqual({
       user: { id: userId, email: "alice@example.com", displayName: "Alice", avatarUrl: null },
     });
@@ -279,6 +283,7 @@ describe("POST /login", () => {
     query.mockResolvedValueOnce({ rows: [] });
     const result = await login({ email: "nobody@example.com", password: "somepassword" });
     expect(result).toEqual({ status: 401, body: { error: "Invalid email or password" } });
+    expect((await logins.get()).values).toContainEqual({ value: 1, labels: { result: "failure" } });
     expect(authMocks.verifyPassword).toHaveBeenCalledWith("somepassword", "$2b$12$dummy");
     expect(authMocks.createSession).not.toHaveBeenCalled();
   });
@@ -304,6 +309,7 @@ describe("POST /login", () => {
     const result = await login({ email: "alice@example.com", password: "correctpassword" });
 
     expect(result.status).toBe(200);
+    expect((await logins.get()).values).toContainEqual({ value: 1, labels: { result: "success" } });
     const body = result.body as { user: Record<string, unknown> };
     expect(body.user.passwordHash).toBeUndefined();
     expect(body.user.id).toBe(userId);

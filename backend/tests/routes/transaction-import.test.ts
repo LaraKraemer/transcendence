@@ -19,6 +19,7 @@ vi.mock("../../srcs/auth.ts", () => ({
   },
 }));
 
+import { transactionsCreated } from "../../srcs/metrics.ts";
 import { transactionsRouter } from "../../srcs/routes/transaction.ts";
 import { accounts } from "../../srcs/db/schema.ts";
 import { dispatch } from "../helpers/dispatch.ts";
@@ -47,6 +48,7 @@ const accountRow = (overrides = {}) =>
   });
 
 beforeEach(() => {
+  transactionsCreated.reset();
   query.mockReset();
   release.mockClear();
   query.mockResolvedValue({ rows: [] });
@@ -85,6 +87,7 @@ describe("POST /transactions/import", () => {
       .mockResolvedValueOnce({ rows: [accountRow()] })
       .mockResolvedValueOnce({ rows: [["id1"], ["id2"]] });
     expect(await post()).toEqual({ status: 201, body: { imported: 2 } });
+    expect((await transactionsCreated.get()).values[0]?.value).toBe(2);
     expect(query.mock.calls[1]?.[0].text).toContain("for update");
     expect(query.mock.calls[2]?.[0].text).toContain('insert into "transaction"');
     expect(query.mock.calls[2]?.[1]).toContain(userId);
@@ -134,5 +137,16 @@ describe("POST /transactions/import", () => {
     await expect(post()).rejects.toThrow();
     expect(query.mock.calls[3]?.[0].text).toBe("rollback");
     expect(release).toHaveBeenCalled();
+    expect((await transactionsCreated.get()).values[0]?.value).toBe(0);
+  });
+
+  it("does not count an import when the commit fails", async () => {
+    query
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [accountRow()] })
+      .mockResolvedValueOnce({ rows: [["id1"], ["id2"]] })
+      .mockRejectedValueOnce(new Error("commit failed"));
+    await expect(post()).rejects.toThrow();
+    expect((await transactionsCreated.get()).values[0]?.value).toBe(0);
   });
 });

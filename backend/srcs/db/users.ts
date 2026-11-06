@@ -1,5 +1,6 @@
 import { and, eq, isNull, sql } from "drizzle-orm";
 
+import { usersRegistered } from "../metrics.ts";
 import { db } from "./client.ts";
 import { appUsers, sessions, userIdentities } from "./schema.ts";
 
@@ -32,6 +33,7 @@ export async function createUser(email: string, passwordHash: string, displayNam
     .values({ email, passwordHash, displayName })
     .returning({ id: appUsers.id, email: appUsers.email, displayName: appUsers.displayName });
 
+  if (user) usersRegistered.inc();
   return user;
 }
 
