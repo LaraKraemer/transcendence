@@ -10,6 +10,7 @@ vi.mock("../srcs/db/client.ts", async () => {
 import {
   clearSessionCookie,
   createSession,
+  exchangeGoogleCode,
   getAuthenticatedUserId,
   hashPassword,
   purgeStaleSessions,
@@ -322,5 +323,64 @@ describe("purgeStaleSessions", () => {
   it("rejects when deletion fails", async () => {
     query.mockRejectedValueOnce(new Error("DB down"));
     await expect(purgeStaleSessions()).rejects.toMatchObject({ cause: { message: "DB down" } });
+  });
+});
+
+describe("exchangeGoogleCode", () => {
+  const clientId = "client-id.apps.googleusercontent.com";
+  const validClaims = {
+    iss: "https://accounts.google.com",
+    aud: clientId,
+    exp: Math.floor(Date.now() / 1000) + 3600,
+    sub: "google-sub-1",
+    email: "Alice@Example.com",
+    email_verified: true,
+    name: "Alice",
+  };
+
+  function respondWith(claims: Record<string, unknown>, ok = true) {
+    const idToken = `header.${Buffer.from(JSON.stringify(claims)).toString("base64url")}.signature`;
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok, json: async () => ({ id_token: idToken }) }));
+  }
+
+  beforeEach(() => {
+    vi.stubEnv("GOOGLE_CLIENT_ID", clientId);
+    vi.stubEnv("GOOGLE_CLIENT_SECRET", "secret");
+  });
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
+
+  it("returns the Google account with a lowercased email and sends the PKCE verifier", async () => {
+    respondWith(validClaims);
+    expect(await exchangeGoogleCode("code", "verifier", "http://localhost:3000/auth/google")).toEqual({
+      sub: "google-sub-1",
+      email: "alice@example.com",
+      name: "Alice",
+    });
+    const body = vi.mocked(fetch).mock.calls[0]![1]!.body as URLSearchParams;
+    expect(body.get("code_verifier")).toBe("verifier");
+    expect(body.get("redirect_uri")).toBe("http://localhost:3000/auth/google");
+  });
+
+  it.each([
+    ["an unverified Google email", { email_verified: false }],
+    ["another client's token", { aud: "other-client" }],
+    ["another issuer", { iss: "https://evil.example" }],
+    ["an expired token", { exp: Math.floor(Date.now() / 1000) - 1 }],
+  ])("rejects %s", async (_label, override) => {
+    respondWith({ ...validClaims, ...override });
+    expect(await exchangeGoogleCode("code", "verifier", "uri")).toBeUndefined();
+  });
+
+  it("rejects a code Google refuses", async () => {
+    respondWith(validClaims, false);
+    expect(await exchangeGoogleCode("code", "verifier", "uri")).toBeUndefined();
+  });
+
+  it("throws when the Google client is not configured", async () => {
+    vi.stubEnv("GOOGLE_CLIENT_SECRET", "");
+    await expect(exchangeGoogleCode("code", "verifier", "uri")).rejects.toThrow("GOOGLE_CLIENT_ID");
   });
 });

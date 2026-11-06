@@ -20,7 +20,8 @@ export const appUsers = pgTable(
     // Email is normalised to lowercase by the registration flow. The index also
     // protects the invariant if a user is ever created outside that flow.
     email: text("email").notNull(),
-    passwordHash: text("password_hash").notNull(),
+    // Null for users who signed up with Google and never set a password.
+    passwordHash: text("password_hash"),
     displayName: text("display_name").notNull(),
     avatarUrl: text("avatar_url"),
     emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
@@ -51,6 +52,25 @@ export const sessions = pgTable(
     uniqueIndex("session_token_hash_unique").on(table.tokenHash),
     index("session_user_id_idx").on(table.userId),
     index("session_expires_at_idx").on(table.expiresAt),
+  ],
+);
+
+// An external login linked to a user, e.g. provider "google" with Google's stable `sub`.
+// A user has at most one identity per provider.
+export const userIdentities = pgTable(
+  "user_identity",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => appUsers.id, { onDelete: "cascade" }),
+    provider: text("provider").notNull(),
+    providerUserId: text("provider_user_id").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("user_identity_provider_user_unique").on(table.provider, table.providerUserId),
+    uniqueIndex("user_identity_user_provider_unique").on(table.userId, table.provider),
   ],
 );
 

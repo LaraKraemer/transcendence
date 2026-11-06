@@ -81,6 +81,7 @@ Browser → Next.js `:3000` → Express `:3001` → Postgres `:5432` (bound to 1
 - `srcs/app.ts` exports `createApp()` (CORS, routers, `/health`, global error handler). `srcs/index.ts` runs migrations and then listens.
 - `srcs/db/client.ts` throws at import time without `DATABASE_URL`, so entry points import `"dotenv/config"` first and tests must mock it. Host dev: `DATABASE_URL=postgres://expense:expense@localhost:5432/expense_tracker` in `backend/.env`.
 - Auth: email/password, bcrypt cost 12, password minimum `.length >= 12` and maximum 72 UTF-8 bytes, emails trimmed and lowercased. The raw session token lives only in the HTTP-only `session` cookie (30 days); the DB stores its SHA-256 hash. `requireAuthenticatedUser` sets `res.locals.userId`.
+- Google sign-in: `frontend/app/auth/google/route.ts` redirects to Google (state + PKCE in the `google_oauth` cookie) and, on the way back, posts `{ code, codeVerifier, redirectUri }` to `POST /auth/google`, then mirrors the session cookie like `signIn`. The backend (`exchangeGoogleCode` in `srcs/auth.ts`) requires Google's `email_verified`. Linked users live in `user_identity` (`provider`, `provider_user_id` = Google `sub`, one per provider per user). An existing account with the same email is linked only when its `email_verified_at` is set; otherwise 409 and `/login?error=googleEmailTaken`. New Google users get `email_verified_at = now()` and `password_hash` NULL (password login rejects them like unknown emails, `PATCH /auth/password` returns 400, `GET /auth/me` returns `hasPassword: false`). Needs `GOOGLE_CLIENT_ID` (backend + frontend) and `GOOGLE_CLIENT_SECRET` (backend), set in the git-ignored root `.env`.
 - `PATCH /auth/password` verifies the current password, atomically updates the password hash and timestamps and revokes all user sessions, then clears the session cookie.
 - CORS allows `FRONTEND_ORIGIN` (default `http://localhost:3000`) with credentials, so frontend fetches to `NEXT_PUBLIC_API_URL` must use `credentials: "include"`.
 - Queries live in `srcs/db/{accounts,categories,currencies,transactions,users}.ts`; routers in `srcs/routes/` call them. Reuse these helpers, e.g. `findOwnedAccount`.
@@ -89,7 +90,7 @@ Browser → Next.js `:3000` → Express `:3001` → Postgres `:5432` (bound to 1
 
 | Mount | Routes |
 |---|---|
-| `/auth` | `POST /register`, `POST /login`, `PATCH /password`, `POST /logout`, `GET /me`, `PATCH /me`, `DELETE /me`, `PUT /me/avatar`, `GET /me/avatar`, `DELETE /me/avatar` |
+| `/auth` | `POST /register`, `POST /login`, `POST /google`, `PATCH /password`, `POST /logout`, `GET /me`, `PATCH /me`, `DELETE /me`, `PUT /me/avatar`, `GET /me/avatar`, `DELETE /me/avatar` |
 | `/accounts` | `GET /?archived=true`, `POST /`, `GET /:accountId`, `PATCH /:accountId`, `DELETE /:accountId`, `GET /:accountId/balance` |
 | `/categories` | `GET /`, `POST /`, `GET /:categoryId`, `PATCH /:categoryId`, `DELETE /:categoryId` |
 | `/currencies` | `GET /` (authenticated, global reference data ordered by code) |

@@ -16,14 +16,22 @@ erDiagram
     APP_USER {
         uuid        id                  PK  "gen_random_uuid()"
         citext      email               UK  "NOT NULL, lowercased"
-        text        password_hash           "NOT NULL, argon2id/bcrypt — never the plaintext"
+        text        password_hash           "NULL for Google-only users, bcrypt — never the plaintext"
         text        display_name            "NOT NULL"
         text        avatar_url              "NULL — object-storage key, not a BLOB"
         char3       base_currency           "NOT NULL DEFAULT 'EUR', FK -> CURRENCY"
-        timestamptz email_verified_at       "NULL until verified"
+        timestamptz email_verified_at       "NULL until verified; set at Google sign-up; Google links only when set"
         timestamptz password_changed_at     "NOT NULL — invalidates older sessions"
         timestamptz created_at              "NOT NULL DEFAULT now()"
         timestamptz updated_at              "NOT NULL DEFAULT now()"
+    }
+
+    USER_IDENTITY {
+        uuid        id                  PK
+        uuid        user_id             FK  "NOT NULL, ON DELETE CASCADE, UK with provider"
+        text        provider                "NOT NULL — 'google'"
+        text        provider_user_id        "NOT NULL — Google sub, UK with provider"
+        timestamptz created_at              "NOT NULL DEFAULT now()"
     }
 
     SESSION {
@@ -204,6 +212,7 @@ erDiagram
 
     %% ── Relationships ───────────────────────────────────────────────────────
     APP_USER        ||--o{ SESSION           : "authenticates via"
+    APP_USER        ||--o{ USER_IDENTITY     : "signs in with"
     APP_USER        ||--o{ USER_CONNECTION   : "requests"
     APP_USER        ||--o{ USER_CONNECTION   : "receives"
 
