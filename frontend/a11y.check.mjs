@@ -22,7 +22,7 @@ const textSpacingCss =
   " p { margin-bottom: 2em !important; }";
 const viewports = { desktop: { width: 1280, height: 800 }, phone: { width: 320, height: 640 } };
 
-const publicPages = ["/status", "/login", "/register", "/privacy", "/terms", "/design-system", "/no-such-page"];
+const publicPages = ["/status", "/login", "/login?step=2fa", "/register", "/privacy", "/terms", "/design-system", "/no-such-page"];
 const protectedPages = [
   "/dashboard",
   "/accounts",
@@ -57,6 +57,7 @@ const dialogs = [
   { path: "/profile", button: (m) => m.profile.password.title },
   { path: "/profile", button: (m) => m.profile.deleteProfile.title },
   { path: "/profile", before: (m) => m.profile.deleteProfile.title, button: (m) => m.profile.deleteDialog.continue },
+  { path: "/profile", button: (m) => m.profile.twoFactor.enable },
 ];
 
 const browser = await chromium.launch();

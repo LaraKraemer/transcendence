@@ -75,11 +75,31 @@
       "invalidCredentials": "E-Mail-Adresse oder Passwort ist falsch",
       "currentPasswordInvalid": "Das aktuelle Passwort ist falsch",
       "network": "Der Server ist nicht erreichbar. Bitte versuche es später erneut.",
-      "generic": "Etwas ist schiefgelaufen. Bitte versuche es erneut."
+      "generic": "Etwas ist schiefgelaufen. Bitte versuche es erneut.",
+      "invalidCode": "Dieser Code ist nicht korrekt. Versuche den neuesten Code.",
+      "invalidRecoveryCode": "Dieser Wiederherstellungscode ist nicht korrekt oder wurde schon verwendet.",
+      "invalidPasswordOrCode": "Das Passwort oder der Code ist nicht korrekt.",
+      "sessionExpired": "Deine Anmeldung ist abgelaufen. Bitte melde dich erneut an.",
+      "tooManyAttempts": "Zu viele Versuche. Bitte warte einige Minuten und versuche es erneut.",
+      "twoFactorUnavailable": "Die Zwei-Faktor-Authentifizierung ist auf diesem Server nicht verfügbar."
     },
     "notices": {
       "passwordChanged": "Passwort geändert. Melde dich mit deinem neuen Passwort an.",
       "profileDeleted": "Dein Profil wurde gelöscht."
+    },
+    "twoFactor": {
+      "title": "Bestätigung in zwei Schritten",
+      "subtitleCode": "Gib den 6-stelligen Code aus deiner Authenticator-App ein.",
+      "subtitleRecovery": "Gib einen deiner Wiederherstellungscodes ein. Jeder Code funktioniert nur einmal.",
+      "codeLabel": "Authentifizierungscode",
+      "codeHint": "6 Ziffern",
+      "recoveryLabel": "Wiederherstellungscode",
+      "recoveryHint": "Sieht aus wie ABCDE-FGHIJ",
+      "submit": "Bestätigen",
+      "submitting": "Wird bestätigt…",
+      "useRecovery": "Wiederherstellungscode verwenden",
+      "useAuthenticator": "Stattdessen die Authenticator-App verwenden",
+      "back": "Zurück zur Anmeldung"
     }
   },
   "nav": {
@@ -210,6 +230,53 @@
       "finalDescription": "Wenn du jetzt bestätigst, werden dein Profil und alle zugehörigen Daten unwiderruflich gelöscht, und du wirst auf allen Geräten abgemeldet. Diese Aktion kann nicht rückgängig gemacht werden.",
       "confirm": "Profil dauerhaft löschen",
       "confirming": "Wird gelöscht…"
+    },
+    "twoFactor": {
+      "title": "Zwei-Faktor-Authentifizierung",
+      "on": "An",
+      "off": "Aus",
+      "descriptionOn": "Die Anmeldung verlangt zusätzlich zu deinem Passwort oder Google-Konto einen Code aus deiner Authenticator-App.",
+      "descriptionOff": "Füge der Anmeldung einen zweiten Schritt mit einem Code aus einer Authenticator-App hinzu.",
+      "enable": "Aktivieren",
+      "preparing": "Wird vorbereitet…",
+      "disable": "Deaktivieren",
+      "cancel": "Abbrechen",
+      "enableDialog": {
+        "title": "Zwei-Faktor-Authentifizierung aktivieren",
+        "scan": "Scanne diesen QR-Code mit deiner Authenticator-App oder gib den geheimen Schlüssel dort ein. Gib dann den 6-stelligen Code ein, den sie anzeigt.",
+        "qrAlt": "QR-Code für deine Authenticator-App",
+        "secretLabel": "Geheimer Schlüssel",
+        "codeLabel": "Authentifizierungscode",
+        "codeHint": "6 Ziffern aus der App",
+        "confirm": "Bestätigen",
+        "confirming": "Wird bestätigt…"
+      },
+      "recovery": {
+        "intro": "Die Zwei-Faktor-Authentifizierung ist aktiv. Speichere diese Wiederherstellungscodes jetzt: Jeder funktioniert einmal, falls du dein Handy verlierst, und sie werden nicht noch einmal angezeigt.",
+        "listLabel": "Wiederherstellungscodes",
+        "copy": "Codes kopieren",
+        "copied": "Kopiert",
+        "download": "Herunterladen",
+        "fileHeader": "Wiederherstellungscodes für den Expense Tracker. Jeder Code funktioniert nur einmal.",
+        "saved": "Ich habe diese Wiederherstellungscodes gespeichert",
+        "done": "Fertig"
+      },
+      "disableDialog": {
+        "title": "Zwei-Faktor-Authentifizierung deaktivieren",
+        "intro": "Bestätige, dass du es bist, um den zweiten Schritt auszuschalten. Deine anderen Geräte werden abgemeldet.",
+        "password": "Passwort",
+        "code": "Authentifizierungscode",
+        "recoveryCode": "Wiederherstellungscode",
+        "useRecovery": "Wiederherstellungscode verwenden",
+        "useAuthenticator": "Stattdessen die Authenticator-App verwenden",
+        "disabling": "Wird deaktiviert…"
+      },
+      "announcements": {
+        "enabled": "Zwei-Faktor-Authentifizierung aktiviert",
+        "disabled": "Zwei-Faktor-Authentifizierung deaktiviert",
+        "copied": "Wiederherstellungscodes kopiert",
+        "copyFailed": "Die Wiederherstellungscodes konnten nicht kopiert werden"
+      }
     }
   },
   "accounts": {
@@ -653,9 +720,7 @@
         },
         "acceptableUse": {
           "title": "Zulässige Nutzung",
-          "paragraphs": [
-            "Wenn du Poolaki nutzt, darfst du nicht:"
-          ],
+          "paragraphs": ["Wenn du Poolaki nutzt, darfst du nicht:"],
           "items": [
             "versuchen, auf Profile oder Daten anderer Personen zuzugreifen;",
             "den Dienst ausspähen, angreifen oder überlasten, zum Beispiel mit automatisierten Massenanfragen, oder versuchen, seine Sicherheitsmaßnahmen zu umgehen;",

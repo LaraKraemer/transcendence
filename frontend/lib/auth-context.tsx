@@ -12,7 +12,15 @@
 import { useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useState, type ReactNode } from "react";
 
-import { signIn, signOut, signUp, type SignInInput, type SignUpInput } from "@/lib/actions/auth";
+import {
+  recoverTwoFactor,
+  signIn,
+  signOut,
+  signUp,
+  verifyTwoFactor,
+  type SignInInput,
+  type SignUpInput,
+} from "@/lib/actions/auth";
 import type { ActionResponse, User } from "@/lib/types";
 
 type AuthContextValue = {
@@ -20,6 +28,8 @@ type AuthContextValue = {
   isLoading: boolean;
   login: (data: SignInInput) => Promise<ActionResponse>;
   register: (data: SignUpInput) => Promise<ActionResponse>;
+  /** Finishes a sign-in that answered `twoFactorRequired`, with an authenticator code or a recovery code. */
+  completeTwoFactor: (kind: "code" | "recovery", value: string) => Promise<ActionResponse>;
   logout: () => Promise<void>;
 };
 
@@ -44,6 +54,12 @@ export function AuthProvider({ initialUser, children }: { initialUser: User | nu
     return result;
   }, []);
 
+  const completeTwoFactor = useCallback(async (kind: "code" | "recovery", value: string) => {
+    const result = await (kind === "code" ? verifyTwoFactor(value) : recoverTwoFactor(value));
+    if (result.success && result.user) setUser(result.user);
+    return result;
+  }, []);
+
   const logout = useCallback(async () => {
     await signOut();
     setUser(null);
@@ -51,7 +67,9 @@ export function AuthProvider({ initialUser, children }: { initialUser: User | nu
   }, [router]);
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, register, logout }}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={{ user, isLoading, login, register, completeTwoFactor, logout }}>
+      {children}
+    </AuthContext.Provider>
   );
 }
 

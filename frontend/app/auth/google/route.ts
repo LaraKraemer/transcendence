@@ -75,5 +75,7 @@ export async function GET(request: NextRequest) {
   if (!response.ok) redirect("/login?error=googleFailed");
 
   await persistSessionFromSetCookie(response.headers.getSetCookie());
-  redirect("/dashboard");
+  // An account with two-factor authentication gets a pending session and still has to enter a code.
+  const body = await response.json().catch(() => ({}));
+  redirect(body?.twoFactorRequired ? "/login?step=2fa" : "/dashboard");
 }
