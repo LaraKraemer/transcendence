@@ -132,22 +132,23 @@ function EnableDialog({ setup, onDone, onBusyChange }: DialogProps & { setup: Tw
     );
   }, [setup.otpauthUri]);
 
-  const [error, submitAction, isPending] = useActionState(
-    async (_previous: FormErrorCode | null, submitted: string): Promise<FormErrorCode | null> => {
+  const [submission, submitAction, isPending] = useActionState(
+    async (_previous: { error: FormErrorCode | null }, submitted: string): Promise<{ error: FormErrorCode | null }> => {
       try {
         const result = await enableTwoFactor(submitted);
         if (result.success && result.recoveryCodes) {
           setRecoveryCodes(result.recoveryCodes);
           announce(t("announcements.enabled"));
-          return null;
+          return { error: null };
         }
-        return twoFactorErrorFor(result, "invalidCode");
+        return { error: twoFactorErrorFor(result, "invalidCode") };
       } catch {
-        return "network";
+        return { error: "network" };
       }
     },
-    null,
+    { error: null },
   );
+  const error = submission.error;
 
   // The recovery codes are shown once: the dialog can't be dismissed until the user confirms they saved them.
   const isBusy = isPending || recoveryCodes !== null;
@@ -158,8 +159,8 @@ function EnableDialog({ setup, onDone, onBusyChange }: DialogProps & { setup: Tw
 
   // After a rejected code, put keyboard focus back on the field.
   useEffect(() => {
-    if (error) document.getElementById(codeId)?.focus();
-  }, [error, codeId]);
+    if (!isPending && submission.error) document.getElementById(codeId)?.focus();
+  }, [submission, isPending, codeId]);
 
   async function copyCodes() {
     try {
@@ -276,8 +277,8 @@ function DisableDialog({ hasPassword, onDone, onBusyChange }: DialogProps & { ha
   const [code, setCode] = useState("");
   const [kind, setKind] = useState<"code" | "recovery">("code");
 
-  const [error, submitAction, isPending] = useActionState(
-    async (_previous: FormErrorCode | null, input: DisableInput): Promise<FormErrorCode | null> => {
+  const [submission, submitAction, isPending] = useActionState(
+    async (_previous: { error: FormErrorCode | null }, input: DisableInput): Promise<{ error: FormErrorCode | null }> => {
       try {
         const result = await disableTwoFactor({
           ...(hasPassword ? { password: input.password } : {}),
@@ -286,15 +287,16 @@ function DisableDialog({ hasPassword, onDone, onBusyChange }: DialogProps & { ha
         if (result.success) {
           announce(t("announcements.disabled"));
           onDone();
-          return null;
+          return { error: null };
         }
-        return twoFactorErrorFor(result, "invalidPasswordOrCode");
+        return { error: twoFactorErrorFor(result, "invalidPasswordOrCode") };
       } catch {
-        return "network";
+        return { error: "network" };
       }
     },
-    null,
+    { error: null },
   );
+  const error = submission.error;
 
   useEffect(() => {
     onBusyChange(isPending);
@@ -303,8 +305,8 @@ function DisableDialog({ hasPassword, onDone, onBusyChange }: DialogProps & { ha
 
   // After a rejected attempt, put keyboard focus back on the first field.
   useEffect(() => {
-    if (error) document.getElementById(hasPassword ? passwordId : codeId)?.focus();
-  }, [error, hasPassword, passwordId, codeId]);
+    if (!isPending && submission.error) document.getElementById(hasPassword ? passwordId : codeId)?.focus();
+  }, [submission, isPending, hasPassword, passwordId, codeId]);
 
   return (
     <form

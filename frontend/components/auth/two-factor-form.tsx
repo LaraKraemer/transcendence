@@ -28,29 +28,30 @@ export function TwoFactorForm({ onExpired, onBack }: { onExpired: () => void; on
   const [value, setValue] = useState("");
   const [isLeaving, setIsLeaving] = useState(false);
 
-  const [error, submitAction, isPending] = useActionState(
-    async (_previous: FormErrorCode | null, submitted: string): Promise<FormErrorCode | null> => {
-      if (!submitted.trim()) return kind === "code" ? "invalidCode" : "invalidRecoveryCode";
+  const [submission, submitAction, isPending] = useActionState(
+    async (_previous: { error: FormErrorCode | null }, submitted: string): Promise<{ error: FormErrorCode | null }> => {
+      if (!submitted.trim()) return { error: kind === "code" ? "invalidCode" : "invalidRecoveryCode" };
       try {
         const result = await completeTwoFactor(kind, submitted);
         if (result.success) {
           router.push("/dashboard");
-          return null;
+          return { error: null };
         }
         const code = twoFactorErrorFor(result, kind === "code" ? "invalidCode" : "invalidRecoveryCode");
         if (code === "sessionExpired") onExpired();
-        return code;
+        return { error: code };
       } catch {
-        return "generic";
+        return { error: "generic" };
       }
     },
-    null,
+    { error: null },
   );
+  const error = submission.error;
 
   // After a rejected code, put keyboard focus back on the field (the fieldset disabled it while sending).
   useEffect(() => {
-    if (error) document.getElementById("two-factor-code")?.focus();
-  }, [error]);
+    if (!isPending && submission.error) document.getElementById("two-factor-code")?.focus();
+  }, [submission, isPending]);
 
   function switchKind() {
     setKind(kind === "code" ? "recovery" : "code");
