@@ -16,6 +16,7 @@ export type User = {
   avatarUrl: string | null;
   /** False for users who signed up with Google and have no password. Only `GET /auth/me` sends it. */
   hasPassword: boolean;
+  twoFactorEnabled: boolean;
 };
 
 /**
@@ -25,6 +26,8 @@ export type User = {
  * - `message` — human-readable summary for the UI.
  * - `errors` — per-field validation messages, keyed by field name (from Zod).
  * - `user` — the authenticated user on a successful login/register.
+ * - `twoFactorRequired` — the password was right but the account needs a code
+ *   (the pending session cookie is already set); there is no `user` yet.
  * - `status` — the backend's HTTP status when it rejected the request, so the UI
  *   can tell e.g. "email taken" (409) from "wrong credentials" (401).
  */
@@ -33,6 +36,7 @@ export type ActionResponse = {
   message: string;
   errors?: Record<string, string[]>;
   user?: User;
+  twoFactorRequired?: boolean;
   status?: number;
 };
 

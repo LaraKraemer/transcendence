@@ -9,8 +9,21 @@ import type { ActionResponse } from "@/lib/types";
 import { MIN_PASSWORD_LENGTH, isValidationErrorCode, type ValidationErrorCode } from "@/lib/validation";
 
 export type GoogleErrorCode = "googleEmailTaken" | "googleFailed";
+export type TwoFactorErrorCode =
+  | "invalidCode"
+  | "invalidRecoveryCode"
+  | "invalidPasswordOrCode"
+  | "sessionExpired"
+  | "tooManyAttempts"
+  | "twoFactorUnavailable";
 export type FormErrorCode =
-  "emailTaken" | "invalidCredentials" | "currentPasswordInvalid" | "network" | "generic" | GoogleErrorCode;
+  | "emailTaken"
+  | "invalidCredentials"
+  | "currentPasswordInvalid"
+  | "network"
+  | "generic"
+  | GoogleErrorCode
+  | TwoFactorErrorCode;
 export type AuthNotice = "passwordChanged" | "profileDeleted";
 
 /** Narrows the `?error=` that app/auth/google/route.ts adds to /login to a known code. */
@@ -53,6 +66,40 @@ export function formErrorFor(result: ActionResponse): FormErrorCode {
   if (result.status === 409) return "emailTaken";
   if (result.status === undefined && !result.errors) return "network";
   return "generic";
+}
+
+/**
+ * Picks the message when a two-factor request fails. `wrong` is what a 401 means for the
+ * request: a wrong authenticator code, a wrong recovery code, or (disable) a wrong password or code.
+ * At the sign-in step the backend also answers 401 "Authentication required" when the pending
+ * session has expired; that is told apart by its message.
+ */
+export function twoFactorErrorFor(
+  result: ActionResponse,
+  wrong: "invalidCode" | "invalidRecoveryCode" | "invalidPasswordOrCode",
+): FormErrorCode {
+  if (result.status === 401) return result.message === "Authentication required" ? "sessionExpired" : wrong;
+  if (result.status === 429) return "tooManyAttempts";
+  if (result.status === 404) return "twoFactorUnavailable";
+  return formErrorFor(result);
+}
+
+/**
+ * Input attributes for a 6-digit authenticator code or a recovery code (XXXXX-XXXXX): the
+ * one-time-code autofill hint and numeric keypad for the first, upper-case text for the second.
+ * Always left-to-right, also in Persian.
+ */
+export function codeInputProps(kind: "code" | "recovery") {
+  const isCode = kind === "code";
+  return {
+    type: "text",
+    dir: "ltr",
+    autoComplete: isCode ? "one-time-code" : "off",
+    inputMode: isCode ? "numeric" : "text",
+    ...(isCode ? { pattern: "[0-9]*" } : { autoCapitalize: "characters" }),
+    maxLength: isCode ? 6 : 11,
+    spellCheck: false,
+  } as const;
 }
 
 /**
