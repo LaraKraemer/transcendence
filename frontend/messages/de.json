@@ -21,7 +21,7 @@
     "fields": {
       "email": "E-Mail-Adresse",
       "emailPlaceholder": "erika.mustermann@email.com",
-      "displayName": "Vollständiger Name",
+      "displayName": "Anzeigename",
       "displayNamePlaceholder": "Erika Mustermann",
       "password": "Passwort"
     },
@@ -163,7 +163,7 @@
     "subtitle": "Verwalte deine persönlichen Daten und dein Profilfoto",
     "edit": "Bearbeiten",
     "profileInfo": "Profilinformationen",
-    "name": "Vollständiger Name",
+    "name": "Anzeigename",
     "email": "E-Mail-Adresse",
     "changePhoto": "Profilfoto ändern",
     "removePhoto": "Foto entfernen",
@@ -558,7 +558,7 @@
         "collected": {
           "title": "Welche Daten wir erheben",
           "items": [
-            "Profil: deine E-Mail-Adresse, dein vollständiger Name und, falls du eines festgelegt hast, dein Passwort. Das Passwort wird nie so gespeichert, wie du es eingegeben hast, sondern nur als bcrypt-Hash, aus dem sich das Passwort nicht zurückgewinnen lässt.",
+            "Profil: deine E-Mail-Adresse, dein Anzeigename und, falls du eines festgelegt hast, dein Passwort. Das Passwort wird nie so gespeichert, wie du es eingegeben hast, sondern nur als bcrypt-Hash, aus dem sich das Passwort nicht zurückgewinnen lässt.",
             "Profilfoto: Wenn du eines hochlädst, wird das JPEG- oder PNG-Bild (bis 5 MB) auf unserem Server gespeichert.",
             "Google-Anmeldung: Wenn du dich mit Google anmeldest, erhalten wir von Google deine E-Mail-Adresse, deinen Namen und die ID deines Google-Kontos. Wir speichern die ID deines Google-Kontos, um dich beim nächsten Mal wiederzuerkennen.",
             "Zwei-Faktor-Authentifizierung: Wenn du sie aktivierst, speichern wir das Geheimnis deiner Authenticator-App verschlüsselt und von deinen Wiederherstellungscodes nur Hashes.",

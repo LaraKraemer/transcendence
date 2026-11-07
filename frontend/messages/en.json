@@ -21,7 +21,7 @@
     "fields": {
       "email": "Email address",
       "emailPlaceholder": "jane.appleseed@email.com",
-      "displayName": "Full name",
+      "displayName": "Display name",
       "displayNamePlaceholder": "Jane Appleseed",
       "password": "Password"
     },
@@ -163,7 +163,7 @@
     "subtitle": "Manage your personal information and profile photo",
     "edit": "Edit",
     "profileInfo": "Profile Information",
-    "name": "Full name",
+    "name": "Display name",
     "email": "Email address",
     "changePhoto": "Change profile photo",
     "removePhoto": "Remove photo",
@@ -558,7 +558,7 @@
         "collected": {
           "title": "Data we collect",
           "items": [
-            "Profile: your email address, your full name and, if you set one, your password. The password is never stored as you typed it, only as a bcrypt hash that cannot be turned back into the password.",
+            "Profile: your email address, your display name and, if you set one, your password. The password is never stored as you typed it, only as a bcrypt hash that cannot be turned back into the password.",
             "Profile photo: if you upload one, the JPEG or PNG image (up to 5 MB) is stored on our server.",
             "Google sign-in: if you sign in with Google, we receive your email address, your name and your Google account ID from Google. We store the Google account ID to recognize you next time.",
             "Two-factor authentication: if you turn it on, we store your authenticator secret in encrypted form and only hashes of your recovery codes.",
