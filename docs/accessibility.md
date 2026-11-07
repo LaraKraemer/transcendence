@@ -6,14 +6,14 @@ Target: WCAG 2.1 levels A and AA, for every page of the frontend in light and da
 
 | Check | Tool | Scope | Run by |
 |---|---|---|---|
-| Automated scan | `cd frontend && npm run check:a11y` (axe-core 4.14 through Playwright 1.64, Chromium). It is also the `a11y` job of `.github/workflows/frontend.yml`. | `/status`, `/login`, `/register`, `/privacy`, `/terms`, `/design-system`, 404, `/dashboard`, `/accounts`, `/accounts?archived=true`, `/transactions` (also with the filters panel open, an empty search result and the page links), `/analytics`, `/categories`, `/profile`, `/more`, and 10 dialogs and inline forms (new/edit/archive account, new/edit/delete category, new/edit/delete transaction, edit profile). Each runs in light and dark, `en` and `fa`, at 1280 px and 320 px: 220 scans. | CI on every frontend PR |
+| Automated scan | `cd frontend && npm run check:a11y` (axe-core 4.14 through Playwright 1.64, Chromium). It is also the `a11y` job of `.github/workflows/frontend.yml`. | `/status`, `/login`, `/register`, `/privacy`, `/terms`, `/design-system`, 404, `/dashboard`, `/accounts`, `/accounts?archived=true`, `/transactions` (also with the filters panel open, an empty search result and the page links), `/analytics`, `/categories`, `/profile`, `/more`, and 13 dialogs and inline forms (new/edit/archive account, new/edit/delete category, new/edit/delete transaction, edit profile, change password, delete profile and its confirmation). Each runs in light and dark, `en` and `fa`, at 1280 px and 320 px: 244 scans. | CI on every frontend PR |
 | Reflow and text spacing | The same script fails if a page scrolls sideways at 320 px (equal to 1280 px at 400% zoom), with and without the 1.4.12 text-spacing overrides. | Same as above | CI |
 | Contrast of theme tokens | Ratios computed from `app/globals.css` for every text token on every background token, and for `--ring`/`--input` as UI components. | Both themes | Claude Code, 2026-10-28 |
 | Focus visibility and order | Scripted Tab walk through each page, failing on any focus stop with no outline or ring, or one that is off screen. | All pages above, 1280 px and 320 px | Claude Code, 2026-10-28 |
 | Keyboard-only walkthrough | Manual | Register, create account/category/transaction, edit, delete, transfer, change language/theme, logout | **Pending: team** |
 | Screen reader | VoiceOver, macOS, Safari | The same flows | **Pending: team** |
 
-The latest scan (2026-11-03) found no failures in 220 scans.
+The latest scan (2026-11-07) found no failures in 244 scans.
 
 ## Fixed in this audit
 
