@@ -195,6 +195,38 @@ describe("createSession", () => {
     const cookieMock = (res as unknown as { cookie: ReturnType<typeof vi.fn> }).cookie;
     expect(cookieMock).not.toHaveBeenCalled();
   });
+
+  it("records verified sign-in activity without touching updated_at before issuing the cookie", async () => {
+    query.mockResolvedValue({ rows: [] });
+    const res = makeRes();
+    await createSession(makeReq(), res, userId);
+    const [updateSql, updateParams] = query.mock.calls.find(([config]) =>
+      config.text?.startsWith('update "app_user"'),
+    )!;
+    expect(updateSql.text).toContain('update "app_user" set "last_active_at"');
+    expect(updateSql.text).toContain('"last_active_at" <');
+    expect(updateSql.text).not.toContain('"updated_at"');
+    expect(updateParams).toContain(userId);
+    expect(res.cookie).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not issue a cookie if recording sign-in activity fails", async () => {
+    query.mockImplementation(async (config: { text?: string }) => {
+      if (config.text?.startsWith('update "app_user"')) throw new Error("DB down");
+      return { rows: [] };
+    });
+    const res = makeRes();
+    await expect(createSession(makeReq(), res, userId)).rejects.toThrow();
+    expect(res.cookie).not.toHaveBeenCalled();
+  });
+
+  it("does not record presence when sign-in still requires a second factor", async () => {
+    query.mockImplementation(async (config: { text?: string }) => ({
+      rows: config.text?.startsWith("select") ? [[new Date()]] : [],
+    }));
+    expect(await createSession(makeReq(), makeRes(), userId)).toBe(true);
+    expect(query.mock.calls.some(([config]) => config.text?.startsWith('update "app_user"'))).toBe(false);
+  });
 });
 
 // ─── clearSessionCookie ───────────────────────────────────────────────────────
@@ -237,7 +269,7 @@ describe("getAuthenticatedUserId", () => {
   });
 
   it("returns the userId when the session lookup returns a row", async () => {
-    query.mockResolvedValueOnce({ rows: [[userId, "session-id"]] });
+    query.mockResolvedValueOnce({ rows: [[userId, "session-id", new Date()]] });
     const req = makeReq({ cookies: { session: "some-token" } });
     expect(await getAuthenticatedUserId(req)).toBe(userId);
     expect(query).toHaveBeenCalledTimes(1);
@@ -278,6 +310,28 @@ describe("getAuthenticatedUserId", () => {
 
     expect(query.mock.calls[0]![0].text).toContain('"session"."twofa_verified_at" is not null');
   });
+
+  it("throttles verified activity at the one-minute boundary", async () => {
+    vi.setSystemTime(new Date("2026-01-01T12:00:00Z"));
+    const req = makeReq({ cookies: { session: "valid-token" } });
+    query.mockResolvedValueOnce({ rows: [[userId, "session-id", new Date("2026-01-01T11:59:00Z")]] });
+    expect(await getAuthenticatedUserId(req)).toBe(userId);
+    expect(query).toHaveBeenCalledTimes(1);
+
+    query.mockResolvedValueOnce({ rows: [[userId, "session-id", new Date("2026-01-01T11:58:59.999Z")]] });
+    query.mockResolvedValueOnce({ rows: [] });
+    expect(await getAuthenticatedUserId(req)).toBe(userId);
+    const [updateSql, updateParams] = query.mock.calls[2]!;
+    expect(updateSql.text).toContain('"last_active_at" <');
+    expect(updateSql.text).not.toContain('"updated_at"');
+    expect(updateParams).toContain("2026-01-01T11:59:00.000Z");
+  });
+
+  it("never records activity for an invalid session", async () => {
+    query.mockResolvedValueOnce({ rows: [] });
+    expect(await getAuthenticatedUserId(makeReq({ cookies: { session: "invalid" } }))).toBeUndefined();
+    expect(query).toHaveBeenCalledTimes(1);
+  });
 });
 
 // ─── requirePendingSession ────────────────────────────────────────────────────
@@ -292,6 +346,7 @@ describe("requirePendingSession", () => {
     expect(query.mock.calls[0]![0].text).toContain('"session"."twofa_verified_at" is null');
     expect(res.locals).toMatchObject({ userId, sessionId: "session-id" });
     expect(next).toHaveBeenCalledWith();
+    expect(query).toHaveBeenCalledTimes(1);
   });
 
   it("returns 401 without a pending session", async () => {
@@ -310,11 +365,12 @@ describe("requirePendingSession", () => {
 describe("completePendingSession", () => {
   it("verifies the session, extends it to 30 days and re-sets the same token", async () => {
     vi.setSystemTime(new Date("2025-01-01T00:00:00.000Z"));
-    query.mockResolvedValueOnce({ rows: [] });
+    query.mockResolvedValue({ rows: [] });
     const res = makeRes();
-    await completePendingSession(makeReq({ cookies: { session: "pending-token" } }), res, "session-id");
+    await completePendingSession(makeReq({ cookies: { session: "pending-token" } }), res, "session-id", userId);
 
     expect(query.mock.calls[0]![0].text).toContain('"twofa_verified_at" = ');
+    expect(query.mock.calls[1]![0].text).toContain('"last_active_at"');
     const [, token, options] = (res as unknown as { cookie: ReturnType<typeof vi.fn> }).cookie.mock.calls[0]!;
     expect(token).toBe("pending-token");
     expect(options.expires.toISOString()).toBe("2025-01-31T00:00:00.000Z");
@@ -338,7 +394,7 @@ describe("requireAuthenticatedUser", () => {
   });
 
   it("sets res.locals.userId and calls next() with a valid session", async () => {
-    query.mockResolvedValueOnce({ rows: [[userId, "session-id"]] });
+    query.mockResolvedValueOnce({ rows: [[userId, "session-id", new Date()]] });
     const req = makeReq({ cookies: { session: "valid-token" } });
     const res = makeRes();
     const next = vi.fn();

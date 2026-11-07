@@ -415,7 +415,9 @@ describe("JSON import request limits", () => {
     [JSON.stringify({ padding: "x".repeat(5 * 1024 * 1024) }), 413, "Request body too large"],
     ["{", 400, "Malformed JSON"],
   ])("applies the import parser limit rather than the global default %#", async (body, status, error) => {
-    query.mockResolvedValueOnce({ rows: [[userId]] }).mockResolvedValueOnce({ rows: [[userId]] });
+    query
+      .mockResolvedValueOnce({ rows: [[userId, "session-id", new Date()]] })
+      .mockResolvedValueOnce({ rows: [[userId, "session-id", new Date()]] });
     const response = await fetch(`${base}/transactions/import?accountId=${accountId}`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Cookie: "session=test" },

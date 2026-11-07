@@ -15,6 +15,7 @@ import {
 } from "react";
 
 import { formErrorFor, serverFieldErrors, useAuthErrorText } from "@/components/auth/form-parts";
+import { Friends } from "@/components/profile/friends";
 import { ChangePasswordButton, DeleteProfileButton } from "@/components/profile/profile-row-actions";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -274,6 +275,7 @@ export function ProfileDetails({ user }: { user: User }) {
       </Card>
 
       <TwoFactorSection user={user} />
+      <Friends />
 
       <Modal
         open={isEditingName}

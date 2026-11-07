@@ -445,7 +445,7 @@ authRouter.post("/2fa/verify", requirePendingSession, async (req, res, next) => 
       res.status(401).json(invalidCodeError);
       return;
     }
-    await completePendingSession(req, res, res.locals.sessionId as string);
+    await completePendingSession(req, res, res.locals.sessionId as string, userId);
     const user = await findUserById(userId);
     res.json({ user: user && toPublicUser(user) });
   } catch (error) {
@@ -467,7 +467,7 @@ authRouter.post("/2fa/recover", requirePendingSession, async (req, res, next) =>
       res.status(401).json({ error: "Invalid recovery code" });
       return;
     }
-    await completePendingSession(req, res, res.locals.sessionId as string);
+    await completePendingSession(req, res, res.locals.sessionId as string, userId);
     const user = await findUserById(userId);
     res.json({ user: user && toPublicUser(user) });
   } catch (error) {

@@ -303,6 +303,25 @@ curl -i -c cookies.txt \
 Passwords must have at least 12 characters (`.length >= 12`) and at most 72 UTF-8
 bytes. Password hashes, not passwords, are stored in the database.
 
+### Friends
+
+The profile page includes friend requests by exact email (trimmed and lowercased).
+Only accepted friends see online/offline (activity within the previous ten
+minutes); fully verified sign-in (including 2FA) and authenticated API activity
+refresh presence at most once per minute. Pending 2FA sessions do not count.
+This is approximate, not instant offline. Requests are limited per account and IP
+to ten per fifteen minutes.
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| `GET` | `/friends` | `{ friends, incoming, outgoing }`; only friends have boolean `online`; no-store |
+| `POST` | `/friends` | Send a pending request with `{"email":"..."}` |
+| `POST` | `/friends/:connectionId/accept` | Accept an incoming pending request |
+| `DELETE` | `/friends/:connectionId` | Cancel, decline or remove a friendship |
+
+With the stack running, `cd frontend && node friends.check.mjs` exercises the
+profile's friend requests, accessible states and visible-only polling.
+
 ### Google sign-in
 
 The "Continue with Google" button opens the frontend route `/auth/google`, which

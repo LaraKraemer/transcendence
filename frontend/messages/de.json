@@ -180,6 +180,33 @@
     "share": "Anteil"
   },
   "profile": {
+    "friends": {
+      "title": "Freunde",
+      "description": "Sende eine Anfrage per E-Mail. Nur bestätigte Freunde sehen deinen ungefähren Online-Status.",
+      "email": "E-Mail-Adresse des Freundes",
+      "send": "Anfrage senden",
+      "loading": "Freunde werden geladen…",
+      "accepted": "Freunde",
+      "incoming": "Eingehende Anfragen",
+      "outgoing": "Gesendete Anfragen",
+      "empty": "Noch keine",
+      "online": "Online",
+      "offline": "Offline",
+      "accept": "Annehmen",
+      "decline": "Ablehnen",
+      "cancel": "Anfrage zurückziehen",
+      "remove": "Freund entfernen",
+      "errors": {
+        "invalid": "Gib eine gültige E-Mail-Adresse ein",
+        "noUser": "Kein Nutzer gefunden",
+        "notFound": "Anfrage nicht mehr verfügbar",
+        "conflict": "Eine Anfrage oder Freundschaft besteht bereits, oder das ist deine eigene Adresse",
+        "limited": "Zu viele Anfragen. Versuche es später erneut.",
+        "network": "Der Server ist nicht erreichbar. Bitte versuche es erneut.",
+        "load": "Freunde konnten nicht geladen werden. Versuche es später erneut.",
+        "generic": "Freunde konnten nicht aktualisiert werden. Versuche es erneut."
+      }
+    },
     "subtitle": "Verwalte deine persönlichen Daten und dein Profilfoto",
     "edit": "Bearbeiten",
     "profileInfo": "Profilinformationen",

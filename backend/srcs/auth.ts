@@ -11,6 +11,7 @@ const SESSION_COOKIE = "session";
 const SESSION_LIFETIME_MS = 1000 * 60 * 60 * 24 * 30;
 // A session that still needs its 2FA code is only worth keeping briefly.
 const PENDING_2FA_LIFETIME_MS = 10 * 60 * 1000;
+const ACTIVITY_WRITE_INTERVAL_MS = 60 * 1000;
 // Retain expired or revoked sessions for seven days.
 const STALE_SESSION_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
 const BCRYPT_COST_FACTOR = 12;
@@ -31,6 +32,16 @@ function hashToken(token: string): string {
 function readSessionToken(req: Request): string | undefined {
   const token = req.cookies?.[SESSION_COOKIE];
   return typeof token === "string" ? token : undefined;
+}
+
+/** Updates presence only when the previous verified activity is over one minute old. */
+async function recordActivity(userId: string): Promise<void> {
+  const now = new Date();
+  const cutoff = new Date(now.getTime() - ACTIVITY_WRITE_INTERVAL_MS);
+  await db
+    .update(appUsers)
+    .set({ lastActiveAt: now })
+    .where(and(eq(appUsers.id, userId), or(isNull(appUsers.lastActiveAt), lt(appUsers.lastActiveAt, cutoff))));
 }
 
 /** Sends the raw session token to the browser in the HTTP-only session cookie. */
@@ -76,17 +87,24 @@ export async function createSession(req: Request, res: Response, userId: string)
     return { isPending, expiresAt };
   });
 
+  if (!isPending) await recordActivity(userId);
   setSessionCookie(res, token, expiresAt);
   return isPending;
 }
 
 /** Turns a pending session into a normal 30-day one after the user proved the second factor. */
-export async function completePendingSession(req: Request, res: Response, sessionId: string): Promise<void> {
+export async function completePendingSession(
+  req: Request,
+  res: Response,
+  sessionId: string,
+  userId: string,
+): Promise<void> {
   const token = readSessionToken(req);
   if (!token) return;
   const now = new Date();
   const expiresAt = new Date(now.getTime() + SESSION_LIFETIME_MS);
   await db.update(sessions).set({ twofaVerifiedAt: now, expiresAt }).where(eq(sessions.id, sessionId));
+  await recordActivity(userId);
   setSessionCookie(res, token, expiresAt);
 }
 
@@ -110,7 +128,7 @@ async function findSession(req: Request, isPending: boolean) {
   if (!token) return undefined;
 
   const [session] = await db
-    .select({ userId: sessions.userId, id: sessions.id })
+    .select({ userId: sessions.userId, id: sessions.id, lastActiveAt: appUsers.lastActiveAt })
     .from(sessions)
     .innerJoin(appUsers, eq(sessions.userId, appUsers.id))
     .where(
@@ -123,6 +141,13 @@ async function findSession(req: Request, isPending: boolean) {
     )
     .limit(1);
 
+  if (
+    session &&
+    !isPending &&
+    (!session.lastActiveAt || session.lastActiveAt < new Date(Date.now() - ACTIVITY_WRITE_INTERVAL_MS))
+  ) {
+    await recordActivity(session.userId);
+  }
   return session;
 }
 
