@@ -1,4 +1,4 @@
-import { and, eq, isNotNull, isNull, lt, ne, or } from "drizzle-orm";
+import { and, eq, isNull, lt, ne, or } from "drizzle-orm";
 
 import { db } from "./client.ts";
 import { appUsers, recoveryCodes, sessions } from "./schema.ts";
@@ -31,15 +31,18 @@ export async function saveTotpSecret(userId: string, encryptedSecret: string) {
 
 /**
  * Turns 2FA on and replaces the recovery codes in one transaction. The enrolment step counts
- * as used so the setup code cannot be replayed at login. Returns false when 2FA is already on.
+ * as used so the setup code cannot be replayed at login. Returns false if the secret was replaced
+ * or 2FA is already on.
  */
-export async function activateTotp(userId: string, step: number, codeHashes: string[]) {
+export async function activateTotp(userId: string, encryptedSecret: string, step: number, codeHashes: string[]) {
   return db.transaction(async (tx) => {
     const now = new Date();
     const rows = await tx
       .update(appUsers)
       .set({ totpEnabledAt: now, totpLastUsedStep: step, updatedAt: now })
-      .where(and(eq(appUsers.id, userId), isNull(appUsers.totpEnabledAt), isNotNull(appUsers.totpSecretEncrypted)))
+      .where(
+        and(eq(appUsers.id, userId), isNull(appUsers.totpEnabledAt), eq(appUsers.totpSecretEncrypted, encryptedSecret)),
+      )
       .returning({ id: appUsers.id });
     if (rows.length === 0) return false;
     await tx.delete(recoveryCodes).where(eq(recoveryCodes.userId, userId));

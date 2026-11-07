@@ -977,16 +977,36 @@ describe("two-factor authentication", () => {
     });
 
     it("activates with the enrolment step and returns 10 recovery codes stored only as hashes", async () => {
+      const encryptedSecret = encryptSecret(secret);
       session();
-      state();
+      state({ secret: encryptedSecret });
       query.mockResolvedValue({ rows: [[userId]] }); // begin, update, delete, insert, commit
       const result = await post("/2fa/enable", { code: codeNow() });
       const { recoveryCodes } = result.body as { recoveryCodes: string[] };
       expect(result.status).toBe(200);
       expect(recoveryCodes).toHaveLength(10);
+      const update = query.mock.calls.find(([sql]) => sql.text?.startsWith('update "app_user"'))!;
+      expect(update[0].text.split(" where ")[1]).toContain('"totp_secret_encrypted" =');
+      expect(update[1]).toContain(encryptedSecret);
       const insert = query.mock.calls.find(([sql]) => sql.text?.startsWith('insert into "recovery_code"'))!;
       expect(insert[1]).toContain(hashRecoveryCode(recoveryCodes[0]!));
       expect(insert[1]).not.toContain(recoveryCodes[0]);
+    });
+
+    it("rejects activation if setup replaced the verified secret", async () => {
+      session();
+      state();
+      query.mockResolvedValueOnce({ rows: [] }); // begin
+      query.mockResolvedValueOnce({ rows: [] }); // update finds no matching secret
+      query.mockResolvedValueOnce({ rows: [] }); // commit
+
+      const result = await post("/2fa/enable", { code: codeNow() });
+
+      expect(result).toEqual({
+        status: 409,
+        body: { error: "Two-factor authentication setup changed or is already enabled" },
+      });
+      expect(query.mock.calls.some(([sql]) => sql.text?.startsWith('insert into "recovery_code"'))).toBe(false);
     });
   });
 

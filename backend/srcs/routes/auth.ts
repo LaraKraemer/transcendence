@@ -413,8 +413,15 @@ authRouter.post("/2fa/enable", requireAuthenticatedUser, async (req, res, next) 
       return;
     }
     const recoveryCodes = generateRecoveryCodes();
-    if (!(await activateTotp(res.locals.userId as string, step, recoveryCodes.map(hashRecoveryCode)))) {
-      res.status(409).json({ error: "Two-factor authentication is already enabled" });
+    if (
+      !(await activateTotp(
+        res.locals.userId as string,
+        state.totpSecretEncrypted,
+        step,
+        recoveryCodes.map(hashRecoveryCode),
+      ))
+    ) {
+      res.status(409).json({ error: "Two-factor authentication setup changed or is already enabled" });
       return;
     }
     res.json({ recoveryCodes });
