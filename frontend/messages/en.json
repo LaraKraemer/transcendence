@@ -252,7 +252,7 @@
         "confirming": "Confirming…"
       },
       "recovery": {
-        "intro": "Two-factor authentication is on. Save these recovery codes now: each works once if you lose your phone, and they are not shown again.",
+        "intro": "Two-factor authentication is enabled. Save these recovery codes now: each works once if you lose your phone, and they are not shown again.",
         "listLabel": "Recovery codes",
         "copy": "Copy codes",
         "copied": "Copied",
