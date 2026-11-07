@@ -62,15 +62,24 @@ function backendBaseUrl(): string {
 /**
  * Posts credentials to a backend auth endpoint that starts a session, mirrors
  * the returned `Set-Cookie` onto the browser, and returns the authenticated user.
- * A network failure (backend unreachable) is returned as a failed response so
- * the form can show a message instead of hitting an unhandled error.
+ * For an account with two-factor authentication the backend answers
+ * `{ twoFactorRequired: true }` with a pending session cookie instead of a user.
+ * `forwardCookie` sends the current (pending) session cookie, which the code
+ * endpoints need. A network failure (backend unreachable) is returned as a failed
+ * response so the form can show a message instead of hitting an unhandled error.
  */
-async function startSession(path: string, payload: unknown, successMessage: string): Promise<ActionResponse> {
+async function startSession(
+  path: string,
+  payload: unknown,
+  successMessage: string,
+  forwardCookie = false,
+): Promise<ActionResponse> {
+  const cookie = forwardCookie ? await getSessionCookieHeader() : undefined;
   let res: Response;
   try {
     res = await fetch(`${backendBaseUrl()}${path}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...(cookie ? { cookie } : {}) },
       body: JSON.stringify(payload),
     });
   } catch (error) {
@@ -85,6 +94,7 @@ async function startSession(path: string, payload: unknown, successMessage: stri
   }
 
   await persistSessionFromSetCookie(res.headers.getSetCookie());
+  if (body.twoFactorRequired) return { success: true, message: "Two-factor code required", twoFactorRequired: true };
   return { success: true, message: successMessage, user: body.user as User };
 }
 
@@ -114,6 +124,16 @@ export async function signUp(data: SignUpInput): Promise<ActionResponse> {
   }
 
   return startSession("/auth/register", parsed.data, "Account created successfully");
+}
+
+/** Completes a pending sign-in with the authenticator app's 6-digit code. */
+export async function verifyTwoFactor(code: string): Promise<ActionResponse> {
+  return startSession("/auth/2fa/verify", { code: String(code) }, "Signed in successfully", true);
+}
+
+/** Completes a pending sign-in with a one-time recovery code. */
+export async function recoverTwoFactor(recoveryCode: string): Promise<ActionResponse> {
+  return startSession("/auth/2fa/recover", { recoveryCode: String(recoveryCode) }, "Signed in successfully", true);
 }
 
 /** Revokes the backend session (best-effort) and clears the local session cookie. */

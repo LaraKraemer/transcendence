@@ -163,6 +163,11 @@ returns `404`, and the backend refuses to start if any user already has 2FA on. 
 other secrets: if it is lost or changed, stored secrets cannot be decrypted and affected users must
 sign in with a recovery code and set 2FA up again.
 
+In the app, open **Profile → Two-factor authentication → Enable**: scan the QR code with an authenticator app
+(or type the secret shown under it), enter the 6-digit code, then save the 10 recovery codes (copy or download;
+they are shown once). Signing in then asks for a code after the password or Google, with a "Use a recovery
+code" link. **Disable** asks for the password (accounts that have one) and a code.
+
 <br>
 
 # Start the Application
@@ -754,10 +759,10 @@ Create Pull Request on GitHub.
 - [x] Status page, healthchecks, automated backups and disaster recovery
 - [x] CI pipelines (tests, lint, API smoke test, a11y)
 - [x] Google sign-in
+- [x] Two-factor authentication
 
 ### Planned (List is work in progress)
 
-- [ ] Two-factor authentication
 - [ ] Prometheus monitoring
 - [ ] Grafana dashboards
 

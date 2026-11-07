@@ -60,6 +60,8 @@ jobs:
       DATABASE_URL: postgres://expense:expense@localhost:5432/expense_tracker
       API_URL: http://localhost:3001
       NEXT_PUBLIC_API_URL: http://localhost:3001
+      # Throwaway key so the profile's "Enable two-factor authentication" dialog can open.
+      TOTP_ENCRYPTION_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
