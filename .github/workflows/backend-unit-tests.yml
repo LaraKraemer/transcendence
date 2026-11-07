@@ -60,6 +60,8 @@ jobs:
     env:
       DATABASE_URL: postgres://expense:expense@localhost:5432/expense_tracker
       TEST_PASSWORD: ci-only-test-password
+      # Throwaway key (32 zero bytes) so the Bruno 2FA requests can run.
+      TOTP_ENCRYPTION_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

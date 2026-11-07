@@ -22,6 +22,9 @@ erDiagram
         char3       base_currency           "NOT NULL DEFAULT 'EUR', FK -> CURRENCY"
         timestamptz email_verified_at       "NULL until verified; set at Google sign-up; Google links only when set"
         timestamptz password_changed_at     "NOT NULL — invalidates older sessions"
+        text        totp_secret_encrypted   "NULL — AES-256-GCM ciphertext; set by 2FA setup, inactive until totp_enabled_at"
+        timestamptz totp_enabled_at         "NULL = 2FA off"
+        bigint      totp_last_used_step     "NULL — newest accepted 30 s TOTP step, blocks replay"
         timestamptz created_at              "NOT NULL DEFAULT now()"
         timestamptz updated_at              "NOT NULL DEFAULT now()"
     }
@@ -42,6 +45,15 @@ erDiagram
         inet        ip_address              "NULL"
         timestamptz expires_at              "NOT NULL, idx"
         timestamptz revoked_at              "NULL"
+        timestamptz twofa_verified_at       "NULL = pending 2FA code (rejected by every protected route, 10 min lifetime)"
+        timestamptz created_at              "NOT NULL DEFAULT now()"
+    }
+
+    RECOVERY_CODE {
+        uuid        id                  PK
+        uuid        user_id             FK  "NOT NULL, ON DELETE CASCADE, UK with code_hash"
+        text        code_hash               "NOT NULL — SHA-256 of the code, never the code"
+        timestamptz used_at                 "NULL until burned (single use)"
         timestamptz created_at              "NOT NULL DEFAULT now()"
     }
 
@@ -213,6 +225,7 @@ erDiagram
     %% ── Relationships ───────────────────────────────────────────────────────
     APP_USER        ||--o{ SESSION           : "authenticates via"
     APP_USER        ||--o{ USER_IDENTITY     : "signs in with"
+    APP_USER        ||--o{ RECOVERY_CODE     : "recovers 2FA with"
     APP_USER        ||--o{ USER_CONNECTION   : "requests"
     APP_USER        ||--o{ USER_CONNECTION   : "receives"
 

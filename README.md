@@ -147,6 +147,22 @@ page with an error. To turn it on:
 5. Run `make up`. Running without Docker, put both variables in `backend/.env`
    and `GOOGLE_CLIENT_ID` in `frontend/.env.local`.
 
+### Two-factor authentication (optional)
+
+Users can turn on time-based one-time passwords (authenticator apps such as Google
+Authenticator or 1Password). This needs no Google Cloud setup. The backend only needs a key
+to encrypt the stored TOTP secrets:
+
+```bash
+openssl rand -base64 32
+```
+
+Put the result in the git-ignored root `.env` as `TOTP_ENCRYPTION_KEY=...` (Docker Compose passes it
+to the backend), or in `backend/.env` when running without Docker. Without it, `POST /auth/2fa/setup`
+returns `404`, and the backend refuses to start if any user already has 2FA on. Keep the key with your
+other secrets: if it is lost or changed, stored secrets cannot be decrypted and affected users must
+sign in with a recovery code and set 2FA up again.
+
 <br>
 
 # Start the Application
@@ -242,6 +258,11 @@ deleted at startup and every six hours.
 | `POST` | `/auth/login` | Start a session with email and password |
 | `POST` | `/auth/google` | Start a session with a Google authorization code (called by the frontend) |
 | `PATCH` | `/auth/password` | Change password and revoke every session |
+| `POST` | `/auth/2fa/setup` | Create a TOTP secret; returns `secret` and `otpauthUri` (2FA stays off) |
+| `POST` | `/auth/2fa/enable` | `{"code"}`: turn 2FA on; returns 10 recovery codes, shown once |
+| `POST` | `/auth/2fa/verify` | `{"code"}`: finish a login that returned `twoFactorRequired` |
+| `POST` | `/auth/2fa/recover` | `{"recoveryCode"}`: finish a pending login with a single-use recovery code |
+| `POST` | `/auth/2fa/disable` | `{"password","code"}` (or `recoveryCode`): turn 2FA off and revoke other sessions |
 | `POST` | `/auth/logout` | Revoke the current session |
 | `GET` | `/auth/me` | Return the current authenticated user |
 | `PATCH` | `/auth/me` | Update the current user's display name |
@@ -309,6 +330,15 @@ Linked Google accounts are stored in `user_identity` (one per provider per
 user). Accounts created with Google cannot log in with a password (`401`) or
 change it (`400`). `GET /auth/me` returns `hasPassword: false` for them.
 
+Two-factor authentication applies to every sign-in method. When the user has 2FA on, `POST /auth/login`
+and `POST /auth/google` return `{"twoFactorRequired":true}` (no user data) and a pending session cookie
+that lasts 10 minutes. Every route except `POST /auth/2fa/verify`, `POST /auth/2fa/recover` and
+`POST /auth/logout` answers `401` for a pending session. `verify` accepts the current 30-second code and one
+step either side, and each step works once. `disable` needs the password too (Google-only users send just the
+code) and always answers a generic `401` for a wrong password or code. `GET /auth/me` returns
+`twoFactorEnabled`. The four code endpoints share a limit of 10 attempts per client IP and user per 15
+minutes (`TWOFA_RATE_LIMIT_MAX`), answering `429` after that.
+
 `PATCH /auth/password` requires authentication and a JSON body:
 `{"currentPassword":"a-secure-password","newPassword":"another-secure-password"}`.
 The new password follows the registration policy. Success returns `204`, atomically
@@ -321,8 +351,8 @@ password and sessions unchanged.
 
 Registration, login and Google sign-in share a per-IP limit of 100 requests per 15 minutes.
 Login also allows 10 attempts per client IP and normalized email per 15
-minutes. Override the maximum request counts with `AUTH_RATE_LIMIT_MAX` and
-`LOGIN_RATE_LIMIT_MAX`. The default limiter stores counts in memory, so they
+minutes. Override the maximum request counts with `AUTH_RATE_LIMIT_MAX`,
+`LOGIN_RATE_LIMIT_MAX` and `TWOFA_RATE_LIMIT_MAX`. The default limiter stores counts in memory, so they
 reset when the backend restarts and are not shared across backend instances.
 
 By default, forwarded client-IP headers are ignored. If the backend is behind

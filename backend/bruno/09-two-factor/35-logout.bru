@@ -1,0 +1,17 @@
+meta {
+  name: 35 - Log out
+  type: http
+  seq: 36
+}
+
+post {
+  url: {{baseUrl}}/auth/logout
+  body: none
+  auth: none
+}
+
+tests {
+  test("session is revoked", function () {
+    expect(res.getStatus()).to.equal(204);
+  });
+}

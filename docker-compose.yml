@@ -49,6 +49,8 @@ services:
       # Google sign-in, read from the git-ignored .env next to this file.
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      # Two-factor authentication: 32 random bytes, base64 (openssl rand -base64 32). Unset disables 2FA setup.
+      TOTP_ENCRYPTION_KEY: ${TOTP_ENCRYPTION_KEY:-}
 
     depends_on:
       db:

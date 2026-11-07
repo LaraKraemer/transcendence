@@ -18,6 +18,7 @@ export async function findUserById(id: string) {
       avatarUrl: appUsers.avatarUrl,
       // False for Google-only users
       hasPassword: sql<boolean>`${appUsers.passwordHash} is not null`,
+      twoFactorEnabled: sql<boolean>`${appUsers.totpEnabledAt} is not null`,
     })
     .from(appUsers)
     .where(eq(appUsers.id, id))

@@ -1,0 +1,33 @@
+meta {
+  name: 32 - Register 2FA user
+  type: http
+  seq: 33
+}
+
+post {
+  url: {{baseUrl}}/auth/register
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+script:pre-request {
+  bru.setVar("twoFaEmail", `bruno-2fa-${Date.now()}@example.com`);
+}
+
+body:json {
+  {
+    "email": "{{twoFaEmail}}",
+    "password": "{{testPassword}}",
+    "displayName": "Bruno 2FA User"
+  }
+}
+
+tests {
+  test("user is registered", function () {
+    expect(res.getStatus()).to.equal(201);
+  });
+}
