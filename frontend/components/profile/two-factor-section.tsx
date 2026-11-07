@@ -55,7 +55,7 @@ export function TwoFactorSection({ user }: { user: User }) {
 
   return (
     <>
-      <Card as="section" aria-labelledby="two-factor" className="mt-5 p-[18px] lg:max-w-[60%] lg:p-6">
+      <Card as="section" aria-labelledby="two-factor" className="p-[18px] lg:p-6">
         <div className="flex flex-wrap items-center gap-3">
           <ShieldCheck size={18} aria-hidden className="text-muted-foreground" />
           <h2 id="two-factor" className="text-base font-semibold">
