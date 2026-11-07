@@ -26,6 +26,11 @@ export const appUsers = pgTable(
     avatarUrl: text("avatar_url"),
     emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
     passwordChangedAt: timestamp("password_changed_at", { withTimezone: true }).notNull().defaultNow(),
+    // AES-256-GCM ciphertext of the TOTP secret. Set by setup, but 2FA is only on once totpEnabledAt is set.
+    totpSecretEncrypted: text("totp_secret_encrypted"),
+    totpEnabledAt: timestamp("totp_enabled_at", { withTimezone: true }),
+    // Newest accepted 30-second step; a code from this step or an older one is a replay.
+    totpLastUsedStep: bigint("totp_last_used_step", { mode: "number" }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -46,6 +51,8 @@ export const sessions = pgTable(
     ipAddress: text("ip_address"),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    // Null while a 2FA user still has to enter a code; such a session is rejected by every protected route.
+    twofaVerifiedAt: timestamp("twofa_verified_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
@@ -53,6 +60,21 @@ export const sessions = pgTable(
     index("session_user_id_idx").on(table.userId),
     index("session_expires_at_idx").on(table.expiresAt),
   ],
+);
+
+// Single-use 2FA recovery codes; only the SHA-256 of each code is stored.
+export const recoveryCodes = pgTable(
+  "recovery_code",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => appUsers.id, { onDelete: "cascade" }),
+    codeHash: text("code_hash").notNull(),
+    usedAt: timestamp("used_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [uniqueIndex("recovery_code_user_hash_unique").on(table.userId, table.codeHash)],
 );
 
 // An external login linked to a user, e.g. provider "google" with Google's stable `sub`.

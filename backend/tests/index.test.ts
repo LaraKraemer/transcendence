@@ -6,6 +6,10 @@ const { purgeStaleSessions, runMigrations, listen } = vi.hoisted(() => ({
   listen: vi.fn(),
 }));
 vi.mock("../srcs/auth.ts", () => ({ purgeStaleSessions }));
+// No users have 2FA on, so the startup key check passes.
+vi.mock("../srcs/db/client.ts", () => ({
+  db: { select: () => ({ from: () => ({ where: () => ({ limit: async () => [] }) }) }) },
+}));
 vi.mock("../srcs/db/migrate.ts", () => ({ runMigrations }));
 vi.mock("../srcs/app.ts", () => ({ createApp: () => ({ listen }) }));
 

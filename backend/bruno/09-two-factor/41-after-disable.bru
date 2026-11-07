@@ -1,0 +1,18 @@
+meta {
+  name: 41 - 2FA is off again
+  type: http
+  seq: 42
+}
+
+get {
+  url: {{baseUrl}}/auth/me
+  body: none
+  auth: none
+}
+
+tests {
+  test("2FA is reported as disabled", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().user.twoFactorEnabled).to.equal(false);
+  });
+}

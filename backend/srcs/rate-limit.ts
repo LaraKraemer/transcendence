@@ -27,6 +27,24 @@ export function createAuthRateLimiter(limit = configuredLimit("AUTH_RATE_LIMIT_M
   });
 }
 
+/**
+ * Limits 2FA code attempts (verify, recover, enable, disable) by client IP and signed-in user,
+ * so a 6-digit code cannot be brute-forced. Mount it after the auth middleware, which sets the user.
+ */
+export function createTwoFactorRateLimiter(limit = configuredLimit("TWOFA_RATE_LIMIT_MAX", 10)): RequestHandler {
+  return rateLimit({
+    windowMs: WINDOW_MS,
+    limit,
+    standardHeaders: "draft-8",
+    legacyHeaders: false,
+    message: MESSAGE,
+    keyGenerator: (req, res) => {
+      if (!req.ip) throw new Error("Request IP is unavailable for 2FA rate limiting");
+      return JSON.stringify([ipKeyGenerator(req.ip), res.locals.userId]);
+    },
+  });
+}
+
 /** Limits login attempts by client IP and normalized email. */
 export function createLoginRateLimiter(limit = configuredLimit("LOGIN_RATE_LIMIT_MAX", 10)): RequestHandler {
   return rateLimit({

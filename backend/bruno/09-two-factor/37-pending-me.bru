@@ -1,0 +1,17 @@
+meta {
+  name: 37 - Pending session cannot read the profile
+  type: http
+  seq: 38
+}
+
+get {
+  url: {{baseUrl}}/auth/me
+  body: none
+  auth: none
+}
+
+tests {
+  test("pending session is rejected", function () {
+    expect(res.getStatus()).to.equal(401);
+  });
+}

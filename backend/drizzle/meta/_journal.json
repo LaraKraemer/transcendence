@@ -127,6 +127,13 @@
       "when": 1793816234385,
       "tag": "0017_google_sign_in",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1793974197711,
+      "tag": "0018_two_factor_auth",
+      "breakpoints": true
     }
   ]
 }

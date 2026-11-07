@@ -3,9 +3,9 @@ import cors from "cors";
 import { DrizzleQueryError } from "drizzle-orm";
 import express from "express";
 
-import { requireAuthenticatedUser } from "./auth.ts";
+import { requireAuthenticatedUser, requirePendingSession } from "./auth.ts";
 import { pool } from "./db/client.ts";
-import { createAuthRateLimiter, createLoginRateLimiter } from "./rate-limit.ts";
+import { createAuthRateLimiter, createLoginRateLimiter, createTwoFactorRateLimiter } from "./rate-limit.ts";
 import { accountsRouter } from "./routes/account.ts";
 import { analyticsRouter } from "./routes/analytics.ts";
 import { authRouter } from "./routes/auth.ts";
@@ -19,6 +19,7 @@ export function createApp() {
   const app = express();
   const authRateLimiter = createAuthRateLimiter();
   const loginRateLimiter = createLoginRateLimiter();
+  const twoFactorRateLimiter = createTwoFactorRateLimiter();
   const trustProxy = process.env.TRUST_PROXY;
   if (trustProxy !== undefined) {
     const hops = Number(trustProxy);
@@ -40,6 +41,9 @@ export function createApp() {
   app.post("/auth/register", authRateLimiter);
   app.post("/auth/login", authRateLimiter, loginRateLimiter);
   app.post("/auth/google", authRateLimiter);
+  // The limiter keys on the user, so it runs after the same session check the routes use.
+  app.post(["/auth/2fa/verify", "/auth/2fa/recover"], requirePendingSession, twoFactorRateLimiter);
+  app.post(["/auth/2fa/enable", "/auth/2fa/disable"], requireAuthenticatedUser, twoFactorRateLimiter);
   app.use("/accounts", accountsRouter);
   app.use("/analytics", analyticsRouter);
   app.use("/auth", authRouter);

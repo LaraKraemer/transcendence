@@ -19,7 +19,7 @@ let base: string;
 
 /** Starts a loopback server with auth settings isolated from the host environment. */
 async function startAppServer(env: Record<string, string> = {}) {
-  for (const name of ["AUTH_RATE_LIMIT_MAX", "LOGIN_RATE_LIMIT_MAX", "TRUST_PROXY"]) {
+  for (const name of ["AUTH_RATE_LIMIT_MAX", "LOGIN_RATE_LIMIT_MAX", "TWOFA_RATE_LIMIT_MAX", "TRUST_PROXY"]) {
     vi.stubEnv(name, env[name]);
   }
   const appServer = createApp().listen(0, "127.0.0.1");
@@ -284,6 +284,21 @@ describe("authentication rate limits", () => {
         });
         expect(res.status).toBe(400);
       }
+    });
+  });
+
+  it("limits 2FA code attempts per user and answers 429 before the handler runs", async () => {
+    query.mockResolvedValue({ rows: [["550e8400-e29b-41d4-a716-446655440001", "session-1"]] });
+    await withRateLimitedApp({ TWOFA_RATE_LIMIT_MAX: "1" }, async (url) => {
+      const verify = () =>
+        fetch(`${url}/auth/2fa/verify`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Cookie: "session=pending" },
+          body: JSON.stringify({}),
+        });
+
+      expect((await verify()).status).toBe(400); // reached the handler: the code is missing
+      expect((await verify()).status).toBe(429);
     });
   });
 
