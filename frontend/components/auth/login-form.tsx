@@ -8,7 +8,9 @@ import { useActionState, useState } from "react";
 import {
   PasswordVisibilityButton,
   SocialSignIn,
+  authNoticeFor,
   formErrorFor,
+  googleErrorFor,
   serverFieldErrors,
   useAuthErrorText,
   type FormErrorCode,
@@ -24,8 +26,10 @@ type LoginState = { fieldErrors: FieldErrors<keyof LoginFields>; error: FormErro
 
 const initialState: LoginState = { fieldErrors: {}, error: null };
 
-export function LoginForm() {
+/** `notice` is the `?notice=` the profile page sends after a password change or a profile delete. */
+export function LoginForm({ googleError, notice }: { googleError?: string; notice?: string }) {
   const t = useTranslations();
+  const noticeCode = authNoticeFor(notice);
   const errorText = useAuthErrorText();
   const { login } = useAuth();
   const router = useRouter();
@@ -57,7 +61,7 @@ export function LoginForm() {
         return { fieldErrors: {}, error: "generic" };
       }
     },
-    initialState,
+    { ...initialState, error: googleErrorFor(googleError) },
   );
 
   return (
@@ -65,6 +69,7 @@ export function LoginForm() {
       <h1 className="mb-1.5 text-[28px] font-bold tracking-[-0.02em]">{t("auth.signIn.title")}</h1>
       <p className="mb-6 text-sm text-muted-foreground">{t("auth.signIn.subtitle")}</p>
 
+      <FormAlert tone="success" message={noticeCode && t(`auth.notices.${noticeCode}`)} />
       <SocialSignIn dividerLabel={t("auth.signIn.divider")} />
 
       <form action={formAction} noValidate>

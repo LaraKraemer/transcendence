@@ -4,14 +4,23 @@
  * Profile server actions: the display name (`PATCH /auth/me`) and the photo
  * (`PUT`/`DELETE /auth/me/avatar`). Each refreshes the route, so the profile
  * header and the app shell re-render with the new user.
+ *
+ * `changePassword` and `deleteProfile` end the session instead: the backend signs
+ * out every device, so they clear the session cookie and the form opens /login.
  */
 import { refresh } from "next/cache";
 import { z } from "zod";
 
 import { backendFailure } from "@/lib/action-errors";
 import { fetchApiServer } from "@/lib/dal";
+import { clearSession } from "@/lib/session";
 import type { ActionResponse, User } from "@/lib/types";
-import { MAX_DISPLAY_NAME_LENGTH, type ValidationErrorCode } from "@/lib/validation";
+import {
+  MAX_DISPLAY_NAME_LENGTH,
+  validateChangePassword,
+  type ChangePasswordFields,
+  type ValidationErrorCode,
+} from "@/lib/validation";
 
 const UpdateNameSchema = z.object({
   displayName: z
@@ -74,4 +83,48 @@ export async function deleteAvatar(): Promise<ActionResponse> {
 
   refresh();
   return { success: true, message: "Photo removed" };
+}
+
+/**
+ * Checks the fields like the form does, then changes the password with
+ * `PATCH /auth/password` (401 for a wrong current password).
+ */
+export async function changePassword(fields: ChangePasswordFields): Promise<ActionResponse> {
+  const values = {
+    currentPassword: String(fields?.currentPassword ?? ""),
+    newPassword: String(fields?.newPassword ?? ""),
+    confirmPassword: String(fields?.confirmPassword ?? ""),
+  };
+  const errors = validateChangePassword(values);
+  if (Object.keys(errors).length > 0) {
+    return {
+      success: false,
+      message: "Validation failed",
+      errors: Object.fromEntries(Object.entries(errors).map(([field, code]) => [field, [code]])),
+    };
+  }
+
+  try {
+    await fetchApiServer("/auth/password", {
+      method: "PATCH",
+      body: JSON.stringify({ currentPassword: values.currentPassword, newPassword: values.newPassword }),
+    });
+  } catch (error) {
+    return backendFailure(error, "changePassword");
+  }
+
+  await clearSession();
+  return { success: true, message: "Password changed" };
+}
+
+/** Permanently deletes the profile and all its data with `DELETE /auth/me`. */
+export async function deleteProfile(): Promise<ActionResponse> {
+  try {
+    await fetchApiServer("/auth/me", { method: "DELETE" });
+  } catch (error) {
+    return backendFailure(error, "deleteProfile");
+  }
+
+  await clearSession();
+  return { success: true, message: "Profile deleted" };
 }

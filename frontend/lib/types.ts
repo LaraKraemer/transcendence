@@ -14,6 +14,8 @@ export type User = {
   displayName: string;
   /** API path of the profile photo (`/auth/me/avatar?v=…`, the `v` changes with each new photo), or null when there is none. */
   avatarUrl: string | null;
+  /** False for users who signed up with Google and have no password. Only `GET /auth/me` sends it. */
+  hasPassword: boolean;
 };
 
 /**

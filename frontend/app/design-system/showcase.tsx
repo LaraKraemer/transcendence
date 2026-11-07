@@ -707,6 +707,7 @@ function ComponentDemos() {
 
       <ComponentDemo name="FormAlert">
         <FormAlert message={t("auth.errors.network")} />
+        <FormAlert tone="success" message={t("auth.notices.passwordChanged")} />
       </ComponentDemo>
 
       <ComponentDemo name="StrengthMeter">

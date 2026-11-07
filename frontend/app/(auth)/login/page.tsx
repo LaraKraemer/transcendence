@@ -10,10 +10,14 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("signInTitle") };
 }
 
-export default function LoginPage() {
+export default async function LoginPage({ searchParams }: PageProps<"/login">) {
+  const { error, notice } = await searchParams;
   return (
     <AuthShell hero={<SignInHero />}>
-      <LoginForm />
+      <LoginForm
+        googleError={typeof error === "string" ? error : undefined}
+        notice={typeof notice === "string" ? notice : undefined}
+      />
     </AuthShell>
   );
 }

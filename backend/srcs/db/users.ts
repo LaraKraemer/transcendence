@@ -1,7 +1,7 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 
 import { db } from "./client.ts";
-import { appUsers, sessions } from "./schema.ts";
+import { appUsers, sessions, userIdentities } from "./schema.ts";
 
 export async function findUserByEmail(email: string) {
   const [user] = await db.select().from(appUsers).where(eq(appUsers.email, email)).limit(1);
@@ -16,6 +16,8 @@ export async function findUserById(id: string) {
       email: appUsers.email,
       displayName: appUsers.displayName,
       avatarUrl: appUsers.avatarUrl,
+      // False for Google-only users
+      hasPassword: sql<boolean>`${appUsers.passwordHash} is not null`,
     })
     .from(appUsers)
     .where(eq(appUsers.id, id))
@@ -31,6 +33,51 @@ export async function createUser(email: string, passwordHash: string, displayNam
     .returning({ id: appUsers.id, email: appUsers.email, displayName: appUsers.displayName });
 
   return user;
+}
+
+/** Finds the user linked to an external login, e.g. Google's `sub`. */
+export async function findUserByIdentity(provider: string, providerUserId: string) {
+  const [user] = await db
+    .select({
+      id: appUsers.id,
+      email: appUsers.email,
+      displayName: appUsers.displayName,
+      avatarUrl: appUsers.avatarUrl,
+    })
+    .from(userIdentities)
+    .innerJoin(appUsers, eq(userIdentities.userId, appUsers.id))
+    .where(and(eq(userIdentities.provider, provider), eq(userIdentities.providerUserId, providerUserId)))
+    .limit(1);
+
+  return user;
+}
+
+/** Links an external login to a user. Returns false when the user already has a login from this provider. */
+export async function linkIdentity(userId: string, provider: string, providerUserId: string) {
+  const rows = await db
+    .insert(userIdentities)
+    .values({ userId, provider, providerUserId })
+    .onConflictDoNothing()
+    .returning({ id: userIdentities.id });
+  return rows.length > 0;
+}
+
+/** Atomically creates a passwordless user, whose email the provider verified, with its external login. */
+export async function createUserWithIdentity(
+  email: string,
+  displayName: string,
+  provider: string,
+  providerUserId: string,
+) {
+  return db.transaction(async (tx) => {
+    const [user] = await tx
+      .insert(appUsers)
+      .values({ email, displayName, emailVerifiedAt: new Date() })
+      .returning({ id: appUsers.id, email: appUsers.email, displayName: appUsers.displayName });
+    if (!user) throw new Error("User creation did not return a user");
+    await tx.insert(userIdentities).values({ userId: user.id, provider, providerUserId });
+    return user;
+  });
 }
 
 /** Permanently deletes a profile and its related data atomically through foreign-key cascades. */

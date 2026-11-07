@@ -9,7 +9,6 @@
   },
   "common": {
     "language": "Language",
-    "comingSoon": "Coming soon",
     "switchToDark": "Switch to dark theme",
     "switchToLight": "Switch to light theme",
     "close": "Close",
@@ -67,12 +66,20 @@
       "passwordRequired": "Enter your password",
       "passwordTooShort": "Password must be at least {min, number} characters",
       "passwordTooLong": "Password is too long",
+      "passwordMismatch": "The passwords do not match",
       "displayNameRequired": "Display name is required",
       "displayNameTooLong": "Display name is too long",
       "emailTaken": "An account with this email already exists",
+      "googleEmailTaken": "This email already belongs to an account. Sign in with your email and password instead.",
+      "googleFailed": "Google sign-in failed. Please try again.",
       "invalidCredentials": "Invalid email or password",
+      "currentPasswordInvalid": "The current password is incorrect",
       "network": "Could not reach the server. Please try again later.",
       "generic": "Something went wrong. Please try again."
+    },
+    "notices": {
+      "passwordChanged": "Password changed. Sign in with your new password.",
+      "profileDeleted": "Your profile was deleted."
     }
   },
   "nav": {
@@ -154,9 +161,8 @@
   },
   "profile": {
     "subtitle": "Manage your personal information and profile photo",
-    "editProfile": "Edit Profile",
     "edit": "Edit",
-    "personalInfo": "Personal Information",
+    "profileInfo": "Profile Information",
     "name": "Full name",
     "email": "Email address",
     "changePhoto": "Change profile photo",
@@ -180,7 +186,31 @@
     "photoPreview": "Selected photo preview",
     "uploadPhoto": "Upload",
     "replaceSelection": "Replace selection",
-    "savingPhoto": "Saving photo…"
+    "savingPhoto": "Saving photo…",
+    "password": {
+      "title": "Change password",
+      "description": "After the change, you are signed out on all devices.",
+      "currentPassword": "Current password",
+      "newPassword": "New password",
+      "confirmPassword": "Confirm new password",
+      "submit": "Change password",
+      "submitting": "Changing…",
+      "change": "Change"
+    },
+    "deleteProfile": {
+      "title": "Delete profile",
+      "description": "Permanently delete your profile and all its data.",
+      "button": "Delete"
+    },
+    "deleteDialog": {
+      "title": "Delete your profile?",
+      "description": "Your profile and all its accounts (archived ones too), categories, transactions and profile photo will be permanently deleted and cannot be recovered.",
+      "continue": "Continue",
+      "finalTitle": "Final warning: delete your profile?",
+      "finalDescription": "Confirming now will permanently delete your profile and all its data, and sign you out on all devices. This action cannot be undone.",
+      "confirm": "Delete profile permanently",
+      "confirming": "Deleting…"
+    }
   },
   "accounts": {
     "title": "Accounts",
@@ -576,7 +606,7 @@
           "paragraphs": [
             "You can delete single transactions and categories at any time, and remove your profile photo on the Profile page. When you delete a category, its transactions are kept without a category. When you delete one side of a transfer, both sides are deleted.",
             "When a profile is deleted, Poolaki permanently removes it together with all its accounts (archived ones too), categories, transactions, sessions and profile photo, in a single step. No copy is kept, and the data cannot be restored.",
-            "Deleting your whole profile, or an account with all its transactions, is not yet possible in the app."
+            "You can delete an account with all its transactions on the Accounts page, and your whole profile on the Profile page."
           ]
         },
         "rights": {

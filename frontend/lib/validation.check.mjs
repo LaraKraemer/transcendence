@@ -16,6 +16,7 @@ import {
   filterAmountInput,
   toMinorUnits,
   toPositiveMinorUnits,
+  validateChangePassword,
 } from "./validation.ts";
 
 assert.equal(toMinorUnits("100.50", 2), 10050);
@@ -167,3 +168,23 @@ assert.equal(toMinorUnits("90071992547409.92", 2), "amountTooLarge");
 assert.equal(toMinorUnits("-9007199254740.992", 3), "amountTooLarge");
 assert.equal(toMinorUnits("", 2), "amountInvalid");
 console.log("opening balance editing: ok");
+
+// validateChangePassword: the profile's change-password form and the changePassword action
+const strongPassword = "correct-horse-battery";
+const passwordFields = { currentPassword: "old", newPassword: strongPassword, confirmPassword: strongPassword };
+assert.deepEqual(validateChangePassword(passwordFields), {}); // any current password, the backend checks it
+assert.deepEqual(validateChangePassword({ ...passwordFields, currentPassword: "" }), {
+  currentPassword: "passwordRequired",
+});
+assert.deepEqual(validateChangePassword({ ...passwordFields, newPassword: "short", confirmPassword: "short" }), {
+  newPassword: "passwordTooShort",
+});
+const tooManyBytes = "ä".repeat(37); // 37 characters, 74 UTF-8 bytes
+assert.deepEqual(
+  validateChangePassword({ ...passwordFields, newPassword: tooManyBytes, confirmPassword: tooManyBytes }),
+  { newPassword: "passwordTooLong" },
+);
+assert.deepEqual(validateChangePassword({ ...passwordFields, confirmPassword: `${strongPassword}!` }), {
+  confirmPassword: "passwordMismatch",
+});
+console.log("validateChangePassword: ok");

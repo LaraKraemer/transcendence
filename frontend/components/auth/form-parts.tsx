@@ -3,12 +3,25 @@
 import { Eye, EyeOff } from "lucide-react";
 import { useTranslations } from "next-intl";
 
-import { Button } from "@/components/ui/button";
+import { buttonClassName } from "@/components/ui/button";
 import { ToggleButton } from "@/components/ui/toggle-button";
 import type { ActionResponse } from "@/lib/types";
 import { MIN_PASSWORD_LENGTH, isValidationErrorCode, type ValidationErrorCode } from "@/lib/validation";
 
-export type FormErrorCode = "emailTaken" | "invalidCredentials" | "network" | "generic";
+export type GoogleErrorCode = "googleEmailTaken" | "googleFailed";
+export type FormErrorCode =
+  "emailTaken" | "invalidCredentials" | "currentPasswordInvalid" | "network" | "generic" | GoogleErrorCode;
+export type AuthNotice = "passwordChanged" | "profileDeleted";
+
+/** Narrows the `?error=` that app/auth/google/route.ts adds to /login to a known code. */
+export function googleErrorFor(param: string | undefined): GoogleErrorCode | null {
+  return param === "googleEmailTaken" || param === "googleFailed" ? param : null;
+}
+
+/** Narrows the `?notice=` that the profile page adds to /login after ending the session. */
+export function authNoticeFor(param: string | undefined): AuthNotice | null {
+  return param === "passwordChanged" || param === "profileDeleted" ? param : null;
+}
 
 /** Gives back a function that turns an error code into a message in the user's language. */
 export function useAuthErrorText() {
@@ -44,19 +57,18 @@ export function formErrorFor(result: ActionResponse): FormErrorCode {
 
 /**
  * The "Continue with Google" button and the "or" line below it.
- * Google sign-in isn't built yet (ask the team about it),
- * so the button is shown but can't be clicked.
+ * A plain <a>, not next/link: /auth/google is a route handler that redirects to Google.
  */
 export function SocialSignIn({ dividerLabel }: { dividerLabel: string }) {
   const t = useTranslations();
   return (
     <>
-      <Button variant="outline" disabled title={t("common.comingSoon")}>
+      <a href="/auth/google" className={buttonClassName("outline")}>
         <span aria-hidden className="font-bold text-[#4285F4]">
           G
         </span>
         {t("auth.continueWithGoogle")}
-      </Button>
+      </a>
       <div className="my-[22px] flex items-center gap-3.5 text-xs text-muted-foreground">
         <span className="h-px flex-1 bg-border" />
         {dividerLabel}
@@ -70,7 +82,13 @@ export function PasswordVisibilityButton({ visible, onToggle }: { visible: boole
   const t = useTranslations();
   const Icon = visible ? EyeOff : Eye;
   return (
-    <ToggleButton label={t("auth.showPassword")} pressed={visible} onPressedChange={onToggle} variant="plain" size="inline">
+    <ToggleButton
+      label={t("auth.showPassword")}
+      pressed={visible}
+      onPressedChange={onToggle}
+      variant="plain"
+      size="inline"
+    >
       <Icon size={17} aria-hidden />
     </ToggleButton>
   );
