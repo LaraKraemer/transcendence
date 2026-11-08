@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { NextRequest } from "next/server";
 
-import { persistSessionFromSetCookie } from "@/lib/session";
+import { persistSessionFromSetCookie, secureCookies } from "@/lib/session";
 
 const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const ROUTE_PATH = "/auth/google";
@@ -22,7 +22,8 @@ const backendRequestTimeoutMs = 15_000;
  */
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
-  const redirectUri = `${request.nextUrl.origin}${ROUTE_PATH}`;
+  // request.nextUrl.origin carries Next's internal port when served behind the HTTPS proxy.
+  const redirectUri = `${request.headers.get("x-forwarded-proto")}://${request.headers.get("host")}${ROUTE_PATH}`;
   const cookieStore = await cookies();
   const code = params.get("code");
   const googleError = params.get("error");
@@ -35,7 +36,7 @@ export async function GET(request: NextRequest) {
     cookieStore.set(OAUTH_COOKIE, `${state}.${codeVerifier}`, {
       httpOnly: true,
       sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
+      secure: secureCookies,
       path: ROUTE_PATH,
       maxAge: oauthCookieMaxAgeSeconds,
     });
