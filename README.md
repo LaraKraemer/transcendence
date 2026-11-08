@@ -587,6 +587,7 @@ Test files live in `backend/tests/`, mirroring `backend/srcs/`:
 | `tests/routes/protection.test.ts` | protected routes reject unauthenticated requests |
 | `tests/routes/account.test.ts` | account CRUD + balance |
 | `tests/routes/category.test.ts` | category CRUD |
+| `tests/routes/friends.test.ts` | friend request responses, recipient scoping, pending presence |
 | `tests/routes/currency.test.ts` | currency metadata, ordering, empty results, errors |
 | `tests/routes/transaction.test.ts` | transaction CRUD, type/sign and category rules, transfers |
 | `tests/routes/analytics.test.ts` | bounded filters, ownership, time series, category totals, safe CSV |
