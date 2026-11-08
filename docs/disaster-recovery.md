@@ -46,7 +46,7 @@ wait until capture finishes. You may stop the backend first to avoid waiting req
 | 2. Back up | `make backup` |
 | 3. Start services | `make up` |
 | 4. List backups | `cat backups/overview.txt` |
-| 5. Check status | `curl http://localhost:3001/status` |
+| 5. Check status | `curl --cacert nginx/certs/ca/rootCA.pem https://localhost:8443/status` |
 | Check failures | `make logs` (Ctrl+C to exit) |
 
 After `make up`, use `docker compose ps` to check service health.

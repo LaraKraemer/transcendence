@@ -6,6 +6,11 @@ Before running the collection, create `backend/bruno/.env` from `.env.example`
 and set a local test password of at least 12 characters. The `.env` file is
 ignored by Git.
 
+The collection calls the API at `https://localhost:8443`, so it needs the stack
+running and the local CA: pass `--cacert ../../nginx/certs/ca/rootCA.pem` to
+`bru run`, or set that file as the custom CA certificate in the desktop app's
+**Preferences**.
+
 Backend startup applies migrations and populates the currency catalog.
 The collection checks all 17 currencies.
 
