@@ -14,7 +14,7 @@ const PENDING_2FA_LIFETIME_MS = 10 * 60 * 1000;
 // Retain expired or revoked sessions for seven days.
 const STALE_SESSION_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
 const BCRYPT_COST_FACTOR = 12;
-const isProduction = process.env.NODE_ENV === "production";
+const secureCookies = process.env.NODE_ENV === "production" || process.env.COOKIE_SECURE === "true";
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 const GOOGLE_ISSUERS = ["https://accounts.google.com", "accounts.google.com"];
 const googleRequestTimeoutMs = 10_000;
@@ -38,7 +38,7 @@ function setSessionCookie(res: Response, token: string, expiresAt: Date): void {
   res.cookie(SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
-    secure: isProduction,
+    secure: secureCookies,
     expires: expiresAt,
     path: "/",
   });
@@ -95,7 +95,7 @@ export function clearSessionCookie(res: Response): void {
   res.clearCookie(SESSION_COOKIE, {
     httpOnly: true,
     sameSite: "lax",
-    secure: isProduction,
+    secure: secureCookies,
     path: "/",
   });
 }
