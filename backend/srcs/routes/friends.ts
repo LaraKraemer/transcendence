@@ -6,7 +6,7 @@ import { requireAuthenticatedUser } from "../auth.ts";
 import { db } from "../db/client.ts";
 import { appUsers, userConnections } from "../db/schema.ts";
 import { createFriendRequestRateLimiters } from "../rate-limit.ts";
-import { isUuid, TEXT_LIMITS } from "../validation.ts";
+import { isEmail, isUuid } from "../validation.ts";
 
 export const friendsRouter = Router();
 friendsRouter.use(requireAuthenticatedUser);
@@ -55,7 +55,7 @@ friendsRouter.get("/", async (_req, res, next) => {
 /** Sends an exact-email request, rejecting self-requests and existing pairs. */
 friendsRouter.post("/", ...createFriendRequestRateLimiters(), async (req, res, next) => {
   const email = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
-  if (email.length > TEXT_LIMITS.email || !/^\S+@\S+\.\S+$/.test(email)) {
+  if (!isEmail(email)) {
     res.status(400).json({ error: "A valid email is required" });
     return;
   }

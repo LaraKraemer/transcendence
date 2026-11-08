@@ -38,10 +38,14 @@ function readSessionToken(req: Request): string | undefined {
 async function recordActivity(userId: string): Promise<void> {
   const now = new Date();
   const cutoff = new Date(now.getTime() - ACTIVITY_WRITE_INTERVAL_MS);
-  await db
-    .update(appUsers)
-    .set({ lastActiveAt: now })
-    .where(and(eq(appUsers.id, userId), or(isNull(appUsers.lastActiveAt), lt(appUsers.lastActiveAt, cutoff))));
+  try {
+    await db
+      .update(appUsers)
+      .set({ lastActiveAt: now })
+      .where(and(eq(appUsers.id, userId), or(isNull(appUsers.lastActiveAt), lt(appUsers.lastActiveAt, cutoff))));
+  } catch (error) {
+    console.error("Failed to record user activity:", error);
+  }
 }
 
 /** Sends the raw session token to the browser in the HTTP-only session cookie. */

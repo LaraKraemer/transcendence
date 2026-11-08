@@ -65,7 +65,7 @@ export function createLoginRateLimiter(limit = configuredLimit("LOGIN_RATE_LIMIT
 export function createFriendRequestRateLimiters(): RequestHandler[] {
   const options = {
     windowMs: WINDOW_MS,
-    limit: 10,
+    limit: configuredLimit("FRIEND_RATE_LIMIT_MAX", 10),
     standardHeaders: "draft-8" as const,
     legacyHeaders: false,
     message: MESSAGE,

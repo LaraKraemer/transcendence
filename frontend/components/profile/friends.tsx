@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Card } from "@/components/ui/card";
 import { FormAlert } from "@/components/ui/form-alert";
 import { ApiError, fetchApi } from "@/lib/api";
+import { isEmail, MAX_EMAIL_LENGTH } from "@/lib/validation";
 
 type Connection = { id: string; user: { id: string; displayName: string; email: string } };
 type Friend = Connection & { online: boolean };
@@ -82,7 +83,7 @@ export function Friends() {
   function request(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const normalizedEmail = email.trim().toLowerCase();
-    if (normalizedEmail.length > 254 || !/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
+    if (!isEmail(normalizedEmail)) {
       setError(t("errors.invalid"));
       return;
     }
@@ -104,7 +105,7 @@ export function Friends() {
             id="friend-email"
             type="email"
             required
-            maxLength={254}
+            maxLength={MAX_EMAIL_LENGTH}
             autoComplete="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}

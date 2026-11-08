@@ -50,7 +50,10 @@ beforeEach(() => {
   query.mockReset();
   vi.useFakeTimers({ toFake: ["Date"] });
 });
-afterEach(() => vi.useRealTimers());
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.useRealTimers();
+});
 
 // ─── hashPassword / verifyPassword ───────────────────────────────────────────
 
@@ -210,14 +213,16 @@ describe("createSession", () => {
     expect(res.cookie).toHaveBeenCalledTimes(1);
   });
 
-  it("does not issue a cookie if recording sign-in activity fails", async () => {
+  it("issues a cookie even if recording sign-in activity fails", async () => {
+    const errorLog = vi.spyOn(console, "error").mockImplementation(() => {});
     query.mockImplementation(async (config: { text?: string }) => {
       if (config.text?.startsWith('update "app_user"')) throw new Error("DB down");
       return { rows: [] };
     });
     const res = makeRes();
-    await expect(createSession(makeReq(), res, userId)).rejects.toThrow();
-    expect(res.cookie).not.toHaveBeenCalled();
+    expect(await createSession(makeReq(), res, userId)).toBe(false);
+    expect(res.cookie).toHaveBeenCalledOnce();
+    expect(errorLog).toHaveBeenCalledWith("Failed to record user activity:", expect.any(Error));
   });
 
   it("does not record presence when sign-in still requires a second factor", async () => {
@@ -327,6 +332,16 @@ describe("getAuthenticatedUserId", () => {
     expect(updateParams).toContain("2026-01-01T11:59:00.000Z");
   });
 
+  it("returns the authenticated user when updating presence fails", async () => {
+    const errorLog = vi.spyOn(console, "error").mockImplementation(() => {});
+    query.mockResolvedValueOnce({ rows: [[userId, "session-id", null]] });
+    query.mockRejectedValueOnce(new Error("DB down"));
+
+    expect(await getAuthenticatedUserId(makeReq({ cookies: { session: "valid-token" } }))).toBe(userId);
+    expect(query).toHaveBeenCalledTimes(2);
+    expect(errorLog).toHaveBeenCalledWith("Failed to record user activity:", expect.any(Error));
+  });
+
   it("never records activity for an invalid session", async () => {
     query.mockResolvedValueOnce({ rows: [] });
     expect(await getAuthenticatedUserId(makeReq({ cookies: { session: "invalid" } }))).toBeUndefined();
@@ -375,6 +390,18 @@ describe("completePendingSession", () => {
     expect(token).toBe("pending-token");
     expect(options.expires.toISOString()).toBe("2025-01-31T00:00:00.000Z");
   });
+
+  it("finishes two-factor authentication when updating presence fails", async () => {
+    const errorLog = vi.spyOn(console, "error").mockImplementation(() => {});
+    query.mockResolvedValueOnce({ rows: [] });
+    query.mockRejectedValueOnce(new Error("DB down"));
+    const res = makeRes();
+
+    await completePendingSession(makeReq({ cookies: { session: "pending-token" } }), res, "session-id", userId);
+
+    expect(res.cookie).toHaveBeenCalledOnce();
+    expect(errorLog).toHaveBeenCalledWith("Failed to record user activity:", expect.any(Error));
+  });
 });
 
 // ─── requireAuthenticatedUser ─────────────────────────────────────────────────
@@ -403,6 +430,20 @@ describe("requireAuthenticatedUser", () => {
     expect(res.locals.userId).toBe(userId);
     expect(res.locals.sessionId).toBe("session-id");
     expect(next).toHaveBeenCalledWith();
+  });
+
+  it("allows protected requests even when updating presence fails", async () => {
+    const errorLog = vi.spyOn(console, "error").mockImplementation(() => {});
+    query.mockResolvedValueOnce({ rows: [[userId, "session-id", null]] });
+    query.mockRejectedValueOnce(new Error("DB down"));
+    const res = makeRes();
+    const next = vi.fn();
+
+    await requireAuthenticatedUser(makeReq({ cookies: { session: "valid-token" } }), res, next);
+
+    expect(res.locals).toMatchObject({ userId, sessionId: "session-id" });
+    expect(next).toHaveBeenCalledWith();
+    expect(errorLog).toHaveBeenCalledWith("Failed to record user activity:", expect.any(Error));
   });
 
   it("rejects when the session query fails", async () => {

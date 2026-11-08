@@ -47,7 +47,7 @@ import {
   otpauthUri,
   verifyTotp,
 } from "../totp.ts";
-import { isJpegOrPng, isValidPassword, parseRequiredText, TEXT_LIMITS } from "../validation.ts";
+import { isEmail, isJpegOrPng, isValidPassword, parseRequiredText, TEXT_LIMITS } from "../validation.ts";
 
 export const authRouter = Router();
 const avatarMaxBytes = 5 * 1024 * 1024;
@@ -83,7 +83,7 @@ authRouter.post("/register", async (req, res) => {
   const { email, password, displayName } = req.body ?? {};
   const normalizedEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
 
-  if (normalizedEmail.length > TEXT_LIMITS.email || !/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
+  if (!isEmail(normalizedEmail)) {
     res.status(400).json({ error: "A valid email is required" });
     return;
   }

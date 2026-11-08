@@ -310,7 +310,7 @@ Only accepted friends see online/offline (activity within the previous ten
 minutes); fully verified sign-in (including 2FA) and authenticated API activity
 refresh presence at most once per minute. Pending 2FA sessions do not count.
 This is approximate, not instant offline. Requests are limited per account and IP
-to ten per fifteen minutes.
+to ten per fifteen minutes (override with `FRIEND_RATE_LIMIT_MAX`).
 
 | Method | Endpoint | Purpose |
 |---|---|---|
@@ -592,7 +592,7 @@ Test files live in `backend/tests/`, mirroring `backend/srcs/`:
 | `tests/routes/transaction.test.ts` | transaction CRUD, type/sign and category rules, transfers |
 | `tests/routes/analytics.test.ts` | bounded filters, ownership, time series, category totals, safe CSV |
 | `tests/db/analytics.integration.test.ts` | PostgreSQL aggregation, zero filling, currency separation, export filters (opt-in) |
-| `tests/validation.test.ts` | isUuid, isCurrencyCode, isIsoTimestamp, isDateOnly, isHexColor |
+| `tests/validation.test.ts` | isEmail, isUuid, isCurrencyCode, isIsoTimestamp, isDateOnly, isHexColor |
 | `tests/db/accounts.test.ts` | findOwnedAccount ownership filter |
 | `tests/db/client.test.ts` | DATABASE_URL guard, pool error handler |
 | `tests/app.test.ts` | HTTP wiring: health, CORS, router mount, error handler |
