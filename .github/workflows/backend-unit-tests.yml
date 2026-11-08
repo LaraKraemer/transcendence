@@ -5,12 +5,16 @@ on:
     branches: [main]
     paths:
       - "backend/**"
+      - "nginx/**"
+      - "Makefile"
       - ".github/workflows/backend-unit-tests.yml"
       - ".nvmrc"
       - ".prettierrc.json"
   pull_request:
     paths:
       - "backend/**"
+      - "nginx/**"
+      - "Makefile"
       - ".github/workflows/backend-unit-tests.yml"
       - ".nvmrc"
       - ".prettierrc.json"
@@ -60,10 +64,21 @@ jobs:
     env:
       DATABASE_URL: postgres://expense:expense@localhost:5432/expense_tracker
       TEST_PASSWORD: ci-only-test-password
+      TRUST_PROXY: "1"
+      COOKIE_SECURE: "true"
       # Throwaway key (32 zero bytes) so the Bruno 2FA requests can run.
       TOTP_ENCRYPTION_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
     steps:
       - uses: actions/checkout@v4
+      - name: Create local certificates
+        working-directory: .
+        run: sudo apt-get update && sudo apt-get install -y mkcert && make certs
+      - name: Start HTTPS proxy
+        working-directory: .
+        run: >-
+          docker run -d --network host --add-host frontend:127.0.0.1 --add-host backend:127.0.0.1
+          -v "$PWD/nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro"
+          -v "$PWD/nginx/certs:/etc/nginx/certs:ro" nginx:1.28-alpine
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
@@ -73,9 +88,9 @@ jobs:
       - name: Start API and apply migrations
         run: npx --no-install tsx srcs/index.ts > api.log 2>&1 &
       - name: Wait for API readiness
-        run: timeout 60 bash -c 'until curl -fsS http://localhost:3001/health; do sleep 1; done'
+        run: timeout 60 bash -c 'until curl -fsS --cacert ../nginx/certs/ca/rootCA.pem https://localhost:8443/health; do sleep 1; done'
       - name: Run API collection
-        run: npx --no-install bru run --env local
+        run: npx --no-install bru run --env local --cacert ../../nginx/certs/ca/rootCA.pem
         working-directory: backend/bruno
       - name: Print API log on failure
         if: failure()
