@@ -124,8 +124,8 @@ Before starting Compose, copy the root environment template and set the exporter
 cp .env.example .env
 ```
 
-Set up the PostgreSQL monitoring user once as described in
-[Monitoring setup](docs/monitoring.md#1-initial-setup-once-per-installation).
+Compose creates the PostgreSQL monitoring user automatically before starting the exporter.
+See [Monitoring setup](docs/monitoring.md#1-initial-setup-once-per-installation).
 Docker Compose provides the database configuration for local development.
 When running the backend outside Docker, create `backend/.env` with a local
 PostgreSQL connection string:

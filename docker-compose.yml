@@ -152,6 +152,22 @@ services:
       - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
       - alertmanager-data:/alertmanager
 
+  # Creates or updates the restricted monitoring user before the exporter starts.
+  monitoring-db-init:
+    image: postgres:17-alpine
+    environment:
+      PGHOST: db
+      PGUSER: expense
+      PGPASSWORD: expense
+      PGDATABASE: expense_tracker
+      POSTGRES_EXPORTER_PASSWORD: "${POSTGRES_EXPORTER_PASSWORD:?POSTGRES_EXPORTER_PASSWORD must be set in .env}"
+    command: ["psql", "--no-psqlrc", "--set=ON_ERROR_STOP=1", "--file=/monitoring/db-init.sql"]
+    volumes:
+      - ./monitoring/db-init.sql:/monitoring/db-init.sql:ro
+    depends_on:
+      db:
+        condition: service_healthy
+
   # Reads database statistics using the separate monitoring user and exposes them internally.
   postgres-exporter:
     image: quay.io/prometheuscommunity/postgres-exporter:v0.20.1
@@ -165,6 +181,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      monitoring-db-init:
+        condition: service_completed_successfully
 
   # Provides container CPU and memory measurements to Prometheus.
   cadvisor:

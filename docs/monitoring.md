@@ -16,35 +16,21 @@ are listed in the [README](../README.md#monitoring).
    | `GRAFANA_ADMIN_USER` | Initial Grafana admin username |
    | `GRAFANA_ADMIN_PASSWORD` | Initial Grafana admin password |
 
-2. Start PostgreSQL and open its console:
-
-   ```bash
-   docker compose up -d db
-   docker compose exec db psql -U expense -d expense_tracker
-   ```
-
-3. Create the monitoring user in psql. Skip `CREATE ROLE` if it already exists:
-
-   ```sql
-   CREATE ROLE monitoring LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;
-   GRANT pg_monitor TO monitoring;
-   GRANT CONNECT ON DATABASE expense_tracker TO monitoring;
-   ```
-
-   Run `\password monitoring` and enter the same password as
-   `POSTGRES_EXPORTER_PASSWORD` twice. Exit with `\q`.
-   Repeat this step only after deleting/recreating the database volume.
-
-4. Start the stack:
+2. Start the stack. Compose waits for PostgreSQL, then `monitoring-db-init`
+   creates the restricted `monitoring` user and sets its password from `.env`.
+   The exporter starts only after this succeeds. No manual SQL setup is needed.
 
    ```bash
    make up
    ```
 
+   Setup also works after `make clean` and when the monitoring user already exists.
+   After changing the exporter password, run `docker compose up -d` to update both
+   the database role and the exporter. `docker compose restart` does not rerun setup.
    Use `make rebuild` instead after dependency changes. Grafana loads its data
    source and dashboards automatically; no manual dashboard creation is needed.
 
-5. For Telegram, obtain the shared bot token and intended group ID privately from the maintainer.
+3. For Telegram, obtain the shared bot token and intended group ID privately from the maintainer.
    Create the local directory:
 
    ```bash
@@ -52,7 +38,7 @@ are listed in the [README](../README.md#monitoring).
    chmod 700 .secrets
    ```
 
-6. Save the values in your editor, without quotes or variable names:
+4. Save the values in your editor, without quotes or variable names:
 
    **Telegram credential files**
 
@@ -65,13 +51,13 @@ are listed in the [README](../README.md#monitoring).
    chmod 644 .secrets/telegram_bot_token .secrets/telegram_chat_id
    ```
 
-7. Add this line to the existing root `.env` on macOS/Linux:
+5. Add this line to the existing root `.env` on macOS/Linux:
 
    ```dotenv
    COMPOSE_FILE=docker-compose.yml:docker-compose.telegram.yml
    ```
 
-8. Validate and activate:
+6. Validate and activate:
 
    ```bash
    sh scripts/monitoring.check.sh
@@ -120,6 +106,7 @@ are listed in the [README](../README.md#monitoring).
 | Check | Expected result |
 |---|---|
 | `sh scripts/monitoring.check.sh` | Valid Compose, five rules and both receiver configurations; no messages sent |
+| `sh scripts/monitoring-db.check.sh` | Fresh/repeated role setup, password rotation and restricted permissions on a disposable database |
 | Prometheus Targets | Backend, Prometheus, PostgreSQL exporter and cAdvisor are UP |
 | `pg_up{job="postgres-exporter"}` | `1` |
 | Existing [Bruno smoke test](../README.md#local-api-testing) | Passes; Grafana traffic panels change |
