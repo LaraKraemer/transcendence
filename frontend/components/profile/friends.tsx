@@ -29,7 +29,6 @@ export function Friends() {
         const next = await fetchApi<FriendLists>("/friends", { cache: "no-store", signal });
         if (!signal?.aborted) {
           setLists(next);
-          // Only a stale load error clears itself; action errors stay until the next action.
           setError((current) => (current === t("errors.load") ? "" : current));
         }
       } catch {
@@ -54,7 +53,6 @@ export function Friends() {
     };
   }, [refresh]);
 
-  /** `focusId` is the heading that takes focus once the acted-on button has left the page. */
   async function act(
     path: string,
     method: "POST" | "DELETE",

@@ -71,7 +71,6 @@ export function createFriendRequestRateLimiters(): RequestHandler[] {
     message: MESSAGE,
   };
   return [
-    // The IP limit is generous because many users can share one IP (campus network).
     rateLimit({ ...options, limit: configuredLimit("FRIEND_IP_RATE_LIMIT_MAX", 100) }),
     rateLimit({ ...options, keyGenerator: (_req, res) => `user:${res.locals.userId as string}` }),
   ];
