@@ -29,10 +29,6 @@ services:
     build:
       context: ./backend
 
-
-    ports:
-      - "3001:3001"
-
     volumes:
       - ./backend:/app
       # Keep the repository-level formatting rules available above /app.
@@ -48,6 +44,9 @@ services:
       # Host is the compose service name "db" — a server-side connection,
       # unlike the browser-facing NEXT_PUBLIC_API_URL below.
       DATABASE_URL: postgres://expense:expense@db:5432/expense_tracker
+      FRONTEND_ORIGIN: https://localhost:3000
+      TRUST_PROXY: "1"
+      COOKIE_SECURE: "true"
       # Google sign-in, read from the git-ignored .env next to this file.
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
@@ -72,21 +71,21 @@ services:
     build:
       context: ./frontend
 
-
-    ports:
-      - "3000:3000"
-
     volumes:
       - ./frontend:/app
       - /app/node_modules
+      # Only the public CA certificate: this directory holds no private key.
+      - ./nginx/certs/ca:/etc/ssl/local-ca:ro
 
     environment:
       NODE_ENV: development
       # Browser-facing URL for the client bundle (user's browser hits localhost).
-      NEXT_PUBLIC_API_URL: http://localhost:3001
+      NEXT_PUBLIC_API_URL: https://localhost:8443
       # Server-side URL for server components / actions / DAL. Inside the Docker
-      # network the backend is reached by its compose service name, not localhost.
-      API_URL: http://backend:3001
+      # network the proxy is reached by its compose service name, not localhost.
+      API_URL: https://nginx:8443
+      NODE_EXTRA_CA_CERTS: /etc/ssl/local-ca/rootCA.pem
+      COOKIE_SECURE: "true"
       # Public OAuth client ID for the Google redirect (app/auth/google/route.ts).
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
 
@@ -102,6 +101,23 @@ services:
       start_period: 60s
 
     command: npm run dev
+
+
+  nginx:
+    image: nginx:1.28-alpine
+
+    # Unprivileged host ports, so rootless Docker can publish them too.
+    ports:
+      - "3000:443"
+      - "8443:8443"
+
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+
+    depends_on:
+      - backend
+      - frontend
 
 
   backup:

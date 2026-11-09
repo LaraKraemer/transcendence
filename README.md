@@ -56,6 +56,29 @@ Install:
 https://www.docker.com/products/docker-desktop/
 
 
+### mkcert
+
+Creates the local HTTPS certificate.
+
+macOS (`nss` adds Firefox support):
+```bash
+brew install mkcert nss
+```
+
+Debian/Ubuntu (`libnss3-tools` adds Chrome and Firefox support):
+```bash
+sudo apt install mkcert libnss3-tools
+```
+
+Other systems: https://github.com/FiloSottile/mkcert#installation
+
+On Linux, open Chrome or Firefox once before the first `make up`. mkcert only
+adds its CA to browser certificate stores that already exist. It also asks for
+your sudo password to update the system store. Without sudo rights, run
+`TRUST_STORES=nss make certs` first to skip that store (`certutil` from
+`libnss3-tools` must already be installed).
+
+
 ### Node.js
 
 Required version:
@@ -143,8 +166,9 @@ page with an error. To turn it on:
 2. Configure the OAuth consent screen: choose **External**, keep it in **Testing**,
    and add the Google accounts that may sign in as test users.
 3. Under **Credentials**, create an **OAuth client ID** of type **Web application**
-   with the authorized redirect URI `http://localhost:3000/auth/google`
+   with the authorized redirect URI `https://localhost:3000/auth/google`
    (it must match exactly; add your deployed origin's `/auth/google` too).
+   An existing client needs this URI added, because the old `http://localhost:3000` one no longer applies.
 4. Create `.env` in the repository root (ignored by Git). Docker Compose passes it
    to the backend and frontend:
 
@@ -202,12 +226,39 @@ The application will start:
 
 | Service | URL |
 |---|---|
-| Frontend | http://localhost:3000 |
-| Backend | http://localhost:3001 |
+| Frontend | https://localhost:3000 |
+| Backend API | https://localhost:8443 |
 | Grafana | http://localhost:3002 (login required) |
 | Prometheus | http://localhost:9090 (debug mode only) |
 
 See [Monitoring](docs/monitoring.md#temporary-prometheus-access) to enable debug access.
+
+### HTTPS
+
+Nginx (`nginx/nginx.conf`) is the only entry point. Plain HTTP sent to port 3000
+only redirects to HTTPS. The frontend and backend containers listen on plain HTTP
+(ports 3000 and 3001) only inside the Docker network, and port 3001 is closed on
+the host.
+
+The first `make up` runs `make certs`, which uses mkcert to add a local CA to
+this machine's trust stores (it may ask for your password) and writes a
+certificate to the git-ignored `nginx/certs/`. Restart the browser afterwards.
+Each developer creates their own. Never share the `rootCA-key.pem` file in
+`mkcert -CAROOT`.
+
+Scripts verify the certificate against the CA. Do not use `curl -k` or
+`NODE_TLS_REJECT_UNAUTHORIZED=0`:
+
+```bash
+curl --cacert nginx/certs/ca/rootCA.pem https://localhost:8443/health
+NODE_EXTRA_CA_CERTS=nginx/certs/ca/rootCA.pem node my-script.mjs
+cd backend/bruno && npx bru run --env local --cacert ../../nginx/certs/ca/rootCA.pem
+```
+
+In the Bruno desktop app, select `nginx/certs/ca/rootCA.pem` as the custom CA
+certificate under **Preferences**.
+
+To replace the certificate, delete `nginx/certs/` and run `make down && make up`.
 
 <br>
 
@@ -297,19 +348,19 @@ rejected. `GET /auth/me`, login and register return `avatarUrl` as
 version changes with every upload, so browsers fetch a replaced image.
 
 ```bash
-curl -i -b cookies.txt -X PUT \
+curl -i --cacert nginx/certs/ca/rootCA.pem -b cookies.txt -X PUT \
   -H 'Content-Type: image/png' \
   --data-binary @avatar.png \
-  http://localhost:3001/auth/me/avatar
+  https://localhost:8443/auth/me/avatar
 ```
 
 Example registration request:
 
 ```bash
-curl -i -c cookies.txt \
+curl -i --cacert nginx/certs/ca/rootCA.pem -c cookies.txt \
   -H 'Content-Type: application/json' \
   -d '{"email":"you@example.com","password":"a-secure-password","displayName":"Your name"}' \
-  http://localhost:3001/auth/register
+  https://localhost:8443/auth/register
 ```
 
 Passwords must have at least 12 characters (`.length >= 12`) and at most 72 UTF-8
@@ -332,8 +383,9 @@ an IP don't block each other, to 100 per IP (`FRIEND_IP_RATE_LIMIT_MAX`).
 | `POST` | `/friends/:connectionId/accept` | Accept an incoming pending request |
 | `DELETE` | `/friends/:connectionId` | Cancel, decline or remove a friendship |
 
-With the stack running, `cd frontend && node friends.check.mjs` exercises the
-profile's friend requests, accessible states and visible-only polling.
+With the stack running,
+`cd frontend && NODE_EXTRA_CA_CERTS=../nginx/certs/ca/rootCA.pem node friends.check.mjs`
+exercises the profile's friend requests, accessible states and visible-only polling.
 
 ### Google sign-in
 
@@ -398,6 +450,10 @@ a trusted reverse proxy, set `TRUST_PROXY` to the number of trusted proxy hops
 Only enable this when every request reaches the backend through the configured
 proxy chain. The proxy must overwrite or sanitize client-supplied forwarding
 headers, and clients must not be able to connect directly to the backend.
+Docker Compose sets it to `1` for the Nginx proxy.
+
+Session cookies are `Secure` when `NODE_ENV` is `production` or `COOKIE_SECURE`
+is `true`. Docker Compose sets `COOKIE_SECURE` on the backend and the frontend.
 
 
 <br>
@@ -572,7 +628,7 @@ API startup applies migrations; CI waits for `/health`, then runs requests and
 prints the API log if a step fails.
 
 From `frontend/`, run `npm ci`, `npm run lint`, `npm run check:format`, `npm run check:import`, `npm run check:filters` and `npm run build`.
-With the stack running (`make up`), `npm run check:a11y` scans every page with axe (run `npx playwright install chromium` once first); see `docs/accessibility.md`.
+With the stack running (`make up`), `NODE_EXTRA_CA_CERTS=../nginx/certs/ca/rootCA.pem npm run check:a11y` scans every page with axe (run `npx playwright install chromium` once first); see `docs/accessibility.md`.
 Frontend CI runs lint, the `formatAmount` self-check and build, and the accessibility scan against a production build. Both workflows run on relevant pull requests and pushes to
 `main`, with read-only repository permissions and cancellation of superseded runs.
 
@@ -617,6 +673,7 @@ Test files live in `backend/tests/`, mirroring `backend/srcs/`:
 
 | Command | Description |
 |---|---|
+| `make certs` | Create the local HTTPS certificate (`make up` does this when it is missing) |
 | `make up` | Start containers |
 | `make down` | Stop and remove containers |
 | `make stop` | Stop containers without removing them or their volumes |
@@ -668,7 +725,8 @@ The backend automatically restarts.
 # Running Without Docker
 
 Docker is the recommended development method.
-However, both applications can run independently.
+However, both applications can run independently, over plain HTTP on this
+machine only. Use the Docker setup whenever HTTPS is required.
 
 
 ### Backend
@@ -694,6 +752,14 @@ However, both applications can run independently.
 <br>
 
 # Troubleshooting
+
+### 502 Bad Gateway
+
+Nginx resolves `frontend` and `backend` when it starts. After recreating only one of them, run:
+
+```bash
+docker compose restart nginx
+```
 
 ### Port Already In Use
 

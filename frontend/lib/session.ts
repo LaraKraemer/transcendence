@@ -4,6 +4,8 @@ export const SESSION_COOKIE = "session";
 
 export const SESSION_MAX_AGE = 60 * 60 * 24 * 30;
 
+export const secureCookies = process.env.NODE_ENV === "production" || process.env.COOKIE_SECURE === "true";
+
 /**
  * Returns the inbound session cookie as a `Cookie`-header value
  * (`"session=<token>"`) for forwarding to the backend, or `undefined` when no
@@ -34,7 +36,7 @@ export async function persistSessionFromSetCookie(setCookieHeaders: string[]): P
   cookieStore.set(SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: secureCookies,
     path: "/",
     maxAge: SESSION_MAX_AGE,
   });

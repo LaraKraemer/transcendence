@@ -115,7 +115,7 @@ the new **Poolaki** folder only if it is empty, then rename **Expense Tracker** 
 | `pg_up{job="postgres-exporter"}` | `1` |
 | Existing [Bruno smoke test](../README.md#local-api-testing) | Passes; Grafana traffic panels change |
 | Fresh private browser at http://localhost:3002/dashboards | Login required |
-| `curl -i http://localhost:3001/metrics` | HTTP 404 |
+| `curl -i --cacert nginx/certs/ca/rootCA.pem https://localhost:8443/metrics` | HTTP 404 |
 | `docker compose ps` after closing debug access | No host-port mappings for internal monitoring services |
 
 Backend checks: see [Code Checks](../README.md#code-checks) and

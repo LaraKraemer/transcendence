@@ -35,7 +35,7 @@ try {
       },
     });
   });
-  const origin = process.env.FRONTEND_URL ?? "http://localhost:3000";
+  const origin = process.env.FRONTEND_URL ?? "https://localhost:3000";
   const { default: messages } = await import("./messages/en.json", { with: { type: "json" } });
   const t = messages.systemStatus;
   async function checkStatuses(overall, database, storage) {

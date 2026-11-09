@@ -1,11 +1,11 @@
-// With the stack running: cd frontend && node friends.check.mjs
+// With the stack running: cd frontend && NODE_EXTRA_CA_CERTS=../nginx/certs/ca/rootCA.pem node friends.check.mjs
 import assert from "node:assert/strict";
 
 import AxeBuilder from "@axe-core/playwright";
 import { chromium } from "playwright";
 
-const apiUrl = process.env.API_URL ?? "http://localhost:3001";
-const frontendUrl = process.env.FRONTEND_URL ?? "http://localhost:3000";
+const apiUrl = process.env.API_URL ?? "https://localhost:8443";
+const frontendUrl = process.env.FRONTEND_URL ?? "https://localhost:3000";
 const browser = await chromium.launch();
 const contexts = [await browser.newContext(), await browser.newContext()];
 const emails = contexts.map((_, index) => `friends-check-${index}-${crypto.randomUUID()}@example.com`);

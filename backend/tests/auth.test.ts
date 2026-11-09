@@ -139,6 +139,20 @@ describe("createSession", () => {
     vi.unstubAllEnvs();
   });
 
+  it("sets secure: true outside production when COOKIE_SECURE is true", async () => {
+    vi.stubEnv("COOKIE_SECURE", "true");
+    vi.resetModules();
+    const { createSession: createSessionBehindHttps } = await import("../srcs/auth.ts");
+
+    query.mockResolvedValue({ rows: [] });
+    const res = makeRes();
+    await createSessionBehindHttps(makeReq(), res, userId);
+
+    const cookieMock = (res as unknown as { cookie: ReturnType<typeof vi.fn> }).cookie;
+    expect(cookieMock.mock.calls[0]![2].secure).toBe(true);
+    vi.unstubAllEnvs();
+  });
+
   it("sets expires ~30 days from now", async () => {
     vi.setSystemTime(new Date("2025-01-01T00:00:00.000Z"));
     query.mockResolvedValue({ rows: [] });

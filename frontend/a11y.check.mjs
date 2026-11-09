@@ -6,15 +6,15 @@
 // with the 1.4.12 text spacing applied.
 // Needs the running stack (`make up`).
 //
-//   npm run check:a11y                      # against http://localhost:3000 / :3001
+//   NODE_EXTRA_CA_CERTS=../nginx/certs/ca/rootCA.pem npm run check:a11y   # against https://localhost:3000 / :8443
 //   FRONTEND_URL=… API_URL=… npm run check:a11y
 import { readFileSync } from "node:fs";
 
 import AxeBuilder from "@axe-core/playwright";
 import { chromium } from "playwright";
 
-const frontendUrl = process.env.FRONTEND_URL ?? "http://localhost:3000";
-const apiUrl = process.env.API_URL ?? "http://localhost:3001";
+const frontendUrl = process.env.FRONTEND_URL ?? "https://localhost:3000";
+const apiUrl = process.env.API_URL ?? "https://localhost:8443";
 const failingImpacts = new Set(["serious", "critical"]);
 // The WCAG 1.4.12 minimums: content must still fit with these overrides.
 const textSpacingCss =
