@@ -34,20 +34,7 @@ Google sign-in requires a verified Google email. Linking an existing same-email 
 Google-only accounts return `hasPassword: false` and cannot use password login or password changes.
 See [Google setup](development.md#google-sign-in-setup) for credentials and redirect configuration.
 
-Register and save the session cookie:
-
-```bash
-curl -i -c cookies.txt \
-  -H 'Content-Type: application/json' \
-  -d '{"email":"you@example.com","password":"a-secure-password","displayName":"Your name"}' \
-  http://localhost:3001/auth/register
-```
-
-Use `curl -b cookies.txt` for later protected requests.
-Register, login and Google sign-in share a limit of 100 requests per IP per 15 minutes; login also allows 10 attempts per IP/email in that time. Limits reset on backend restart and are not shared across instances.
-
 When 2FA is enabled, password and Google login return `twoFactorRequired: true` with a ten-minute pending session; only verification, recovery and logout are allowed until the second step succeeds.
-Codes use 30-second steps with one step of clock tolerance either way; a step cannot be reused. Code endpoints allow ten attempts per IP/user per 15 minutes (`TWOFA_RATE_LIMIT_MAX`).
 `GET /auth/me` includes `twoFactorEnabled`; 2FA setup requires `TOTP_ENCRYPTION_KEY`.
 
 ## Accounts and categories

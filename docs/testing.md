@@ -17,11 +17,6 @@ npm run format:check
 npm test
 ```
 
-Use `npm run format` to apply formatting, `npm run test:watch` for watch mode or `npm run test:coverage` for V8 reports in `backend/coverage/`.
-Tests mirror `backend/srcs/` under `backend/tests/`; their presence does not imply exhaustive coverage.
-Prettier uses root `.prettierrc.json` (print width 100), excluding migrations, Bruno files, coverage and lockfiles.
-To ignore the dedicated formatting commit in blame, run `git config blame.ignoreRevsFile .git-blame-ignore-revs` at the repository root.
-
 ### Frontend
 
 Run from `frontend/`:
@@ -68,13 +63,4 @@ TEST_DATABASE_URL=postgres://expense:expense@localhost:5432/expense_tracker npx 
 
 ## CI jobs
 
-Throughout development, we used GitHub Actions CI pipelines to run the checks below on relevant pull requests and pushes to `main`.
-
-| Job | Checks / services |
-|---|---|
-| Backend checks | Typecheck, lint, formatting and unit tests. |
-| Backend API | Bruno against fresh PostgreSQL 17; API startup applies migrations, waits for `/health` and prints logs on failure. |
-| Frontend checks | Lint, money-formatting/import-preview/URL-filter self-checks and build. |
-| Browser checks | Status regression and accessibility scan against a production frontend with backend/PostgreSQL. |
-
-Workflows run on relevant pull requests and pushes to `main`, with read-only repository permissions and cancellation of superseded runs.
+Throughout development, GitHub Actions ran these code, API and browser checks on relevant pull requests and pushes to `main`; see the [workflow files](../.github/workflows/) for job details.

@@ -26,14 +26,7 @@ Run commands from the project root.
 | `backups/latest.ok` | Last successful backup time; updated only when both files succeed. |
 | `backups/overview.txt` | Available folders, universal times, sizes in kibibytes (1,024 bytes) and results. Updated after backup cleanup and daily skips. `Successful` means the files exist, not that recovery was tested. |
 
-## Storage name change
-
-Fixed `expense_db-data` and `expense_avatar-data` names have been removed. Older
-project-prefixed volumes are used again. If you used the fixed names, make a
-backup and copy it outside `backups/` before updating. Stop the old stack with
-`make down` before updating, then use `make up` and restore that backup. Keep the
-old volumes until login, balances and avatars are verified. No data is moved or
-deleted automatically by this change.
+If migrating from fixed `expense_db-data` / `expense_avatar-data` volumes, keep the old volumes and an external backup until recovery is verified; data is not moved automatically.
 
 ## Create a backup
 
@@ -65,18 +58,12 @@ Check disk space if a backup fails. Keep the last good copy.
 | 4. Restore | `make restore BACKUP=backups/<snapshot> CONFIRM=--confirm` |
 | 5. Check services | Run `docker compose ps` and check `/health` and `/status`. |
 | 6. Check data | Log in again. Compare balances, transactions and avatars with the saved values. Healthy services alone do not prove data recovery. |
-| 7. Record | Add the date, results and time taken to the drill log. Keep the backup until all checks pass. |
+| 7. Record | Record the date, results and time taken. Keep the backup until all checks pass. |
 
 The direct command is `sh scripts/restore.sh backups/<snapshot> --confirm`.
 
-| Script step | What happens |
-| --- | --- |
-| Validate | Require `--confirm`, a nonempty completion marker and both backup files. Read the full dump and archive. |
-| Stop writes | Stop backend and scheduled backups, then take the backup lock. |
-| Test source | Restore into a temporary database and extract avatars into a temporary folder. Failure leaves current data untouched. |
-| Restore | Recreate the database, restore its dump in a transaction, replace avatars and set file ownership. |
-| Restart | Start services and check `/health`. |
-| Failure | Errors explain why restore stopped. Backend and backups stay stopped after restore failure. Check the error before running `make up` with the same project settings. There is no automatic return to previous data. |
+The restore script checks the backup, stops backend/backup writes, tests recovery in temporary storage, then replaces data and restarts services.
+On failure, backend and backups stay stopped; inspect the error before restarting. There is no automatic rollback to the previous data.
 
 ## Status checks
 
@@ -91,82 +78,20 @@ The direct command is `sh scripts/restore.sh backups/<snapshot> --confirm`.
 | Timeouts | Status checks use a separate connection pool with three-second limits. Other routes keep their existing connection behavior. |
 | Local setup | Set `AVATAR_DIR` and `BACKUP_MARKER_PATH` when running outside Docker. |
 
-| Response field | Value |
-| --- | --- |
-| `status` | `ok`, `degraded` or `down`. |
-| `components.database.status` | `ok` or `down`. |
-| `components.database.latencyMs` | Database check time in milliseconds. |
-| `components.storage.status` | Whether the backend user can write to the avatar folder. |
-| `uptimeSeconds` | Backend uptime in seconds. |
-| `version` | Backend package version. |
-| `lastBackupAt` | Last successful backup time, or null if no valid time is available. |
-
 ## Recovery drill
 
-A drill tests whether a backup can recover real data.
-**Use a copy of the project, not your normal working folder.**
+Use a separate project copy with its own `backups/` directory and `COMPOSE_PROJECT_NAME=drill`; stop the normal app first to free its ports.
+Keep that project name and directory for every backup, clean and restore command; never run destructive drill commands in the normal project.
+Create test data, record balances and avatar contents, run `make backup`, then `make clean`, `make up` and restore the saved snapshot using the procedure above.
+Verify login, balances, transaction counts and avatars, and record results and elapsed time.
+Stop the drill stack and unset `COMPOSE_PROJECT_NAME` before returning to the normal project.
 
-### Prepare the test project
-
-| Step | Action |
-| --- | --- |
-| 1. Stop the normal app | In your normal `transcendence` folder, run `make stop` before setting the test project name. This frees its ports without deleting data. |
-| 2. Copy the project | Copy the whole `transcendence` folder to a separate folder named `transcendence-drill`, for example using your file manager. A second clone also works. |
-| 3. Keep backups separate | The copy must use its own `backups/` folder. Do not link it to the original folder. You may copy a selected backup into it. |
-| 4. Select the test project | Open a terminal in `transcendence-drill` and run the commands below. |
-
-Example folder layout:
-
-```text
-Desktop/
-├── transcendence/        # normal project
-└── transcendence-drill/  # separate copy for the drill
-```
-
-In the test folder, run:
-
-```sh
-export COMPOSE_PROJECT_NAME=drill
-make up
-```
-
-The setting gives the test its own containers, data volumes and network. It does
-not separate ports or backup folders; that is why the normal app is stopped and
-the project is copied. To run both apps at once, change the test ports and matching
-app addresses instead.
-
-**Keep this terminal open for every drill command**, including `make clean` and
-`make restore`. In a new terminal, select the test folder and export the same
-project name again before running commands. Never run the drill in the original
-project folder.
-
-### Run the drill
-
-| Step | Action |
-| --- | --- |
-| 1. Create data | Add a user, avatar, account, income, expenses and transfers. Save balances and avatar bytes. |
-| 2. Back up | Stop backend, run `make backup` and record the folder name. Keep an extra copy outside `backups/`. |
-| 3. Delete test data | Run `make clean`, then `make up`. Confirm the old user cannot log in. |
-| 4. Restore | Follow the restore steps above using the recorded backup. |
-| 5. Verify | Check login, balances, transaction counts and avatar bytes. Record the time taken. |
-| Script check | Run `python3 scripts/backup.check.py`. Tests scheduling, cleanup, overview and missing-file guards using fake database, lock and Docker commands. |
-| Isolated database check | Use the command below. Tests real locks, damaged dumps, broken archives and successful recovery with temporary storage. Your app data is not mounted. |
-| Server smoke test | From `backend/bruno`, run `TEST_PASSWORD='<at-least-12-characters>' ../node_modules/.bin/bru run --env local`. Set the server address to the test stack. |
-
-### Return to the normal project
-
-After recording the results, run `make stop` in the test folder. Then clear the
-test project setting before starting your normal project:
-
-```sh
-unset COMPOSE_PROJECT_NAME
-cd ../transcendence
-make up
-```
+A full restore drill passed on 2026-11-02, confirmed by the user; login, balances, transactions and avatars were restored, but elapsed time was not recorded.
+Run `python3 scripts/backup.check.py` for backup-script checks; the isolated database recovery check is below.
 
 ### Isolated database check
 
-Build the small test image, then run it without host ports or saved volumes:
+This check uses temporary storage without host ports or saved data volumes; its password is only for this disposable container.
 
 ```sh
 docker build -f scripts/backup.Dockerfile -t transcendence-recovery-check scripts
@@ -179,20 +104,6 @@ docker run --rm --network none \
   -e PGHOST=127.0.0.1 -e RECOVERY_CHECK_DISPOSABLE=yes \
   --entrypoint sh transcendence-recovery-check /scripts/recovery.check.sh
 ```
-
-The test password is for this disposable container only. This check does not
-replace the full app drill with login, balances and avatars.
-
-### Drill log
-
-| Date | Setup | Result |
-| --- | --- | --- |
-| 2026-11-02 | Fresh local stack; backup `2026-11-02T095546Z-FFGMEF`; `test1@example.com` and `test2@example.com` | **Passed, confirmed by the user.** Both logins worked. Each user had 50 entries: 20 income, 20 expenses and 10 transfers. Avatars matched. Time taken was not recorded; the recovery time target remains unverified. |
-
-| User | Expected and restored Everyday balance | Expected and restored Savings balance |
-| --- | --- | --- |
-| `test1@example.com` | €1,530.05 | €585.35 |
-| `test2@example.com` | €1,560.05 | €595.35 |
 
 ## Limits
 

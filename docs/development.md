@@ -4,18 +4,6 @@
 
 Run commands from the repository root unless stated otherwise; see the README for prerequisites and initial Docker setup.
 
-## Contents
-
-- [Google sign-in setup](#google-sign-in-setup)
-- [Two-factor authentication](#two-factor-authentication)
-- [Environment and HTTPS notes](#environment-and-https-notes)
-- [Running Without Docker](#running-without-docker)
-- [Database operations](#database-operations)
-- [Docker commands](#docker-commands)
-- [Dependencies and hot reload](#dependencies-and-hot-reload)
-- [Troubleshooting](#troubleshooting)
-- [Git workflow](#git-workflow)
-
 ## Google sign-in setup
 
 1. Create a project in the [Google Cloud Console](https://console.cloud.google.com/).
@@ -87,7 +75,6 @@ Compose uses development-only user/password `expense` and database `expense_trac
 | Task | Command |
 |---|---|
 | PostgreSQL shell | `docker compose exec db psql -U expense -d expense_tracker` |
-| Inspect tables / transactions in psql | `\dt` / `SELECT * FROM "transaction";` |
 | Apply migrations manually | `docker compose exec backend npm run db:migrate` |
 | Generate after changing `backend/srcs/db/schema.ts` | `docker compose exec backend npm run db:generate`; commit generated `backend/drizzle/` files. |
 
@@ -95,22 +82,6 @@ Migration `0008_remove_user_deleted_at` aborts if soft-deleted users exist; reso
 PostgreSQL initialization credentials apply only when the volume is first created; changing configuration does not update an existing database.
 Data persists in `db-data` and `avatar-data` (mounted at `/app/avatars`).
 See [disaster recovery](disaster-recovery.md) for backup storage, retention, limitations and restore instructions.
-
-## Docker commands
-
-| Command | Purpose |
-|---|---|
-| `make up` | Start services; build missing images. |
-| `make down` | Remove containers/networks; preserve volumes. |
-| `make stop` | Stop containers without removing them. |
-| `make build` | Build service images without starting containers. |
-| `make rebuild` | Rebuild images and renew anonymous dependency volumes. |
-| `make restart` | Recreate containers, preserving data. |
-| `make logs` | Follow service logs. |
-| `make clean` | **Delete containers and database/avatar/monitoring volumes**; preserve host backups. |
-| `make backup` | Create a database/avatar backup. |
-| `make restore BACKUP=backups/<snapshot> CONFIRM=--confirm` | Replace database/avatar data from a trusted snapshot. |
-| `make prune` | Prune unused Docker resources across projects, including images; Docker asks for confirmation. |
 
 ## Dependencies and hot reload
 
@@ -120,30 +91,7 @@ Host installs do not update container dependency volumes; rebuilding preserves n
 Source bind mounts provide Next.js reload and backend restart without rebuilding.
 Containers run as `node` (UID 1000); on Linux, bind mounts must be writable, including `backend/drizzle/` for migrations and `frontend/` for `.next`.
 
-## Troubleshooting
+## Reset
 
-Inspect `docker ps` for port conflicts and `make logs` for startup errors.
-For a data-preserving restart, use `make down` followed by `make up`.
-
-**Back up before a complete reset: `make clean` deletes database, avatar and monitoring volumes; host `./backups` survives.**
-
-```bash
-make clean
-make rebuild
-```
-
-## Git workflow
-
-Branch from `main`, use Conventional Commit subjects and open a GitHub pull request:
-
-```bash
-git checkout main
-git pull --ff-only
-git checkout -b feature/<feature-name>
-```
-
-```bash
-git add -p
-git commit -m "docs: update project documentation"
-git push origin feature/<feature-name>
-```
+**Back up first: `make clean` deletes database, avatar and monitoring volumes; host `./backups` survives.**
+For normal stopping/restarting, use `make down` and `make up`; use `make logs` to diagnose failures.
