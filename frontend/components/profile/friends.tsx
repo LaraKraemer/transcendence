@@ -161,7 +161,7 @@ export function Friends() {
                   <Action
                     label={t("remove")}
                     ariaLabel={t("removeNamed", { name: friend.user.displayName })}
-                    aria-disabled={busy}
+                    disabled={busy}
                     onClick={() =>
                       void act(`/friends/${friend.id}`, "DELETE", t("announcements.removed"), {
                         focusId: "accepted-friends",
@@ -184,7 +184,7 @@ export function Friends() {
                   <Action
                     label={t("accept")}
                     ariaLabel={t("acceptNamed", { name: connection.user.displayName })}
-                    aria-disabled={busy}
+                    disabled={busy}
                     onClick={() =>
                       void act(`/friends/${connection.id}/accept`, "POST", t("announcements.accepted"), {
                         focusId: "incoming-friends",
@@ -194,7 +194,7 @@ export function Friends() {
                   <Action
                     label={t("decline")}
                     ariaLabel={t("declineNamed", { name: connection.user.displayName })}
-                    aria-disabled={busy}
+                    disabled={busy}
                     onClick={() =>
                       void act(`/friends/${connection.id}`, "DELETE", t("announcements.declined"), {
                         focusId: "incoming-friends",
@@ -217,7 +217,7 @@ export function Friends() {
                   <Action
                     label={t("cancel")}
                     ariaLabel={t("cancelNamed", { name: connection.user.displayName })}
-                    aria-disabled={busy}
+                    disabled={busy}
                     onClick={() =>
                       void act(`/friends/${connection.id}`, "DELETE", t("announcements.canceled"), {
                         focusId: "outgoing-friends",
