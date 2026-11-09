@@ -390,9 +390,11 @@ AI was used for concept development, code reviews, debugging, code explanations 
 
 ## Individual Contributions
 
-| 42 login | Specific features, modules or components contributed | Challenges | How they were resolved |
-|---|---|---|---|
-| vkhvosto | TODO | TODO | TODO |
-| dbilenko | TODO | TODO | TODO |
-| lkramer | TODO | TODO | TODO |
-| gansari | TODO | TODO | TODO |
+Implementation contributions are listed in the [feature](#features-list) and [module](#modules) tables above.
+
+| 42 login | Challenge | Resolution |
+|---|---|---|
+| vkhvosto | Keeping financial calculations accurate across currencies and transfers. | Store integer minor units, separate currency totals and test transfer/reporting rules. |
+| dbilenko | Making forms, dialogs and charts usable with keyboards, screen readers and narrow screens. | Improve focus handling, labels, contrast and layout; add chart tables and accessibility checks. |
+| lkramer | Keeping Docker dependencies consistent and recovering database/avatar data reliably. | Rebuild dependency volumes, automate backups and verify restoration through a recovery drill. |
+| gansari | Keeping transaction filters, pagination and displayed results synchronized. | Store filters in the URL, reset pagination when filters change and add parsing checks. |
