@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 
 import {
   MAX_ACCOUNT_REF_LENGTH,
+  MAX_EMAIL_LENGTH,
   MAX_INSTITUTION_LENGTH,
   MAX_NOTES_LENGTH,
   changedCategoryFields,
@@ -14,10 +15,18 @@ import {
   hslToHex,
   hueAndLightness,
   filterAmountInput,
+  isEmail,
   toMinorUnits,
   toPositiveMinorUnits,
   validateChangePassword,
 } from "./validation.ts";
+
+assert.equal(MAX_EMAIL_LENGTH, 254);
+assert.equal(isEmail(`${"a".repeat(MAX_EMAIL_LENGTH - "@example.com".length)}@example.com`), true);
+assert.equal(isEmail(`${"a".repeat(MAX_EMAIL_LENGTH + 1 - "@example.com".length)}@example.com`), false);
+assert.equal(isEmail("user@localhost"), false);
+assert.equal(isEmail(" user@example.com"), false);
+console.log("isEmail: ok");
 
 assert.equal(toMinorUnits("100.50", 2), 10050);
 assert.equal(toMinorUnits("100.5", 2), 10050);

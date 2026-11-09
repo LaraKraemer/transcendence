@@ -1,5 +1,6 @@
 export const MIN_PASSWORD_LENGTH = 12;
 export const MAX_PASSWORD_BYTES = 72;
+export const MAX_EMAIL_LENGTH = 254;
 export const MAX_DISPLAY_NAME_LENGTH = 100;
 
 export const validationErrorCodes = [
@@ -27,6 +28,11 @@ export function isValidationErrorCode(value: unknown): value is ValidationErrorC
 /** Password length in UTF-8 bytes — bcrypt only reads the first 72, so the backend caps it there. */
 export function passwordByteLength(password: string): number {
   return new TextEncoder().encode(password).length;
+}
+
+/** Mirrors the backend email rule for registration and friend requests. */
+export function isEmail(value: unknown): value is string {
+  return typeof value === "string" && value.length <= MAX_EMAIL_LENGTH && /^\S+@\S+\.\S+$/.test(value);
 }
 
 function validateEmail(email: string): ValidationErrorCode | undefined {

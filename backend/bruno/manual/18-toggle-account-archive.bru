@@ -1,0 +1,43 @@
+meta {
+  name: Archive / unarchive account (manual)
+  type: http
+  seq: 19
+}
+
+patch {
+  url: {{baseUrl}}/accounts/{{accountId}}
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+script:pre-request {
+  // Manual request: the full-collection run skips it unless LOGIN_EMAIL is set in .env.
+  if (!bru.getProcessEnv("LOGIN_EMAIL")) {
+    bru.runner.skipRequest();
+  }
+  // Each send flips the last known state; the first send archives.
+  bru.setVar("nextIsArchived", bru.getVar("isArchived") !== true);
+}
+
+body:json {
+  {
+    "isArchived": {{nextIsArchived}}
+  }
+}
+
+tests {
+  test("archive flag is updated", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().isArchived).to.equal(bru.getVar("nextIsArchived"));
+    bru.setVar("isArchived", res.getBody().isArchived);
+  });
+}
+
+docs {
+  Needs the runtime variable `accountId` (set by "03 - Create account"), or replace it in the URL
+  with the ID of one of your accounts. Send once to archive, again to unarchive.
+}

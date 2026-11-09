@@ -315,6 +315,26 @@ curl -i -c cookies.txt \
 Passwords must have at least 12 characters (`.length >= 12`) and at most 72 UTF-8
 bytes. Password hashes, not passwords, are stored in the database.
 
+### Friends
+
+The profile page includes friend requests by exact email (trimmed and lowercased).
+Only accepted friends see online/offline (activity within the previous ten
+minutes); fully verified sign-in (including 2FA) and authenticated API activity
+refresh presence at most once per minute. Pending 2FA sessions do not count.
+This is approximate, not instant offline. Requests are limited to ten per account
+per fifteen minutes (override with `FRIEND_RATE_LIMIT_MAX`) and, so users sharing
+an IP don't block each other, to 100 per IP (`FRIEND_IP_RATE_LIMIT_MAX`).
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| `GET` | `/friends` | `{ friends, incoming, outgoing }`; only friends have boolean `online`; no-store |
+| `POST` | `/friends` | Send a pending request with `{"email":"..."}` |
+| `POST` | `/friends/:connectionId/accept` | Accept an incoming pending request |
+| `DELETE` | `/friends/:connectionId` | Cancel, decline or remove a friendship |
+
+With the stack running, `cd frontend && node friends.check.mjs` exercises the
+profile's friend requests, accessible states and visible-only polling.
+
 ### Google sign-in
 
 The "Continue with Google" button opens the frontend route `/auth/google`, which
@@ -580,11 +600,12 @@ Test files live in `backend/tests/`, mirroring `backend/srcs/`:
 | `tests/routes/protection.test.ts` | protected routes reject unauthenticated requests |
 | `tests/routes/account.test.ts` | account CRUD + balance |
 | `tests/routes/category.test.ts` | category CRUD |
+| `tests/routes/friends.test.ts` | friend request responses, recipient scoping, pending presence |
 | `tests/routes/currency.test.ts` | currency metadata, ordering, empty results, errors |
 | `tests/routes/transaction.test.ts` | transaction CRUD, type/sign and category rules, transfers |
 | `tests/routes/analytics.test.ts` | bounded filters, ownership, time series, category totals, safe CSV |
 | `tests/db/analytics.integration.test.ts` | PostgreSQL aggregation, zero filling, currency separation, export filters (opt-in) |
-| `tests/validation.test.ts` | isUuid, isCurrencyCode, isIsoTimestamp, isDateOnly, isHexColor |
+| `tests/validation.test.ts` | isEmail, isUuid, isCurrencyCode, isIsoTimestamp, isDateOnly, isHexColor |
 | `tests/db/accounts.test.ts` | findOwnedAccount ownership filter |
 | `tests/db/client.test.ts` | DATABASE_URL guard, pool error handler |
 | `tests/app.test.ts` | HTTP wiring: health, CORS, router mount, error handler |

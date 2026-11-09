@@ -134,6 +134,13 @@
       "when": 1793974197711,
       "tag": "0018_two_factor_auth",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1794082049306,
+      "tag": "0019_sticky_stick",
+      "breakpoints": true
     }
   ]
 }

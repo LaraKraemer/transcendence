@@ -25,6 +25,7 @@ export const appUsers = pgTable(
     displayName: text("display_name").notNull(),
     avatarUrl: text("avatar_url"),
     emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
+    lastActiveAt: timestamp("last_active_at", { withTimezone: true }),
     passwordChangedAt: timestamp("password_changed_at", { withTimezone: true }).notNull().defaultNow(),
     // AES-256-GCM ciphertext of the TOTP secret. Set by setup, but 2FA is only on once totpEnabledAt is set.
     totpSecretEncrypted: text("totp_secret_encrypted"),
@@ -93,6 +94,31 @@ export const userIdentities = pgTable(
   (table) => [
     uniqueIndex("user_identity_provider_user_unique").on(table.provider, table.providerUserId),
     uniqueIndex("user_identity_user_provider_unique").on(table.userId, table.provider),
+  ],
+);
+
+export const userConnections = pgTable(
+  "user_connection",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    requesterId: uuid("requester_id")
+      .notNull()
+      .references(() => appUsers.id, { onDelete: "cascade" }),
+    addresseeId: uuid("addressee_id")
+      .notNull()
+      .references(() => appUsers.id, { onDelete: "cascade" }),
+    status: text("status").notNull().default("pending"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    check("user_connection_distinct_users", sql`${table.requesterId} <> ${table.addresseeId}`),
+    check("user_connection_valid_status", sql`${table.status} IN ('pending', 'accepted')`),
+    uniqueIndex("user_connection_pair_unique").on(
+      sql`least(${table.requesterId}, ${table.addresseeId})`,
+      sql`greatest(${table.requesterId}, ${table.addresseeId})`,
+    ),
+    index("user_connection_requester_idx").on(table.requesterId),
+    index("user_connection_addressee_idx").on(table.addresseeId),
   ],
 );
 

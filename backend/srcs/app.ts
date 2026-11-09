@@ -12,6 +12,7 @@ import { analyticsRouter } from "./routes/analytics.ts";
 import { authRouter } from "./routes/auth.ts";
 import { categoriesRouter } from "./routes/category.ts";
 import { currenciesRouter } from "./routes/currency.ts";
+import { friendsRouter } from "./routes/friends.ts";
 import { transactionsRouter } from "./routes/transaction.ts";
 import { getStatus } from "./status.ts";
 import { TRANSACTION_IMPORT_MAX_BYTES } from "./transaction-import.ts";
@@ -51,6 +52,7 @@ export function createApp() {
   app.use("/auth", captureMetricsRoutePrefix, authRouter);
   app.use("/categories", captureMetricsRoutePrefix, categoriesRouter);
   app.use("/currencies", captureMetricsRoutePrefix, currenciesRouter);
+  app.use("/friends", captureMetricsRoutePrefix, friendsRouter);
   app.use("/transactions", captureMetricsRoutePrefix, transactionsRouter);
 
   app.get("/", (_, res) => {

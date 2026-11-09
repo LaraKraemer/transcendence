@@ -15,6 +15,7 @@ import {
 } from "react";
 
 import { formErrorFor, serverFieldErrors, useAuthErrorText } from "@/components/auth/form-parts";
+import { Friends } from "@/components/profile/friends";
 import { ChangePasswordButton, DeleteProfileButton } from "@/components/profile/profile-row-actions";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -233,47 +234,47 @@ export function ProfileDetails({ user }: { user: User }) {
         </div>
       </Card>
 
-      <Card
-        as="section"
-        aria-labelledby="profile-info"
-        className="p-[18px] lg:max-w-[60%] lg:p-6"
-      >
-        <h2 id="profile-info" className="mb-1.5 text-base font-semibold">
-          {t("profile.profileInfo")}
-        </h2>
-        <div>
-          <InfoRow
-            icon={UserRound}
-            label={t("profile.name")}
-            action={
-              <button
-                type="button"
-                onClick={() => setIsEditingName(true)}
-                className="flex cursor-pointer items-center gap-[5px] rounded-[6px] text-[13px] font-semibold text-primary hover:opacity-80 focus-ring dark:text-accent-foreground"
-              >
-                <Pencil size={13} aria-hidden />
-                {t("profile.edit")}
-              </button>
-            }
-          >
-            {user.displayName}
-          </InfoRow>
-          <InfoRow icon={Mail} label={t("profile.email")}>
-            <bdi>{user.email}</bdi>
-          </InfoRow>
-          {/* By hasPassword, not by a Google link: a later "set password" can give Google users one. */}
-          {user.hasPassword && (
-            <InfoRow icon={LockKeyhole} label={t("auth.fields.password")} action={<ChangePasswordButton />}>
-              <span aria-hidden>••••••••••••</span>
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] xl:items-start">
+        <Card as="section" aria-labelledby="profile-info" className="min-w-0 p-[18px] lg:p-6">
+          <h2 id="profile-info" className="mb-1.5 text-base font-semibold">
+            {t("profile.profileInfo")}
+          </h2>
+          <div>
+            <InfoRow
+              icon={UserRound}
+              label={t("profile.name")}
+              action={
+                <button
+                  type="button"
+                  onClick={() => setIsEditingName(true)}
+                  className="flex cursor-pointer items-center gap-[5px] rounded-[6px] text-[13px] font-semibold text-primary hover:opacity-80 focus-ring dark:text-accent-foreground"
+                >
+                  <Pencil size={13} aria-hidden />
+                  {t("profile.edit")}
+                </button>
+              }
+            >
+              {user.displayName}
             </InfoRow>
-          )}
-          <InfoRow icon={Trash2} label={t("profile.deleteProfile.title")} action={<DeleteProfileButton />}>
-            <span className="font-normal text-muted-foreground">{t("profile.deleteProfile.description")}</span>
-          </InfoRow>
+            <InfoRow icon={Mail} label={t("profile.email")}>
+              <bdi>{user.email}</bdi>
+            </InfoRow>
+            {/* By hasPassword, not by a Google link: a later "set password" can give Google users one. */}
+            {user.hasPassword && (
+              <InfoRow icon={LockKeyhole} label={t("auth.fields.password")} action={<ChangePasswordButton />}>
+                <span aria-hidden>••••••••••••</span>
+              </InfoRow>
+            )}
+            <InfoRow icon={Trash2} label={t("profile.deleteProfile.title")} action={<DeleteProfileButton />}>
+              <span className="font-normal text-muted-foreground">{t("profile.deleteProfile.description")}</span>
+            </InfoRow>
+          </div>
+        </Card>
+        <div className="min-w-0">
+          <TwoFactorSection user={user} />
         </div>
-      </Card>
-
-      <TwoFactorSection user={user} />
+      </div>
+      <Friends />
 
       <Modal
         open={isEditingName}

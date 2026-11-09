@@ -3,12 +3,33 @@ import { describe, expect, it } from "vitest";
 import {
   isCurrencyCode,
   isDateOnly,
+  isEmail,
   isHexColor,
   isIsoTimestamp,
   isUuid,
   parseOptionalText,
   parseRequiredText,
+  TEXT_LIMITS,
 } from "../srcs/validation.ts";
+
+describe("isEmail", () => {
+  it.each(["user@example.com", `${"a".repeat(TEXT_LIMITS.email - "@example.com".length)}@example.com`])(
+    "accepts %s",
+    (value) => {
+      expect(isEmail(value)).toBe(true);
+    },
+  );
+
+  it.each([
+    null,
+    "user@example.com ",
+    "user@localhost",
+    "user name@example.com",
+    `${"a".repeat(TEXT_LIMITS.email + 1 - "@example.com".length)}@example.com`,
+  ])("rejects %s", (value) => {
+    expect(isEmail(value)).toBe(false);
+  });
+});
 
 describe("isUuid", () => {
   it("accepts a valid v4 UUID", () => {
