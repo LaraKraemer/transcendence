@@ -124,6 +124,12 @@ describe("CORS", () => {
 // ─── Wiring ───────────────────────────────────────────────────────────────────
 
 describe("wiring", () => {
+  it("does not expose metrics on the public app", async () => {
+    const response = await fetch(`${base}/metrics`);
+    expect(response.status).toBe(404);
+    expect(await response.text()).not.toContain("process_cpu_user_seconds_total");
+  });
+
   it.each(["/currencies", "/analytics/timeseries", "/analytics/categories", "/transactions/export"])(
     "%s without a cookie → 401 JSON without querying the database",
     async (path) => {

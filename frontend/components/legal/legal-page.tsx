@@ -11,7 +11,7 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { getCurrentUser } from "@/lib/dal";
 
 /** When each document's text last changed. Change the date together with the text in all four catalogues. */
-const LAST_UPDATED_ON = { privacy: "2026-10-28", terms: "2026-10-28" } as const;
+const LAST_UPDATED_ON = { privacy: "2026-11-07", terms: "2026-11-07" } as const;
 
 type LegalSection = { title: string; paragraphs?: string[]; items?: string[] };
 

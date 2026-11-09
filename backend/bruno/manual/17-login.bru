@@ -1,0 +1,41 @@
+meta {
+  name: Login as existing user (manual)
+  type: http
+  seq: 18
+}
+
+post {
+  url: {{baseUrl}}/auth/login
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+script:pre-request {
+  // Manual request: the full-collection run skips it unless LOGIN_EMAIL is set in .env.
+  if (!bru.getProcessEnv("LOGIN_EMAIL")) {
+    bru.runner.skipRequest();
+  }
+}
+
+body:json {
+  {
+    "email": "{{process.env.LOGIN_EMAIL}}",
+    "password": "{{process.env.LOGIN_PASSWORD}}"
+  }
+}
+
+tests {
+  test("logged in, session cookie is stored", function () {
+    expect(res.getStatus()).to.equal(200);
+    bru.setVar("userId", res.getBody().user.id);
+  });
+}
+
+docs {
+  Set LOGIN_EMAIL and LOGIN_PASSWORD in backend/bruno/.env, then send this request.
+  Bruno keeps the `session` cookie, so later requests run as this user.
+}

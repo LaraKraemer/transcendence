@@ -21,7 +21,7 @@
     "fields": {
       "email": "E-Mail-Adresse",
       "emailPlaceholder": "erika.mustermann@email.com",
-      "displayName": "Vollständiger Name",
+      "displayName": "Anzeigename",
       "displayNamePlaceholder": "Erika Mustermann",
       "password": "Passwort"
     },
@@ -221,7 +221,7 @@
     "subtitle": "Verwalte deine persönlichen Daten und dein Profilfoto",
     "edit": "Bearbeiten",
     "profileInfo": "Profilinformationen",
-    "name": "Vollständiger Name",
+    "name": "Anzeigename",
     "email": "E-Mail-Adresse",
     "changePhoto": "Profilfoto ändern",
     "removePhoto": "Foto entfernen",
@@ -663,8 +663,10 @@
         "collected": {
           "title": "Welche Daten wir erheben",
           "items": [
-            "Profil: deine E-Mail-Adresse, dein vollständiger Name und dein Passwort. Das Passwort wird nie so gespeichert, wie du es eingegeben hast, sondern nur als bcrypt-Hash, aus dem sich das Passwort nicht zurückgewinnen lässt.",
+            "Profil: deine E-Mail-Adresse, dein Anzeigename und, falls du eines festgelegt hast, dein Passwort. Das Passwort wird nie so gespeichert, wie du es eingegeben hast, sondern nur als bcrypt-Hash, aus dem sich das Passwort nicht zurückgewinnen lässt.",
             "Profilfoto: Wenn du eines hochlädst, wird das JPEG- oder PNG-Bild (bis 5 MB) auf unserem Server gespeichert.",
+            "Google-Anmeldung: Wenn du dich mit Google anmeldest, erhalten wir von Google deine E-Mail-Adresse, deinen Namen und die ID deines Google-Kontos. Wir speichern die ID deines Google-Kontos, um dich beim nächsten Mal wiederzuerkennen.",
+            "Zwei-Faktor-Authentifizierung: Wenn du sie aktivierst, speichern wir das Geheimnis deiner Authenticator-App verschlüsselt und von deinen Wiederherstellungscodes nur Hashes.",
             "Finanzdaten: die Konten, Kategorien, Transaktionen und Umbuchungen, die du eingibst, mit Beträgen, Daten und Währungen sowie optionalen Texten wie Institut, Kontoreferenz, Beschreibung, Händler oder Notizen.",
             "Anmeldungen: für jede Sitzung, wann sie begonnen hat und wann sie abläuft, der User-Agent deines Browsers (welchen Browser und welches Betriebssystem du nutzt) und deine IP-Adresse.",
             "Einstellungen: deine Sprache, dein helles oder dunkles Design und das Konto, dessen Transaktionen du zuletzt geöffnet hast. Diese liegen in Cookies auf deinem Gerät."
@@ -675,7 +677,8 @@
           "paragraphs": [
             "Wir nutzen deine Daten nur, um Poolaki für dich bereitzustellen: um dein Profil anzulegen, dich anzumelden und angemeldet zu halten, deine Salden und Übersichten anzuzeigen und deine Einstellungen zu merken. Das ist für den Dienst, für den du dich registriert hast, erforderlich (Art. 6 Abs. 1 lit. b DSGVO).",
             "Den User-Agent und die IP-Adresse jeder Sitzung speichern wir, damit Anmeldungen bei deinem Profil im Fall eines Missbrauchs nachvollzogen werden können (berechtigtes Interesse an einem sicheren Dienst, Art. 6 Abs. 1 lit. f DSGVO).",
-            "Wir nutzen deine Daten nicht für Werbung oder Profiling, verkaufen sie nicht und geben sie an niemanden weiter. Poolaki verwendet keine Analyse- oder Tracking-Werkzeuge und lädt keine Skripte oder Schriften von anderen Diensten."
+            "Wir nutzen deine Daten nicht für Werbung oder Profiling, verkaufen sie nicht und geben sie an niemanden weiter. Poolaki verwendet keine Analyse- oder Tracking-Werkzeuge und lädt keine Skripte oder Schriften von anderen Diensten.",
+            "Eine Ausnahme: Wenn du dich mit Google anmeldest, erfährt Google, dass du Poolaki nutzt, und für diesen Schritt gilt die Datenschutzerklärung von Google. Poolaki sendet keine deiner Daten an Google."
           ]
         },
         "cookies": {
@@ -687,14 +690,16 @@
             "session: hält dich angemeldet. Es ist HTTP-only, Skripte auf der Seite können es also nicht lesen. Es endet, wenn du dich abmeldest, oder nach 30 Tagen. Unsere Datenbank speichert nur einen SHA-256-Hash seines Werts, nie den Wert selbst.",
             "locale: merkt sich ein Jahr lang die Sprache, die du gewählt hast.",
             "theme: merkt sich ein Jahr lang das helle oder dunkle Design, das du gewählt hast.",
-            "lastAccountId: merkt sich ein Jahr lang das Konto, dessen Transaktionen du zuletzt geöffnet hast, damit die Seite „Transaktionen“ dieses Konto wieder öffnen kann."
+            "lastAccountId: merkt sich ein Jahr lang das Konto, dessen Transaktionen du zuletzt geöffnet hast, damit die Seite „Transaktionen“ dieses Konto wieder öffnen kann.",
+            "google_oauth: wird nur während der Google-Anmeldung gesetzt, für höchstens 10 Minuten, und schützt die Anmeldung vor Fälschung."
           ]
         },
         "security": {
           "title": "Wie wir deine Daten schützen",
           "paragraphs": [
             "Deine Daten sind nur für dich sichtbar. Jede Anfrage wird anhand deiner Sitzung geprüft, und Poolaki gibt nur Daten zurück, die zu deinem Profil gehören.",
-            "Passwörter werden als bcrypt-Hashes und Sitzungstoken als SHA-256-Hashes gespeichert. Selbst wer die Datenbank lesen könnte, könnte sich damit also nicht als du anmelden."
+            "Passwörter werden als bcrypt-Hashes und Sitzungstoken als SHA-256-Hashes gespeichert. Selbst wer die Datenbank lesen könnte, könnte sich damit also nicht als du anmelden.",
+            "Auf der Profilseite kannst du die Zwei-Faktor-Authentifizierung aktivieren. Dann braucht jede Anmeldung zusätzlich einen Code aus deiner Authenticator-App oder einen Wiederherstellungscode."
           ]
         },
         "retention": {
@@ -710,7 +715,7 @@
           "title": "Deine Daten löschen",
           "paragraphs": [
             "Du kannst einzelne Transaktionen und Kategorien jederzeit löschen und dein Profilfoto auf der Profilseite entfernen. Wenn du eine Kategorie löschst, bleiben ihre Transaktionen ohne Kategorie erhalten. Wenn du eine Seite einer Umbuchung löschst, werden beide Seiten gelöscht.",
-            "Wird ein Profil gelöscht, entfernt Poolaki es zusammen mit allen Konten (auch archivierten), Kategorien, Transaktionen, Sitzungen und dem Profilfoto dauerhaft in einem Schritt. Es wird keine Kopie aufbewahrt, und die Daten lassen sich nicht wiederherstellen.",
+            "Wird ein Profil gelöscht, entfernt Poolaki es zusammen mit allen Konten (auch archivierten), Kategorien, Transaktionen, Sitzungen und dem Profilfoto dauerhaft in einem Schritt. Du kannst die Daten nicht zurückholen. Kopien in unseren Backups werden innerhalb von etwa fünf Wochen automatisch gelöscht.",
             "Ein Konto mit allen Transaktionen kannst du auf der Seite „Konten“ löschen, dein ganzes Profil auf der Profilseite."
           ]
         },
@@ -718,7 +723,7 @@
           "title": "Deine Rechte",
           "paragraphs": [
             "Nach der DSGVO hast du das Recht auf Auskunft über deine Daten, auf ihre Berichtigung oder Löschung, auf Einschränkung der Verarbeitung, auf Widerspruch gegen die Verarbeitung und darauf, deine Daten in einem übertragbaren Format zu erhalten. Außerdem hast du das Recht, dich bei einer Datenschutz-Aufsichtsbehörde zu beschweren.",
-            "Alle deine Daten kannst du jederzeit in der App ansehen, und deinen Namen und dein Profilfoto kannst du auf der Profilseite ändern."
+            "Alle deine Daten kannst du jederzeit in der App ansehen, deinen Namen, dein Profilfoto und dein Passwort auf der Profilseite ändern und deine Transaktionen auf der Seite „Analysen“ als CSV-Datei exportieren."
           ]
         },
         "changes": {
@@ -744,9 +749,9 @@
         "profile": {
           "title": "Dein Profil",
           "items": [
-            "Für die Registrierung brauchst du eine gültige E-Mail-Adresse und ein Passwort mit mindestens 12 Zeichen.",
+            "Für die Registrierung brauchst du eine gültige E-Mail-Adresse und ein Passwort mit mindestens 12 Zeichen oder ein Google-Konto.",
             "Mach korrekte Angaben und lege ein Profil nur für dich selbst an.",
-            "Halte dein Passwort geheim und melde dich auf Geräten ab, die auch andere Personen nutzen.",
+            "Halte dein Passwort und deine Wiederherstellungscodes geheim und melde dich auf Geräten ab, die auch andere Personen nutzen.",
             "Du bist dafür verantwortlich, was mit deinem Profil geschieht."
           ]
         },
@@ -783,7 +788,7 @@
         "ending": {
           "title": "Nutzung beenden",
           "paragraphs": [
-            "Du kannst Poolaki jederzeit nicht mehr nutzen. Die Datenschutzerklärung beschreibt, wie deine Daten gelöscht werden.",
+            "Du kannst Poolaki jederzeit nicht mehr nutzen und dein Profil auf der Profilseite löschen. Die Datenschutzerklärung beschreibt, was dabei gelöscht wird.",
             "Wir können ein Profil sperren oder löschen, das gegen diese Bedingungen verstößt."
           ]
         },
