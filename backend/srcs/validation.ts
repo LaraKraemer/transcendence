@@ -20,6 +20,11 @@ export function isUuid(value: unknown): value is string {
   return typeof value === "string" && UUID_PATTERN.test(value);
 }
 
+/** Returns whether a normalized email meets the registration and friend-request rules. */
+export function isEmail(value: unknown): value is string {
+  return typeof value === "string" && value.length <= TEXT_LIMITS.email && /^\S+@\S+\.\S+$/.test(value);
+}
+
 /** Returns whether a value has the three-uppercase-letter ISO 4217 format. */
 export function isCurrencyCode(value: unknown): value is string {
   return typeof value === "string" && CURRENCY_CODE_PATTERN.test(value);

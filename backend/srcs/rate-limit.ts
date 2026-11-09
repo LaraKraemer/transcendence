@@ -60,3 +60,18 @@ export function createLoginRateLimiter(limit = configuredLimit("LOGIN_RATE_LIMIT
     },
   });
 }
+
+/** Limits exact-email friend requests both per account and per client IP. */
+export function createFriendRequestRateLimiters(): RequestHandler[] {
+  const options = {
+    windowMs: WINDOW_MS,
+    limit: configuredLimit("FRIEND_RATE_LIMIT_MAX", 10),
+    standardHeaders: "draft-8" as const,
+    legacyHeaders: false,
+    message: MESSAGE,
+  };
+  return [
+    rateLimit({ ...options, limit: configuredLimit("FRIEND_IP_RATE_LIMIT_MAX", 100) }),
+    rateLimit({ ...options, keyGenerator: (_req, res) => `user:${res.locals.userId as string}` }),
+  ];
+}

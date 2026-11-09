@@ -1,0 +1,22 @@
+meta {
+  name: List accounts (manual)
+  type: http
+  seq: 20
+}
+
+get {
+  url: {{baseUrl}}/accounts
+  body: none
+  auth: none
+}
+
+tests {
+  test("accounts are listed", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody()).to.be.an("array");
+  });
+}
+
+docs {
+  Lists the signed-in user's accounts. Archived accounts are hidden.
+}

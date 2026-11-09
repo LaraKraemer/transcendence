@@ -21,6 +21,7 @@ erDiagram
         text        avatar_url              "NULL — object-storage key, not a BLOB"
         char3       base_currency           "NOT NULL DEFAULT 'EUR', FK -> CURRENCY"
         timestamptz email_verified_at       "NULL until verified; set at Google sign-up; Google links only when set"
+        timestamptz last_active_at           "NULL = offline; implemented, updated by verified sessions at most once per minute"
         timestamptz password_changed_at     "NOT NULL — invalidates older sessions"
         text        totp_secret_encrypted   "NULL — AES-256-GCM ciphertext; set by 2FA setup, inactive until totp_enabled_at"
         timestamptz totp_enabled_at         "NULL = 2FA off"
@@ -60,12 +61,14 @@ erDiagram
     %% ── Social graph: 'Other users' ─────────────────────────────────────────
     USER_CONNECTION {
         uuid        id                  PK
-        uuid        requester_id        FK  "NOT NULL -> APP_USER"
-        uuid        addressee_id        FK  "NOT NULL -> APP_USER"
-        text        status                  "NOT NULL — pending|accepted|blocked"
-        timestamptz responded_at            "NULL"
+        uuid        requester_id        FK  "NOT NULL -> APP_USER, ON DELETE CASCADE"
+        uuid        addressee_id        FK  "NOT NULL -> APP_USER, ON DELETE CASCADE; unordered pair unique, distinct users"
+        text        status                  "NOT NULL — pending|accepted (implemented); blocked is future scope"
+        timestamptz responded_at            "Future scope, not implemented"
         timestamptz created_at              "NOT NULL DEFAULT now()"
     }
+
+    %% USER_CONNECTION is implemented with pending/accepted only; responded_at and blocked are target ideas.
 
     %% ── Money containers ────────────────────────────────────────────────────
     CURRENCY {

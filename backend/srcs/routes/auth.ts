@@ -48,7 +48,7 @@ import {
   otpauthUri,
   verifyTotp,
 } from "../totp.ts";
-import { isJpegOrPng, isValidPassword, parseRequiredText, TEXT_LIMITS } from "../validation.ts";
+import { isEmail, isJpegOrPng, isValidPassword, parseRequiredText, TEXT_LIMITS } from "../validation.ts";
 
 export const authRouter = Router();
 const avatarMaxBytes = 5 * 1024 * 1024;
@@ -85,7 +85,7 @@ authRouter.post("/register", async (req, res) => {
   const { email, password, displayName } = req.body ?? {};
   const normalizedEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
 
-  if (normalizedEmail.length > TEXT_LIMITS.email || !/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
+  if (!isEmail(normalizedEmail)) {
     res.status(400).json({ error: "A valid email is required" });
     return;
   }
@@ -452,7 +452,7 @@ authRouter.post("/2fa/verify", requirePendingSession, async (req, res, next) => 
       res.status(401).json(invalidCodeError);
       return;
     }
-    await completePendingSession(req, res, res.locals.sessionId as string);
+    await completePendingSession(req, res, res.locals.sessionId as string, userId);
     logins.inc({ result: "success" });
     const user = await findUserById(userId);
     res.json({ user: user && toPublicUser(user) });
@@ -476,7 +476,7 @@ authRouter.post("/2fa/recover", requirePendingSession, async (req, res, next) =>
       res.status(401).json({ error: "Invalid recovery code" });
       return;
     }
-    await completePendingSession(req, res, res.locals.sessionId as string);
+    await completePendingSession(req, res, res.locals.sessionId as string, userId);
     logins.inc({ result: "success" });
     const user = await findUserById(userId);
     res.json({ user: user && toPublicUser(user) });

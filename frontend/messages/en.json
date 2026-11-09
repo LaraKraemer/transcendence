@@ -180,6 +180,44 @@
     "share": "Share"
   },
   "profile": {
+    "friends": {
+      "title": "Friends",
+      "description": "Send a request by email. Only accepted friends can see your approximate online status.",
+      "email": "Friend's email address",
+      "send": "Send request",
+      "loading": "Loading friends…",
+      "accepted": "Friends",
+      "incoming": "Incoming requests",
+      "outgoing": "Sent requests",
+      "empty": "None yet",
+      "online": "Online",
+      "offline": "Offline",
+      "accept": "Accept",
+      "decline": "Decline",
+      "cancel": "Cancel request",
+      "remove": "Remove friend",
+      "acceptNamed": "Accept request from {name}",
+      "declineNamed": "Decline request from {name}",
+      "cancelNamed": "Cancel request to {name}",
+      "removeNamed": "Remove friend {name}",
+      "announcements": {
+        "sent": "Friend request sent",
+        "accepted": "Friend request accepted",
+        "declined": "Friend request declined",
+        "canceled": "Friend request canceled",
+        "removed": "Friend removed"
+      },
+      "errors": {
+        "invalid": "Enter a valid email address",
+        "noUser": "No user found",
+        "notFound": "Request no longer available",
+        "conflict": "A request or friendship already exists, or you entered your own email",
+        "limited": "Too many requests. Try again later.",
+        "network": "Could not reach the server. Please try again.",
+        "load": "Could not load friends. Please try again later.",
+        "generic": "Could not update friends. Please try again."
+      }
+    },
     "subtitle": "Manage your personal information and profile photo",
     "edit": "Edit",
     "profileInfo": "Profile Information",
