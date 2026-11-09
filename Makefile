@@ -25,8 +25,10 @@ up: $(CERT)
 	$(COMPOSE) up -d
 
 # Rebuild images and renew dependency volumes; keep database and avatar volumes.
+# Nginx resolves its upstreams only at startup, so restart it to pick up new container IPs.
 rebuild: $(CERT)
 	$(COMPOSE) up --build --renew-anon-volumes -d
+	$(COMPOSE) restart nginx
 
 # Stop and remove project containers and networks; preserve volumes and backups.
 down:
