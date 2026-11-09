@@ -124,6 +124,7 @@ describe("POST /register", () => {
     });
     expect(result.status).toBe(201);
     expect((await usersRegistered.get()).values[0]?.value).toBe(1);
+    expect((await logins.get()).values).toEqual([]);
     expect(result.body).toEqual({
       user: { id: userId, email: "alice@example.com", displayName: "Alice", avatarUrl: null },
     });
@@ -313,6 +314,7 @@ describe("POST /login", () => {
     authMocks.createSession.mockResolvedValueOnce(true);
     const result = await login({ email: "alice@example.com", password: "correctpassword" });
     expect(result).toEqual({ status: 200, body: { twoFactorRequired: true } });
+    expect((await logins.get()).values).toEqual([]);
   });
 
   it("returns 200 with user on success, calls createSession, no passwordHash", async () => {
@@ -356,6 +358,7 @@ describe("POST /google", () => {
     authMocks.exchangeGoogleCode.mockResolvedValueOnce(undefined);
     expect(await signInWithGoogle()).toEqual({ status: 401, body: { error: "Google sign-in failed" } });
     expect(authMocks.exchangeGoogleCode).toHaveBeenCalledWith("auth-code", "verifier", googleBody.redirectUri);
+    expect((await logins.get()).values).toContainEqual({ value: 1, labels: { result: "failure" } });
     expect(authMocks.createSession).not.toHaveBeenCalled();
   });
 
@@ -368,6 +371,16 @@ describe("POST /google", () => {
       body: { user: { id: userId, email: "alice@example.com", displayName: "Alice", avatarUrl: null } },
     });
     expect(authMocks.createSession).toHaveBeenCalledWith(expect.anything(), expect.anything(), userId);
+    expect((await logins.get()).values).toContainEqual({ value: 1, labels: { result: "success" } });
+    expect((await usersRegistered.get()).values[0]?.value).toBe(0);
+  });
+
+  it("keeps Google login pending without counting success when 2FA is required", async () => {
+    authMocks.exchangeGoogleCode.mockResolvedValueOnce(googleUser);
+    query.mockResolvedValueOnce({ rows: [[userId, "alice@example.com", "Alice", null]] });
+    authMocks.createSession.mockResolvedValueOnce(true);
+    expect(await signInWithGoogle()).toEqual({ status: 200, body: { twoFactorRequired: true } });
+    expect((await logins.get()).values).toEqual([]);
   });
 
   it("links an existing account whose email is verified", async () => {
@@ -419,7 +432,31 @@ describe("POST /google", () => {
     // No password hash is bound; the third value is email_verified_at.
     expect(userInsert![1]).toEqual(["alice@example.com", "Alice G", expect.any(String)]);
     expect(identityInsert![1]).toEqual([userId, "google", "google-sub-1"]);
+    expect((await usersRegistered.get()).values[0]?.value).toBe(1);
+    expect((await logins.get()).values).toEqual([]);
     expect(authMocks.createSession).toHaveBeenCalledWith(expect.anything(), expect.anything(), userId);
+  });
+});
+
+describe("Google registration metrics", () => {
+  it.each(["identity insert", "commit"])("does not count a registration when %s fails", async (failure) => {
+    authMocks.exchangeGoogleCode.mockResolvedValueOnce({ sub: "google-sub-1", email: "new@example.com" });
+    query
+      .mockResolvedValueOnce({ rows: [] }) // identity lookup
+      .mockResolvedValueOnce({ rows: [] }) // email lookup
+      .mockResolvedValueOnce({ rows: [] }) // begin
+      .mockResolvedValueOnce({ rows: [createdUserRow()] });
+    if (failure === "commit") query.mockResolvedValueOnce({ rows: [] });
+    query.mockRejectedValueOnce(new Error("database failure")).mockResolvedValueOnce({ rows: [] }); // rollback
+    await expect(
+      dispatch(authRouter, {
+        method: "POST",
+        url: "/google",
+        body: { code: "code", codeVerifier: "verifier", redirectUri: "http://localhost:3000/auth/google" },
+      }),
+    ).rejects.toThrow();
+    expect((await usersRegistered.get()).values[0]?.value).toBe(0);
+    expect(authMocks.createSession).not.toHaveBeenCalled();
   });
 });
 
@@ -1025,6 +1062,16 @@ describe("two-factor authentication", () => {
       const result = await post("/2fa/verify", { code: codeNow() });
       expect(result.status).toBe(200);
       expect(authMocks.completePendingSession).toHaveBeenCalledWith(expect.anything(), expect.anything(), sessionId);
+      expect((await logins.get()).values).toContainEqual({ value: 1, labels: { result: "success" } });
+    });
+
+    it("does not count success if completing the pending session fails", async () => {
+      session();
+      state(enabled);
+      query.mockResolvedValueOnce({ rows: [[userId]] });
+      authMocks.completePendingSession.mockRejectedValueOnce(new Error("session update failed"));
+      await expect(post("/2fa/verify", { code: codeNow() })).rejects.toThrow("session update failed");
+      expect((await logins.get()).values).toEqual([]);
     });
 
     it("rejects a replayed or wrong code and leaves the session pending", async () => {
@@ -1036,6 +1083,7 @@ describe("two-factor authentication", () => {
       query.mockResolvedValueOnce({ rows: [] }); // claimTotpStep lost a concurrent race
       expect((await post("/2fa/verify", { code: codeNow() })).status).toBe(401);
       expect(authMocks.completePendingSession).not.toHaveBeenCalled();
+      expect((await logins.get()).values).toContainEqual({ value: 2, labels: { result: "failure" } });
     });
 
     it("rejects a non-string code", async () => {
@@ -1057,6 +1105,12 @@ describe("two-factor authentication", () => {
       query.mockResolvedValueOnce({ rows: [] }); // already used
       expect((await post("/2fa/recover", { recoveryCode: "ABCDE-23456" })).status).toBe(401);
       expect(authMocks.completePendingSession).toHaveBeenCalledOnce();
+      expect((await logins.get()).values).toEqual(
+        expect.arrayContaining([
+          { value: 1, labels: { result: "success" } },
+          { value: 1, labels: { result: "failure" } },
+        ]),
+      );
     });
   });
 

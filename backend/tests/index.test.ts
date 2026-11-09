@@ -1,4 +1,4 @@
-import { afterEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 const { purgeStaleSessions, runMigrations, listen } = vi.hoisted(() => ({
   purgeStaleSessions: vi.fn(),
@@ -15,7 +15,12 @@ vi.mock("../srcs/db/migrate.ts", () => ({ runMigrations }));
 vi.mock("../srcs/metrics.ts", () => ({ createMetricsApp: () => ({ listen }) }));
 vi.mock("../srcs/app.ts", () => ({ createApp: () => ({ listen }) }));
 
+beforeEach(() => {
+  vi.stubEnv("METRICS_HOST", undefined);
+});
+
 afterEach(() => {
+  vi.unstubAllEnvs();
   vi.useRealTimers();
   vi.restoreAllMocks();
 });
@@ -32,7 +37,7 @@ it("purges at startup and every six hours, logs failures, and unrefs the timer",
   await vi.advanceTimersByTimeAsync(0);
   expect(runMigrations).toHaveBeenCalledOnce();
   expect(listen).toHaveBeenCalledWith(3001, expect.any(Function));
-  expect(listen).toHaveBeenCalledWith(9100, "0.0.0.0", expect.any(Function));
+  expect(listen).toHaveBeenCalledWith(9100, "127.0.0.1", expect.any(Function));
   expect(purgeStaleSessions).toHaveBeenCalledTimes(1);
   expect(errorLog).toHaveBeenCalledWith("Session purge failed:", error);
   expect(interval.mock.results[0]!.value.hasRef()).toBe(false);
@@ -41,4 +46,13 @@ it("purges at startup and every six hours, logs failures, and unrefs the timer",
   expect(purgeStaleSessions).toHaveBeenCalledTimes(1);
   await vi.advanceTimersByTimeAsync(1);
   expect(purgeStaleSessions).toHaveBeenCalledTimes(2);
+});
+
+it("uses the configured metrics host inside Docker", async () => {
+  vi.resetModules();
+  vi.useFakeTimers();
+  vi.stubEnv("METRICS_HOST", "0.0.0.0");
+  listen.mockClear();
+  await import("../srcs/index.ts");
+  expect(listen).toHaveBeenCalledWith(9100, "0.0.0.0", expect.any(Function));
 });

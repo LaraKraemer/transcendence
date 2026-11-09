@@ -31,7 +31,8 @@ createApp().listen(3001, () => {
 });
 
 const metricsPort = 9100;
-createMetricsApp(pool).listen(metricsPort, "0.0.0.0", () => {
+const metricsHost = process.env.METRICS_HOST ?? "127.0.0.1";
+createMetricsApp(pool).listen(metricsPort, metricsHost, () => {
   console.log(`Internal metrics server running on port ${metricsPort}`);
 });
 

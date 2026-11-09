@@ -43,6 +43,8 @@ services:
 
     environment:
       NODE_ENV: development
+      # Reachable by Prometheus inside Docker; host runs default to loopback.
+      METRICS_HOST: 0.0.0.0
       # Host is the compose service name "db" — a server-side connection,
       # unlike the browser-facing NEXT_PUBLIC_API_URL below.
       DATABASE_URL: postgres://expense:expense@db:5432/expense_tracker

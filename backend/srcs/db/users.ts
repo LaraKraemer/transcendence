@@ -72,7 +72,7 @@ export async function createUserWithIdentity(
   provider: string,
   providerUserId: string,
 ) {
-  return db.transaction(async (tx) => {
+  const user = await db.transaction(async (tx) => {
     const [user] = await tx
       .insert(appUsers)
       .values({ email, displayName, emailVerifiedAt: new Date() })
@@ -81,6 +81,8 @@ export async function createUserWithIdentity(
     await tx.insert(userIdentities).values({ userId: user.id, provider, providerUserId });
     return user;
   });
+  usersRegistered.inc();
+  return user;
 }
 
 /** Permanently deletes a profile and its related data atomically through foreign-key cascades. */

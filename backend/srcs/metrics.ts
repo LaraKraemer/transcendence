@@ -19,7 +19,7 @@ export const usersRegistered = new Counter({
 });
 export const logins = new Counter({
   name: "logins_total",
-  help: "Login results: success or failure (invalid credentials).",
+  help: "Completed password/Google logins or rejected credentials, including second-factor codes.",
   labelNames: ["result"] as const,
   registers: [metricsRegistry],
 });

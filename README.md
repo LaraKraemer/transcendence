@@ -902,17 +902,17 @@ For local setup and tests, see the [Monitoring guide](docs/monitoring.md).
 | Notifications | Alerts appear in the browser by default; Telegram can also send FIRING and RESOLVED messages |
 | Enable Telegram | Add local `.secrets/` files and use `docker-compose.telegram.yml`; see the guide |
 | Backend package | `prom-client` in `backend/package.json`; run `make rebuild` after changing dependencies |
-| Backend setup | No extra backend environment variables or database table changes needed |
+| Backend setup | No database table changes; `METRICS_HOST` controls the metrics listener address |
 | Metrics access | Keep port 9100 inside Docker; it has no login protection |
-| Running without Docker | Port 9100 listens on all host network interfaces (`0.0.0.0`); use Docker to keep it internal |
+| Running without Docker | Port 9100 defaults to `127.0.0.1`; Compose sets `METRICS_HOST=0.0.0.0` for internal scraping |
 
 ### Backend measurements
 
 | Metric | Labels | What it measures |
 |---|---|---|
 | `http_request_duration_seconds` | `method`, `route`, `status_code` | Request times in seconds, grouped into time buckets; `_count` counts requests |
-| `users_registered_total` | — | New users saved successfully |
-| `logins_total` | `result`: `success` or `failure` | Successful logins or rejected login details |
+| `users_registered_total` | — | New password or Google users saved successfully |
+| `logins_total` | `result`: `success` or `failure` | Completed password/Google logins or rejected credentials, including 2FA codes |
 | `transactions_created_total` | — | Saved transaction rows: 1 for a normal transaction, 2 for a transfer, one per imported row |
 | `pg_pool_connections` | `state`: `total` or `idle` | Total database connections and connections that are free to use |
 | `pg_pool_waiting_count` | — | Requests waiting for a free database connection |
@@ -923,9 +923,9 @@ For local setup and tests, see the [Monitoring guide](docs/monitoring.md).
 | Item | Behavior |
 |---|---|
 | Counters | Start again when the backend restarts; deleting data does not reduce them |
-| Registration | Counts once the user is saved, even if creating the login session then fails |
+| Registration | Counts saved password users and committed Google registrations, even if later session creation fails |
 | Failed database changes | Changes that fail or are undone do not count |
-| Failed logins | Counts invalid login details; request metrics record rate limits and server errors |
+| Failed logins | Counts rejected passwords, Google codes and 2FA/recovery codes; pending 2FA is not a success; rate limits and server errors remain HTTP metrics |
 | Database connection values | Updated when Prometheus collects them; do not include the separate status-check connections |
 | Request measurements | Include completed public responses, `/health` and `/status`; do not include requests to the internal metrics server |
 | Route names | Use patterns such as `/transactions/:transactionId`, never actual IDs or URL query values |
