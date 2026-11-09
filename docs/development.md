@@ -7,6 +7,8 @@ Run commands from the repository root unless stated otherwise; see the README fo
 ## Contents
 
 - [Google sign-in setup](#google-sign-in-setup)
+- [Two-factor authentication](#two-factor-authentication)
+- [Environment and HTTPS notes](#environment-and-https-notes)
 - [Running Without Docker](#running-without-docker)
 - [Database operations](#database-operations)
 - [Docker commands](#docker-commands)
@@ -28,6 +30,18 @@ Run commands from the repository root unless stated otherwise; see the README fo
 
 For host development, put both variables in `backend/.env` and only `GOOGLE_CLIENT_ID` in `frontend/.env.local`; without credentials, Google sign-in returns an error.
 
+## Two-factor authentication
+
+Generate an encryption key with `openssl rand -base64 32` and set `TOTP_ENCRYPTION_KEY` in root `.env` for Docker, or `backend/.env` for host development.
+Without a key, 2FA setup is disabled; the backend refuses to start if any user already has 2FA enabled. Keep the key safe: losing or changing it requires affected users to use recovery codes and set up 2FA again.
+Enable it under Profile → Two-factor authentication, scan the QR code, enter a code and save the ten recovery codes shown once; password and Google sign-ins then require a second step.
+
+## Environment and HTTPS notes
+
+Keep secrets out of Git and never expose a client secret through a `NEXT_PUBLIC_*` variable.
+Compose forwards only explicitly configured variables from the root `.env`; change service environment settings in `docker-compose.yml` for custom addresses.
+The supplied Compose setup uses local HTTP; subject v21.1 requires HTTPS for external backend connections, which this setup does not provide.
+
 ## Running Without Docker
 
 1. Select Node.js 22 using the root `.nvmrc`, configure the root monitoring `.env` as described in the [README](../README.md#docker-development), and start PostgreSQL 17 (the command below starts only the database):
@@ -42,8 +56,6 @@ For host development, put both variables in `backend/.env` and only `GOOGLE_CLIE
 
    ```env
    DATABASE_URL=postgres://expense:expense@localhost:5432/expense_tracker
-   FRONTEND_ORIGIN=http://localhost:3000
-   AVATAR_DIR=./avatars
    ```
 
 3. Start the backend; migrations apply automatically:
@@ -65,7 +77,7 @@ For host development, put both variables in `backend/.env` and only `GOOGLE_CLIE
 
 The frontend example sets `API_URL` and `NEXT_PUBLIC_API_URL` to `http://localhost:3001`.
 Open http://localhost:3000 and verify `curl -fsS http://localhost:3001/health`.
-Do not run Docker app servers on the same ports; `AVATAR_DIR` must be writable.
+Do not run Docker app servers on the same ports. The default avatar folder is `/app/avatars`; host uploads require write access there, while Docker provides this storage automatically.
 Host mode does not start the backup scheduler, so `/status` may report `degraded` without a successful backup marker.
 
 ## Database operations
@@ -81,7 +93,7 @@ Compose uses development-only user/password `expense` and database `expense_trac
 
 Migration `0008_remove_user_deleted_at` aborts if soft-deleted users exist; resolve them explicitly before retrying to avoid restoring access.
 PostgreSQL initialization credentials apply only when the volume is first created; changing configuration does not update an existing database.
-Data persists in `db-data` and `avatar-data` (mounted at `/app/avatars`, overridable with `AVATAR_DIR`).
+Data persists in `db-data` and `avatar-data` (mounted at `/app/avatars`).
 See [disaster recovery](disaster-recovery.md) for backup storage, retention, limitations and restore instructions.
 
 ## Docker commands

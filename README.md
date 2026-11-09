@@ -90,8 +90,8 @@ Keep ports 3000 (frontend), 3001 (backend), 3002 (Grafana) and 5432 (database) a
 1. Clone the repository and enter its directory:
 
    ```bash
-   git clone https://github.com/LaraKraemer/transcendence.git
-   cd transcendence
+   git clone https://github.com/LaraKraemer/transcendence.git poolaki
+   cd poolaki
    ```
 
 2. Create the root `.env` if it does not already exist, then replace the monitoring password and Grafana placeholders:
@@ -150,11 +150,9 @@ Never commit `.env` or `.secrets/`.
 
    ```env
    DATABASE_URL=postgres://expense:expense@localhost:5432/expense_tracker
-   FRONTEND_ORIGIN=http://localhost:3000
-   AVATAR_DIR=./avatars
    ```
 
-   `DATABASE_URL` connects the backend to PostgreSQL, `FRONTEND_ORIGIN` allows requests from the frontend, and `AVATAR_DIR` selects a writable folder for uploaded avatars.
+   `DATABASE_URL` connects the backend to PostgreSQL; the frontend origin defaults to `http://localhost:3000`.
 
 2. Copy `frontend/.env.example` to `frontend/.env.local`:
 
@@ -165,21 +163,9 @@ Never commit `.env` or `.secrets/`.
    The example sets `NEXT_PUBLIC_API_URL` and `API_URL` to `http://localhost:3001`.
    `NEXT_PUBLIC_API_URL` is used by the browser; `API_URL` is used by Next.js on the server, so it uses the internal hostname `backend` when running in Docker.
 
-#### Google sign-in (optional)
+#### Google Sign-in and Two-Factor Authentication
 
-To enable Google sign-in, add `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` to the root `.env` for Docker development.
-For host development, put both in `backend/.env` and only `GOOGLE_CLIENT_ID` in `frontend/.env.local`.
-Register `http://localhost:3000/auth/google` as the exact redirect URI; follow the [Google setup guide](docs/development.md#google-sign-in-setup) for the Console steps.
-
-#### Two-factor authentication (optional)
-
-Generate an encryption key with `openssl rand -base64 32` and set `TOTP_ENCRYPTION_KEY` in root `.env` for Docker, or `backend/.env` for host development.
-Without a key, 2FA setup is disabled; the backend refuses to start if any user already has 2FA enabled. Keep the key safe: losing or changing it requires affected users to use recovery codes and set up 2FA again.
-Enable it under Profile → Two-factor authentication, scan the QR code, enter a code and save the ten recovery codes shown once; password and Google sign-ins then require a second step.
-
-Keep secrets out of Git and never expose a client secret through a `NEXT_PUBLIC_*` variable.
-Compose forwards only explicitly configured variables from the root `.env`; change service environment settings in `docker-compose.yml` for custom addresses.
-The supplied Compose setup uses local HTTP; subject v21.1 requires HTTPS for external backend connections, which this setup does not provide.
+See the development guide for [Google sign-in setup](docs/development.md#google-sign-in-setup), [two-factor authentication](docs/development.md#two-factor-authentication) and [environment and HTTPS notes](docs/development.md#environment-and-https-notes).
 
 ### Application URLs
 
@@ -192,7 +178,7 @@ The supplied Compose setup uses local HTTP; subject v21.1 requires HTTPS for ext
 
 ### Running Without Docker
 
-Use Node.js 22 and PostgreSQL 17, configure `backend/.env` and `frontend/.env.local` with the host values above, then run `npm ci` and `npm run dev` in each application directory using separate terminals; follow the [complete host setup](docs/development.md#running-without-docker) for commands and avatar storage configuration.
+Use Node.js 22 and PostgreSQL 17, configure `backend/.env` and `frontend/.env.local` with the host values above, then run `npm ci` and `npm run dev` in each application directory using separate terminals; follow the [complete host setup](docs/development.md#running-without-docker) for commands and storage requirements.
 
 ### Testing and CI
 
