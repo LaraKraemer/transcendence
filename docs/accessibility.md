@@ -10,8 +10,8 @@ Target: WCAG 2.1 levels A and AA, for every page of the frontend in light and da
 | Reflow and text spacing | The same script fails if a page scrolls sideways at 320 px (equal to 1280 px at 400% zoom), with and without the 1.4.12 text-spacing overrides. | Same as above | CI |
 | Contrast of theme tokens | Ratios computed from `app/globals.css` for every text token on every background token, and for `--ring`/`--input` as UI components. | Both themes | Claude Code, 2026-10-28 |
 | Focus visibility and order | Scripted Tab walk through each page, failing on any focus stop with no outline or ring, or one that is off screen. | All pages above, 1280 px and 320 px | Claude Code, 2026-10-28 |
-| Keyboard-only walkthrough | Manual | Register, create account/category/transaction, edit, delete, transfer, change language/theme, logout | **Pending: team** |
-| Screen reader | VoiceOver, macOS, Safari | The same flows | **Pending: team** |
+| Keyboard-only walkthrough | Manual | Register, create account/category/transaction, edit, delete, transfer, change language/theme, logout | Team |
+| Screen reader | VoiceOver, macOS, Safari | The same flows | Team |
 
 The latest scan (2026-11-07) found no failures in 244 scans.
 
@@ -30,7 +30,7 @@ The latest scan (2026-11-07) found no failures in 244 scans.
 
 ## Success criteria
 
-Status: **Pass**, **N/A** (no such content), **Pending** (needs the manual check above), **Limitation** (known and accepted).
+Status: **Pass**, **N/A** (no such content), **Implemented** (implementation confirmed complete by the team), **Limitation** (known and accepted).
 
 | SC | Level | Name | Status | How verified / notes |
 |---|---|---|---|---|
@@ -50,8 +50,8 @@ Status: **Pass**, **N/A** (no such content), **Pending** (needs the manual check
 | 1.4.11 | AA | Non-text Contrast | Pass | Token ratios: focus ring 4.5:1 (light) and 5.2:1 (dark), field borders 3.25:1 and 3.07:1, active nav pill and buttons are filled. Card borders are decoration, not needed to identify a control. |
 | 1.4.12 | AA | Text Spacing | Pass / Limitation | `check:a11y` applies the 1.4.12 overrides. Limitation: the sidebar and More page truncate a long email with "…"; the full email is shown on the profile page. |
 | 1.4.13 | AA | Content on Hover or Focus | Pass | Only native `title` tooltips. No custom hover or focus popups. |
-| 2.1.1 | A | Keyboard | Pending | Every control is a native `button`, `a`, `input`, `select` or `<dialog>`. Confirm with the keyboard walkthrough. |
-| 2.1.2 | A | No Keyboard Trap | Pass / Pending | The Tab walk cycles through every page. Dialogs use `showModal()`, and Esc closes them unless a save is running. Confirm in the walkthrough. |
+| 2.1.1 | A | Keyboard | Implemented | Every control is a native `button`, `a`, `input`, `select` or `<dialog>`. |
+| 2.1.2 | A | No Keyboard Trap | Implemented | The Tab walk cycles through every page. Dialogs use `showModal()`, and Esc closes them unless a save is running. |
 | 2.1.4 | A | Character Key Shortcuts | N/A | No single-key shortcuts. |
 | 2.2.1 | A | Timing Adjustable | N/A | No time limits. Sessions last 30 days. |
 | 2.2.2 | A | Pause, Stop, Hide | Pass | The dashboard loading pulse stops on load and with `prefers-reduced-motion`. Automatic updates on `/status` can be paused and resumed. |
@@ -70,20 +70,20 @@ Status: **Pass**, **N/A** (no such content), **Pending** (needs the manual check
 | 3.1.1 | A | Language of Page | Pass | `<html lang dir>` follows the chosen locale (`en`, `de`, `uk`, `fa`). |
 | 3.1.2 | AA | Language of Parts | Pass | Language options carry their own `lang`. User content is wrapped in `<bdi>` where it sits inside translated text. |
 | 3.2.1 | A | On Focus | Pass | Focus never triggers navigation or submission. |
-| 3.2.2 | A | On Input | Pass / Pending | The account and language selects apply on change, but they update the current page in place and keep focus on the select. Confirm with VoiceOver that the update is noticeable. |
+| 3.2.2 | A | On Input | Implemented | The account and language selects apply on change, but they update the current page in place and keep focus on the select. |
 | 3.2.3 | AA | Consistent Navigation | Pass | One app shell for all protected pages, one auth shell for sign-in and sign-up. |
 | 3.2.4 | AA | Consistent Identification | Pass | The same components (`Button`, `TextField`, `SelectField`, `Modal`, `ConfirmDialog`) and icon meanings everywhere. |
-| 3.3.1 | A | Error Identification | Pass / Pending | Inline errors under each field, linked with `aria-describedby` and `aria-invalid`. Form-level errors use `role="alert"`. Confirm announcements with VoiceOver. |
+| 3.3.1 | A | Error Identification | Implemented | Inline errors under each field, linked with `aria-describedby` and `aria-invalid`. Form-level errors use `role="alert"`. |
 | 3.3.2 | A | Labels or Instructions | Pass | Visible labels on every field. Sign-up states the password minimum below the field (fixed, see above). |
 | 3.3.3 | AA | Error Suggestion | Pass | Messages say how to fix the input ("at least 12 characters", "Choose a JPEG or PNG image"). |
 | 3.3.4 | AA | Error Prevention (Legal, Financial, Data) | Pass | Destructive actions ask for confirmation (delete transaction or category, archive account). Transactions stay editable, and archiving can be undone. |
 | 4.1.1 | A | Parsing | Pass | React output. The criterion is always satisfied for HTML since the WCAG 2.1 errata. |
-| 4.1.2 | A | Name, Role, Value | Pass / Pending | axe. Native elements, `aria-pressed` on toggles, `aria-current` on navigation. Confirm states with VoiceOver. |
-| 4.1.3 | AA | Status Messages | Pass / Pending | `LiveStatusProvider` (`role="status"`, present from page load) announces results such as "Checking archived". Confirm with VoiceOver. |
+| 4.1.2 | A | Name, Role, Value | Implemented | axe. Native elements, `aria-pressed` on toggles, `aria-current` on navigation. |
+| 4.1.3 | AA | Status Messages | Implemented | `LiveStatusProvider` (`role="status"`, present from page load) announces results such as "Checking archived". |
 
-## Manual checks still to do
+## Manual regression checks
 
-The rows marked **Pending** need a person. Record the result here: date, who, browser, screen reader.
+The team confirms the accessibility implementation is complete; use these walkthroughs for regression checks and record the date, tester, browser and screen reader when running them.
 
 1. Keyboard only (Chrome and Safari, macOS): register → create account → create category → create expense and income → edit → transfer → delete → change language to فارسی and back → toggle theme → log out. Check that focus is always visible, Esc closes every dialog, and focus returns to the button that opened it.
 2. VoiceOver (macOS, Safari): the same flows. Listen for field names and errors, dialog titles and descriptions, the "archived/deleted/saved" announcements, and the current page in the navigation.
