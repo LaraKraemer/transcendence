@@ -23,8 +23,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 /**
  * All categories in one list, sorted by name. Each tile shows its types (Expense, Income or both)
- * as tags. Laid out after docs/design/desktop/categories.html, without the design's budgets (the
- * backend has none).
+ * as tags.
  */
 export default async function CategoriesPage() {
   const [t, locale, categories] = await Promise.all([getTranslations("categories"), getLocale(), getCategories()]);

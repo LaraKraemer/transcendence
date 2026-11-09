@@ -1,7 +1,6 @@
 # Frontend
 
-Next.js 16 (App Router), React 19, Tailwind 4. See the root `CLAUDE.md` for the full stack and
-`docs/design/README.md` for the design tokens.
+Next.js 16 (App Router), React 19, Tailwind 4. See the [project README](../README.md) for the stack and `/design-system` for the live component showcase; theme tokens are defined in `app/globals.css`.
 
 ## Getting started
 

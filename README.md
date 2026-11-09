@@ -380,8 +380,8 @@ User Management is a separate subject category from Accessibility and Internatio
 | Development guide | [Host development, migrations, Docker commands and troubleshooting](docs/development.md). |
 | Testing guide | [Local checks, API/browser tests and CI](docs/testing.md). |
 | Monitoring guide | [Setup, metrics, alerts and Telegram delivery](docs/monitoring.md). |
-| Design system guide | [Tokens and reusable components](docs/design-system.md). |
-| Existing project guides | [Bruno API checks](backend/bruno/README.md), [disaster recovery](docs/disaster-recovery.md), [design references](docs/design/README.md). |
+| Design system | Open `/design-system` for the live component showcase; shared components are in `frontend/components/ui/`. |
+| Existing project guides | [Bruno API checks](backend/bruno/README.md), [disaster recovery](docs/disaster-recovery.md). |
 | Evaluation subject | Supplied ft_transcendence **v21.1**, chapter IV (modules) and chapter VI (README). PDF not committed to the repository. |
 
 ### AI usage
