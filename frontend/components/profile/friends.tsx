@@ -125,8 +125,8 @@ export function Friends() {
         </div>
         <button
           type="submit"
-          disabled={busy}
-          className="rounded-md bg-primary px-4 py-2 text-primary-foreground disabled:opacity-50"
+          aria-disabled={busy}
+          className="rounded-md bg-primary px-4 py-2 text-primary-foreground aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
         >
           {t("send")}
         </button>
@@ -161,7 +161,7 @@ export function Friends() {
                   <Action
                     label={t("remove")}
                     ariaLabel={t("removeNamed", { name: friend.user.displayName })}
-                    disabled={busy}
+                    aria-disabled={busy}
                     onClick={() =>
                       void act(`/friends/${friend.id}`, "DELETE", t("announcements.removed"), {
                         focusId: "accepted-friends",
@@ -184,7 +184,7 @@ export function Friends() {
                   <Action
                     label={t("accept")}
                     ariaLabel={t("acceptNamed", { name: connection.user.displayName })}
-                    disabled={busy}
+                    aria-disabled={busy}
                     onClick={() =>
                       void act(`/friends/${connection.id}/accept`, "POST", t("announcements.accepted"), {
                         focusId: "incoming-friends",
@@ -194,7 +194,7 @@ export function Friends() {
                   <Action
                     label={t("decline")}
                     ariaLabel={t("declineNamed", { name: connection.user.displayName })}
-                    disabled={busy}
+                    aria-disabled={busy}
                     onClick={() =>
                       void act(`/friends/${connection.id}`, "DELETE", t("announcements.declined"), {
                         focusId: "incoming-friends",
@@ -217,7 +217,7 @@ export function Friends() {
                   <Action
                     label={t("cancel")}
                     ariaLabel={t("cancelNamed", { name: connection.user.displayName })}
-                    disabled={busy}
+                    aria-disabled={busy}
                     onClick={() =>
                       void act(`/friends/${connection.id}`, "DELETE", t("announcements.canceled"), {
                         focusId: "outgoing-friends",
@@ -258,9 +258,9 @@ function Action({
     <button
       type="button"
       aria-label={ariaLabel}
-      disabled={disabled}
+      aria-disabled={disabled}
       onClick={onClick}
-      className="me-3 mt-2 text-sm font-semibold text-primary underline-offset-2 hover:underline focus-ring disabled:opacity-50 dark:text-accent-foreground"
+      className="me-3 mt-2 text-sm font-semibold text-primary underline-offset-2 hover:underline focus-ring aria-disabled:cursor-not-allowed aria-disabled:no-underline aria-disabled:opacity-50 dark:text-accent-foreground"
     >
       {label}
     </button>
