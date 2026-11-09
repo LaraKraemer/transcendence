@@ -1,5 +1,6 @@
 import { and, eq, isNull, sql } from "drizzle-orm";
 
+import { usersRegistered } from "../metrics.ts";
 import { db } from "./client.ts";
 import { appUsers, sessions, userIdentities } from "./schema.ts";
 
@@ -33,6 +34,7 @@ export async function createUser(email: string, passwordHash: string, displayNam
     .values({ email, passwordHash, displayName })
     .returning({ id: appUsers.id, email: appUsers.email, displayName: appUsers.displayName });
 
+  if (user) usersRegistered.inc();
   return user;
 }
 
@@ -70,7 +72,7 @@ export async function createUserWithIdentity(
   provider: string,
   providerUserId: string,
 ) {
-  return db.transaction(async (tx) => {
+  const user = await db.transaction(async (tx) => {
     const [user] = await tx
       .insert(appUsers)
       .values({ email, displayName, emailVerifiedAt: new Date() })
@@ -79,6 +81,8 @@ export async function createUserWithIdentity(
     await tx.insert(userIdentities).values({ userId: user.id, provider, providerUserId });
     return user;
   });
+  usersRegistered.inc();
+  return user;
 }
 
 /** Permanently deletes a profile and its related data atomically through foreign-key cascades. */

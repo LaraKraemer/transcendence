@@ -1,0 +1,87 @@
+# Defines Prometheus alerts for backend health, database problems and exporter availability.
+groups:
+  - name: poolaki
+    rules:
+      - alert: BackendDown
+        expr: up{job="backend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Backend is unavailable"
+          description: "Prometheus could not scrape the backend for one minute."
+          resolved_summary: "Backend is available"
+          resolved_description: "Prometheus can scrape the backend metrics again."
+
+      - alert: BackendHighErrorRate
+        expr: |
+          (
+            sum(rate(http_request_duration_seconds_count{
+              job="backend",
+              status_code=~"5.."
+            }[5m]))
+            /
+            sum(rate(http_request_duration_seconds_count{
+              job="backend"
+            }[5m]))
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Backend server error rate exceeds 5%"
+          description: "The 5xx ratio over the last five minutes has exceeded 5% for five minutes."
+          resolved_summary: "Backend is available again without a high server error rate"
+          resolved_description: "The server error rate no longer exceeds the configured threshold."
+
+      - alert: BackendHighLatency
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (le, route) (
+              rate(http_request_duration_seconds_bucket{
+                job="backend"
+              }[5m])
+            )
+          ) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Backend p95 latency exceeds one second"
+          description: "Route {{ $labels.route }} has exceeded the latency threshold for five minutes."
+          resolved_summary: "Backend is available again within the response time threshold"
+          resolved_description: "The p95 response time for route {{ $labels.route }} no longer exceeds the configured threshold."
+
+      - alert: PostgresDown
+        expr: pg_up{job="postgres-exporter"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL is unavailable"
+          description: "The PostgreSQL exporter has reported database connection failure for one minute."
+          resolved_summary: "PostgreSQL is available again"
+          resolved_description: "The exporter no longer reports a PostgreSQL connection failure."
+
+      - alert: PostgresExporterDown
+        expr: up{job="postgres-exporter"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL exporter is unavailable"
+          description: "Prometheus could not scrape the PostgreSQL exporter for one minute."
+          resolved_summary: "PostgreSQL exporter is available again"
+          resolved_description: "Prometheus can scrape the PostgreSQL exporter metrics again."
+
+      - alert: DatabasePoolWaiting
+        expr: pg_pool_waiting_count{job="backend"} > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Requests are waiting for database connections"
+          description: "The application pool wait queue has remained above zero for five minutes."
+          resolved_summary: "Database connections are available again without a wait queue"
+          resolved_description: "The application pool no longer reports requests waiting for a connection."
