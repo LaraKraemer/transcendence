@@ -1,7 +1,6 @@
 # Poolaki monitoring
 
-Run commands from the repository root. Components, metrics and alert conditions
-are listed in the [README](../README.md#monitoring).
+Run commands from the repository root. Components and metrics are listed in the [monitoring reference](#monitoring-reference) below.
 
 ## 1. Initial setup (once per installation)
 
@@ -113,13 +112,13 @@ the new **Poolaki** folder only if it is empty, then rename **Expense Tracker** 
 | `sh scripts/monitoring-db.check.sh` | Fresh/repeated role setup, password rotation and restricted permissions on a disposable database |
 | Prometheus Targets | Backend, Prometheus, PostgreSQL exporter and cAdvisor are UP |
 | `pg_up{job="postgres-exporter"}` | `1` |
-| Existing [Bruno smoke test](../README.md#local-api-testing) | Passes; Grafana traffic panels change |
+| Existing [Bruno smoke test](testing.md#api-smoke-tests) | Passes; Grafana traffic panels change |
 | Fresh private browser at http://localhost:3002/dashboards | Login required |
 | `curl -i --cacert nginx/certs/ca/rootCA.pem https://localhost:8443/metrics` | HTTP 404 |
 | `docker compose ps` after closing debug access | No host-port mappings for internal monitoring services |
 
-Backend checks: see [Code Checks](../README.md#code-checks) and
-[Unit Tests](../README.md#unit-tests).
+Backend checks: see [Code Checks](testing.md#local-checks) and
+[Unit Tests](testing.md#backend).
 
 `BackendDown` covers an unreachable backend; `PostgresExporterDown` covers an
 unreachable exporter. `PostgresDown` means the exporter is running but cannot
@@ -146,3 +145,67 @@ docker compose logs --since=10m alertmanager
 
 Check the group ID, bot permissions, token and network. Stopping the entire stack
 also stops monitoring. `make clean` deletes database and monitoring data volumes.
+
+## Monitoring reference
+“Internal” means a service is available inside Docker, without a port open on your computer.
+
+### Services and access
+
+| Service | What it does | Access |
+|---|---|---|
+| Prometheus | Collects measurements and checks the alert rules in `monitoring/alerts.yml` | Internal; use the debug Compose file for temporary browser access |
+| Grafana | Shows the Backend and Database dashboards in the **Poolaki** folder | http://localhost:3002; log in with the admin details from the root `.env` |
+| PostgreSQL exporter | Provides database connection counts, transactions per second and database size | Internal: `postgres-exporter:9187` |
+| cAdvisor | Measures container CPU and memory use | Internal: `cadvisor:8080` |
+| Alertmanager | Groups alerts and sends Telegram messages when enabled | Internal: `alertmanager:9093` |
+| Backend metrics | Provides Node.js, request, business and database connection measurements | Internal: `backend:9100/metrics` |
+
+### Settings and security
+
+| Setting | Details |
+|---|---|
+| Automatic Grafana setup | Loads the data source and dashboards from files in `monitoring/grafana/` |
+| Grafana login | Available only on your computer; login required; users cannot sign themselves up |
+| Alert page | http://localhost:3002/alerting/list; shows the rules checked by Prometheus |
+| Notifications | Alerts appear in the browser by default; Telegram can also send FIRING and RESOLVED messages |
+| Enable Telegram | Add local `.secrets/` files and use `docker-compose.telegram.yml`; see the guide |
+| Backend package | `prom-client` in `backend/package.json`; run `make rebuild` after changing dependencies |
+| Backend setup | No database table changes; `METRICS_HOST` controls the metrics listener address |
+| Metrics access | Keep port 9100 inside Docker; it has no login protection |
+| Running without Docker | Port 9100 defaults to `127.0.0.1`; Compose sets `METRICS_HOST=0.0.0.0` for internal scraping |
+
+### Backend measurements
+
+| Metric | Labels | What it measures |
+|---|---|---|
+| `http_request_duration_seconds` | `method`, `route`, `status_code` | Request times in seconds, grouped into time buckets; `_count` counts requests |
+| `users_registered_total` | — | New password or Google users saved successfully |
+| `logins_total` | `result`: `success` or `failure` | Completed password/Google logins or rejected credentials, including 2FA codes |
+| `transactions_created_total` | — | Saved transaction rows: 1 for a normal transaction, 2 for a transfer, one per imported row |
+| `pg_pool_connections` | `state`: `total` or `idle` | Total database connections and connections that are free to use |
+| `pg_pool_waiting_count` | — | Requests waiting for a free database connection |
+| `process_*`, `nodejs_*` | Depends on the metric | Standard Node.js measurements, such as CPU and memory use |
+
+### How counting works
+
+| Item | Behavior |
+|---|---|
+| Counters | Start again when the backend restarts; deleting data does not reduce them |
+| Registration | Counts saved password users and committed Google registrations, even if later session creation fails |
+| Failed database changes | Changes that fail or are undone do not count |
+| Failed logins | Counts rejected passwords, Google codes and 2FA/recovery codes; pending 2FA is not a success; rate limits and server errors remain HTTP metrics |
+| Database connection values | Updated when Prometheus collects them; do not include the separate status-check connections |
+| Request measurements | Include completed public responses, `/health` and `/status`; do not include requests to the internal metrics server |
+| Route names | Use patterns such as `/transactions/:transactionId`, never actual IDs or URL query values |
+| Requests without a matched route | Use `unmatched`; this can include requests rejected before a route is selected because the user is not logged in |
+
+### Example queries from our panels
+
+PromQL means Prometheus Query Language. These queries read and calculate measurements.
+The panel files also filter backend requests with `job="backend"`.
+
+| Example | Query |
+|---|---|
+| Requests per second by route | `sum by (route) (rate(http_request_duration_seconds_count[5m]))` |
+| p95 response time by route (95% of requests are at or below this time) | `histogram_quantile(0.95, sum by (le, route) (rate(http_request_duration_seconds_bucket[5m])))` |
+| Requests waiting for a database connection | `pg_pool_waiting_count` |
