@@ -4,7 +4,7 @@ CERT_DIR=nginx/certs
 CERT=$(CERT_DIR)/localhost.pem
 
 # These targets are commands, even if a file with the same name exists.
-.PHONY: build certs up rebuild down stop restart logs clean prune backup restore
+.PHONY: build certs up dev rebuild down stop restart logs clean prune backup restore
 
 # Build service images without starting containers.
 build:
@@ -20,9 +20,13 @@ $(CERT):
 	mkcert -cert-file $(CERT) -key-file $(CERT_DIR)/localhost-key.pem localhost 127.0.0.1 ::1 nginx
 	cp "$$(mkcert -CAROOT)/rootCA.pem" $(CERT_DIR)/ca/rootCA.pem
 
-# Start services in the background, creating containers when needed.
+# Start the full evaluation stack, including backups and monitoring.
 up: $(CERT)
 	$(COMPOSE) up -d
+
+# Start the app, HTTPS proxy and backups without monitoring.
+dev: $(CERT)
+	$(COMPOSE) up -d db backend frontend nginx backup
 
 # Rebuild images and renew dependency volumes; keep database and avatar volumes.
 # Nginx resolves its upstreams only at startup, so restart it to pick up new container IPs.

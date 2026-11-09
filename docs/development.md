@@ -8,7 +8,7 @@ Run commands from the repository root unless stated otherwise; see the README fo
 
 1. Create a project in the [Google Cloud Console](https://console.cloud.google.com/).
 2. Configure the OAuth consent screen as External/Testing and add allowed test users.
-3. Create a Web application OAuth client with redirect URI exactly `http://localhost:3000/auth/google`; add the deployed origin's `/auth/google` when applicable.
+3. Create a Web application OAuth client with redirect URI exactly `https://localhost:3000/auth/google`; add the deployed origin's `/auth/google` when applicable.
 4. Add these credentials to the git-ignored root `.env`, then run `make up`:
 
    ```env
@@ -28,7 +28,31 @@ Enable it under Profile → Two-factor authentication, scan the QR code, enter a
 
 Keep secrets out of Git and never expose a client secret through a `NEXT_PUBLIC_*` variable.
 Compose forwards only explicitly configured variables from the root `.env`; change service environment settings in `docker-compose.yml` for custom addresses.
-The supplied Compose setup uses local HTTP; subject v21.1 requires HTTPS for external backend connections, which this setup does not provide.
+Docker exposes the app only through Nginx at `https://localhost:3000` and API `https://localhost:8443`; internal app connections use HTTP. Compose sets secure cookies and trusts one proxy hop. Host-only development below uses local HTTP; use Docker when HTTPS is required.
+
+## Local HTTPS
+
+Install mkcert before `make up`; the Makefile creates certificates in git-ignored `nginx/certs/` and trusts the local CA:
+
+```bash
+# macOS; nss adds Firefox support
+brew install mkcert nss
+# Debian/Ubuntu; libnss3-tools adds browser trust support
+sudo apt install mkcert libnss3-tools
+```
+
+Other systems: [mkcert installation](https://github.com/FiloSottile/mkcert#installation).
+On Linux, open the browser once first so its certificate store exists; mkcert may ask for sudo to update system trust.
+Without sudo, use `TRUST_STORES=nss make certs` with `certutil` installed. Restart the browser after setup.
+Never share the private `rootCA-key.pem` from `mkcert -CAROOT`, or bypass verification with `curl -k` or `NODE_TLS_REJECT_UNAUTHORIZED=0`.
+
+```bash
+curl --cacert nginx/certs/ca/rootCA.pem https://localhost:8443/health
+NODE_EXTRA_CA_CERTS=nginx/certs/ca/rootCA.pem node my-script.mjs
+```
+
+For `502 Bad Gateway` after recreating frontend/backend containers, run `docker compose restart nginx`.
+To regenerate certificates, delete only `nginx/certs/`, then run `make down` and `make up`.
 
 ## Running Without Docker
 
@@ -90,6 +114,10 @@ For intentional changes, use `npm install <package>` and commit the manifest and
 Host installs do not update container dependency volumes; rebuilding preserves named database/avatar/monitoring volumes.
 Source bind mounts provide Next.js reload and backend restart without rebuilding.
 Containers run as `node` (UID 1000); on Linux, bind mounts must be writable, including `backend/drizzle/` for migrations and `frontend/` for `.next`.
+
+## Stack modes
+
+`make up` starts the full stack; `make dev` starts database, backend, frontend, Nginx and backups. Both create missing certificates and require the root environment values; use `make down` before switching to dev to stop existing monitoring containers.
 
 ## Reset
 

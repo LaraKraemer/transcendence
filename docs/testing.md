@@ -35,10 +35,12 @@ Start the stack with `make up`, then follow the [Bruno collection guide](../back
 Run from `backend/bruno/`:
 
 ```bash
-npx bru run --env local
+npx bru run --env local --cacert ../../nginx/certs/ca/rootCA.pem
 ```
 
 The guide documents request order, setup and coverage; the local `.env` and `cookies.txt` files are ignored by Git.
+
+For Bruno desktop, select `nginx/certs/ca/rootCA.pem` as the custom CA in Preferences.
 
 ## Browser checks
 
@@ -46,8 +48,9 @@ With the frontend and backend running, run from `frontend/`:
 
 ```bash
 npx playwright install chromium
-npm run check:a11y
-node status.check.mjs
+NODE_EXTRA_CA_CERTS=../nginx/certs/ca/rootCA.pem npm run check:a11y
+NODE_EXTRA_CA_CERTS=../nginx/certs/ca/rootCA.pem node status.check.mjs
+NODE_EXTRA_CA_CERTS=../nginx/certs/ca/rootCA.pem node friends.check.mjs
 ```
 
 Browser installation is needed once; see the [accessibility audit](accessibility.md) for criteria and recorded evidence.

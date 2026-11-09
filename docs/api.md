@@ -2,7 +2,7 @@
 
 [Back to project README](../README.md)
 
-Local base URL: `http://localhost:3001`. These endpoints are available in this branch.
+Docker base URL: `https://localhost:8443`; backend port 3001 is internal. Scripts must trust `nginx/certs/ca/rootCA.pem`. These endpoints are available in this branch.
 Send JSON unless stated otherwise. Protected routes need the `session` cookie; browser requests must use `credentials: "include"`.
 Users can access only their own data. Missing items and items owned by someone else both return `404`.
 
@@ -36,6 +36,18 @@ See [Google setup](development.md#google-sign-in-setup) for credentials and redi
 
 When 2FA is enabled, password and Google login return `twoFactorRequired: true` with a ten-minute pending session; only verification, recovery and logout are allowed until the second step succeeds.
 `GET /auth/me` includes `twoFactorEnabled`; 2FA setup requires `TOTP_ENCRYPTION_KEY`.
+
+## Friends
+
+| Method | Endpoint | Purpose / input |
+|---|---|---|
+| `GET` | `/friends` | Return `{ friends, incoming, outgoing }`; only accepted friends include `online`. |
+| `POST` | `/friends` | Send a request with `email`, trimmed and lowercased. |
+| `POST` | `/friends/:connectionId/accept` | Accept an incoming request. |
+| `DELETE` | `/friends/:connectionId` | Cancel, decline or remove a friendship. |
+
+Only accepted friends see online status: authenticated activity in the previous ten minutes, refreshed at most once a minute. Pending 2FA sessions do not count; offline status is not instant.
+Requests are limited to ten per account and 100 per IP per 15 minutes (`FRIEND_RATE_LIMIT_MAX`, `FRIEND_IP_RATE_LIMIT_MAX`).
 
 ## Accounts and categories
 

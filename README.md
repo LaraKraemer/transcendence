@@ -68,6 +68,7 @@ Major technologies and their purpose are listed below; exact dependency versions
 | Authentication and validation | bcryptjs, session cookies, Google OAuth 2.0, authenticator-app TOTP (2FA), Zod and backend validators | Password hashing, Google sign-in, an additional verification step for password and Google logins, and validation at both input boundaries. |
 | Visualization | Recharts 3 | Interactive financial charts with table alternatives. |
 | Development and verification | Docker Compose v2, Make, GitHub Actions, Vitest, Bruno, Playwright/axe, ESLint and Prettier | Repeatable services and automated code, API and browser checks. |
+| HTTPS | Nginx, mkcert | One trusted HTTPS entry point with internal-only application ports. |
 | Monitoring | prom-client, Prometheus, Grafana, Alertmanager and Telegram | Collect metrics, visualize service health and send operational alerts to Telegram. |
 
 ## Instructions
@@ -76,16 +77,24 @@ Run commands from the repository root unless stated otherwise; frontend and back
 
 ### Prerequisites
 
-- Git.
-- Docker Engine or Docker Desktop, installed and running.
-- Docker Compose v2.
-- GNU Make 3.81 or newer.
-- Node.js 22 and npm for host development or local checks; provided by Docker otherwise.
-- PostgreSQL 17 for host development; provided by Docker Compose otherwise.
+- Git
+- Docker Engine or Docker Desktop, installed and running
+- mkcert for local HTTPS certificates; see [certificate setup](docs/development.md#local-https)
+- Docker Compose v2
+- GNU Make 3.81 or newer
+- Node.js 22 and npm for host development or local checks; provided by Docker otherwise
+- PostgreSQL 17 for host development; provided by Docker Compose otherwise
 
-Keep ports 3000 (frontend), 3001 (backend), 3002 (Grafana) and 5432 (database) available.
+Keep ports 3000 (frontend), 8443 (backend API), 3002 (Grafana) and 5432 (database) available.
 
 ### Docker setup
+
+```bash
+make up          # Full stack including backups, monitoring.
+make dev         # Database, backend, frontend, Nginx and backups
+```
+
+When switching from the full stack to development mode, run `make down` first.
 
 1. Clone the repository and enter its directory:
 
@@ -100,7 +109,7 @@ Keep ports 3000 (frontend), 3001 (backend), 3002 (Grafana) and 5432 (database) a
    cp .env.example .env
    ```
 
-3. Start the services; this builds missing images and starts the application, backups and monitoring. Compose creates the restricted monitoring database user automatically:
+3. Start the services; this creates a trusted local certificate with mkcert if missing (may ask for your password), builds missing images and starts the application, HTTPS proxy, backups and monitoring. Compose creates the restricted monitoring database user automatically:
 
    ```bash
    make up
@@ -115,11 +124,11 @@ Keep ports 3000 (frontend), 3001 (backend), 3002 (Grafana) and 5432 (database) a
 5. Verify database readiness and operational status:
 
    ```bash
-   curl -fsS http://localhost:3001/health
-   curl -fsS http://localhost:3001/status
+   curl -fsS --cacert nginx/certs/ca/rootCA.pem https://localhost:8443/health
+   curl -fsS --cacert nginx/certs/ca/rootCA.pem https://localhost:8443/status
    ```
 
-6. Open http://localhost:3000; Grafana is at http://localhost:3002 (login required).
+6. Open https://localhost:3000 (restart your browser after certificate setup); Grafana is at http://localhost:3002 (login required).
 
 If a service does not become healthy, run `make logs` to inspect startup errors.
 The root `.env` is required for monitoring; Google sign-in, 2FA and Telegram delivery use the optional settings below.
@@ -139,7 +148,7 @@ GRAFANA_ADMIN_PASSWORD=<grafana-admin-password>
 ```
 
 Generate passwords with `openssl rand -hex 24`. Compose initializes the monitoring database user automatically; no manual SQL setup is needed.
-Compose supplies the application database and API URLs: PostgreSQL at `db:5432`, the backend at `http://backend:3001` for Next.js, and `http://localhost:3001` for the browser.
+Compose supplies the application database and API URLs: PostgreSQL at `db:5432`, Nginx at `https://nginx:8443` for Next.js, and `https://localhost:8443` for browser API requests. Only Nginx exposes the app to the host; backend port 3001 stays internal.
 
 For Telegram alerts, create `.secrets/telegram_bot_token` and `.secrets/telegram_chat_id`, then enable the Telegram Compose override as described in the [monitoring setup](docs/monitoring.md#1-initial-setup-once-per-installation).
 Never commit `.env` or `.secrets/`.
@@ -161,7 +170,7 @@ Never commit `.env` or `.secrets/`.
    ```
 
    The example sets `NEXT_PUBLIC_API_URL` and `API_URL` to `http://localhost:3001`.
-   `NEXT_PUBLIC_API_URL` is used by the browser; `API_URL` is used by Next.js on the server, so it uses the internal hostname `backend` when running in Docker.
+   `NEXT_PUBLIC_API_URL` is used by the browser; `API_URL` is used by Next.js on the server, so Docker uses the internal HTTPS proxy at `https://nginx:8443` with its trusted CA.
 
 #### Google Sign-in and Two-Factor Authentication
 
@@ -171,9 +180,9 @@ See the development guide for [Google sign-in setup](docs/development.md#google-
 
 | Service | URL | Verification |
 |---|---|---|
-| Frontend | http://localhost:3000 | Open in the browser. |
-| Backend readiness | http://localhost:3001/health | `curl -fsS http://localhost:3001/health` |
-| Backend operational status | http://localhost:3001/status | `curl -fsS http://localhost:3001/status` |
+| Frontend | https://localhost:3000 | Open in the browser. |
+| Backend readiness | https://localhost:8443/health | `curl -fsS --cacert nginx/certs/ca/rootCA.pem https://localhost:8443/health` |
+| Backend operational status | https://localhost:8443/status | `curl -fsS --cacert nginx/certs/ca/rootCA.pem https://localhost:8443/status` |
 | Grafana | http://localhost:3002 | Sign in with the admin credentials from `.env`. |
 
 ### Running Without Docker
@@ -203,7 +212,7 @@ The implemented schema is defined in [schema.ts](backend/srcs/db/schema.ts); the
 
 ### Implemented schema diagram
 
-This diagram shows the eight tables in this branch; planned tables are excluded.
+This diagram shows the nine tables in this branch; planned tables are excluded.
 
 ```mermaid
 erDiagram
@@ -211,6 +220,8 @@ erDiagram
     app_user ||--o{ recovery_code : "has"
     app_user ||--o{ user_identity : "links"
     app_user ||--o{ account : "owns"
+    app_user ||--o{ user_connection : "requests"
+    app_user ||--o{ user_connection : "receives"
     app_user ||--o{ category : "owns"
     app_user ||--o{ transaction : "creates"
     account ||--o{ transaction : "contains"
@@ -219,6 +230,7 @@ erDiagram
     app_user {
         uuid id PK
         text email
+        timestamptz last_active_at "nullable"
         text password_hash "nullable"
         text totp_secret_encrypted "nullable"
         timestamptz totp_enabled_at "nullable"
@@ -261,6 +273,12 @@ erDiagram
         date booked_on
         uuid transfer_group_id "nullable"
     }
+    user_connection {
+        uuid id PK
+        uuid requester_id FK
+        uuid addressee_id FK
+        text status
+    }
     currency {
         text code PK
         text name
@@ -275,8 +293,9 @@ A transaction can have no category. Currency is reference data with no foreign k
 
 | Table | Key fields and types | Relationships and constraints |
 |---|---|---|
-| `app_user` | `id uuid`, `email text`, nullable `password_hash text`, `display_name text`, nullable `avatar_url text`, encrypted TOTP secret, last-used step and verification/2FA/create/update timestamps | Case-insensitive unique email. Avatar field stores an internal file key; API exposes a versioned URL. Google-only users have no password hash. |
+| `app_user` | `id uuid`, `email text`, nullable `password_hash text`, `display_name text`, nullable `avatar_url text`, encrypted TOTP secret, last-used step and verification/2FA/presence/create/update timestamps | Case-insensitive unique email. Avatar field stores an internal file key; API exposes a versioned URL. Google-only users have no password hash. |
 | `session` | `id uuid`, `user_id uuid`, `token_hash text`, optional user agent/IP text, expiry/revocation/2FA-verification/create timestamps | Many sessions per user; unique SHA-256 token hash; user deletion cascades. |
+| `user_connection` | `id uuid`, requester/addressee UUIDs, `status text`, creation timestamp | Friend requests and accepted friendships; unique user pair, no self-request; both user foreign keys cascade on deletion. |
 | `recovery_code` | `id uuid`, `user_id uuid`, `code_hash text`, nullable `used_at` and creation timestamps | Single-use 2FA recovery codes stored as hashes; unique user/hash pair; user deletion cascades. |
 | `user_identity` | `id uuid`, `user_id uuid`, `provider text`, `provider_user_id text`, creation timestamp | Many identities per user; unique provider/external ID and user/provider pairs; user deletion cascades. |
 | `account` | `id uuid`, `user_id uuid`, name/type/currency `text`, `opening_balance_minor bigint`, `is_archived boolean`, optional institution/reference text, create/update timestamps | Many accounts per user; user deletion cascades. Currency code has no reference-table FK. |
@@ -291,7 +310,7 @@ A transaction can have no category. Currency is reference data with no foreign k
 | Ownership | A user owns many sessions, recovery codes, identities, accounts, categories and created transactions; each transaction belongs to one account and optionally one category. |
 | Types | PostgreSQL-generated UUID keys except currency code; `date` for booking dates, timezone-aware timestamps for events, application-validated text values and SQL transaction constraints. |
 | Money and transfers | Safe-integer minor units; transfer legs share a group UUID, not a separate table or foreign key. |
-| Implemented scope | Eight tables in this branch; [full](docs/full-db-schema.md) and [MVP](docs/mvp-db-schema.md) design documents also contain planned entities, including budgets and savings goals. |
+| Implemented scope | Nine tables in this branch; [full](docs/full-db-schema.md) and [MVP](docs/mvp-db-schema.md) design documents also contain planned entities, including budgets and savings goals. |
 | Operations | Migrations apply at backend startup; inspection, migration and persistence details are in the [development guide](docs/development.md#database-operations). |
 
 ## Features List
@@ -301,6 +320,7 @@ Contributors below are identified from implementation and test commits, includin
 | Implemented feature | Availability and behavior | Contributors |
 |---|---|---|
 | Authentication | UI + API: register, sign in/out, change passwords and manage secure sessions. | lkramer, vkhvosto, gansari |
+| Friends and online status | UI + API: send, accept, decline or remove requests; accepted friends see approximate online status based on activity in the previous ten minutes. | vkhvosto |
 | Google sign-in | UI + API: Google authentication and protected account linking; requires OAuth credentials. | gansari, vkhvosto |
 | Two-factor authentication | UI + API: authenticator-app codes after password or Google login, with single-use recovery codes. | vkhvosto |
 | Profiles and avatars | UI + API: display name, photo preview/upload/replace/delete, initials fallback and permanent profile deletion. | vkhvosto, dbilenko, lkramer, gansari |
@@ -320,7 +340,7 @@ Contributors below are identified from implementation and test commits, includin
 | Legal information | Public `/privacy` and `/terms` pages linked from the application. | gansari |
 | Development checks | CI: automated code, API, build and browser regression checks. | vkhvosto, lkramer, dbilenko, gansari |
 
-Detailed endpoint contracts and archived-account restrictions are in the [API reference](docs/api.md); friends/online presence are outside scope.
+Detailed endpoint contracts and archived-account restrictions are in the [API reference](docs/api.md).
 
 ## Modules
 
@@ -332,7 +352,7 @@ The following selection follows subject v21.1: each Major is worth 2 points, eac
 |---|---|---|---|---|---|
 | Web | Frameworks for frontend and backend | 2 | Implemented in this branch | Next.js/React and Express structure the UI, server rendering and authenticated API. | lkramer, vkhvosto, gansari, dbilenko |
 | Accessibility and Internationalization | Complete WCAG 2.1 AA accessibility | 2 | Implemented in this branch | Accessible components, keyboard navigation, screen-reader support, contrast/reflow checks and axe/browser checks; see the [accessibility audit](docs/accessibility.md). | dbilenko, gansari, lkramer |
-| User Management | Standard user management and authentication | 2 | Incomplete; excluded from completed total | Authentication, editable profiles and avatars exist; the required friends system and online status are missing and outside the intended feature scope. | lkramer, vkhvosto, dbilenko, gansari |
+| User Management | Standard user management and authentication | 2 | Implemented in this branch | Authentication, editable profiles, avatars, friend requests and approximate online status. | lkramer, vkhvosto, dbilenko, gansari |
 | Devops | Monitoring with Prometheus and Grafana | 2 | Implemented in this branch | Prometheus metrics, PostgreSQL exporter/cAdvisor, provisioned Grafana dashboards, alert rules/Alertmanager and authenticated Grafana access. | lkramer |
 | Data and Analytics | Advanced analytics dashboard | 2 | Implemented in this branch | Interactive per-currency charts, date/account/category/type filters, CSV and browser PDF printing; data updates through 30-second visible-tab polling. | vkhvosto, dbilenko |
 
@@ -354,10 +374,8 @@ The following selection follows subject v21.1: each Major is worth 2 points, eac
 
 | Scope | Calculation | Points |
 |---|---|---|
-| Implemented in this branch | 4 Major × 2 + 9 Minor × 1 | 17 |
-| **Implemented project total, subject to evaluation** | **4 Major × 2 + 9 Minor × 1** | **17** |
-| Incomplete; excluded | Standard user management Major | 2 |
-| Full selection, including incomplete module | 5 Major × 2 + 9 Minor × 1 | 19 |
+| Implemented in this branch | 5 Major × 2 + 9 Minor × 1 | 19 |
+| **Implemented project total, subject to evaluation** | **5 Major × 2 + 9 Minor × 1** | **19** |
 
 User Management is a separate subject category from Accessibility and Internationalization; OAuth and application 2FA are independent Minor modules and do not require completing the standard user-management Major.
 
