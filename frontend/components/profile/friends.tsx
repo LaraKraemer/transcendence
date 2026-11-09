@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 
 import { Card } from "@/components/ui/card";
 import { FormAlert } from "@/components/ui/form-alert";
+import { useAnnounce } from "@/components/ui/live-status";
 import { ApiError, fetchApi } from "@/lib/api";
 import { isEmail, MAX_EMAIL_LENGTH } from "@/lib/validation";
 
@@ -16,6 +17,7 @@ const pollIntervalMs = 60 * 1000;
 /** Mutual requests and approximate presence, refreshed only while this tab is visible. */
 export function Friends() {
   const t = useTranslations("profile.friends");
+  const announce = useAnnounce();
   const [lists, setLists] = useState<FriendLists | null>(null);
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
@@ -27,7 +29,8 @@ export function Friends() {
         const next = await fetchApi<FriendLists>("/friends", { cache: "no-store", signal });
         if (!signal?.aborted) {
           setLists(next);
-          setError("");
+          // Only a stale load error clears itself; action errors stay until the next action.
+          setError((current) => (current === t("errors.load") ? "" : current));
         }
       } catch {
         if (!signal?.aborted) setError(t("errors.load"));
@@ -51,7 +54,13 @@ export function Friends() {
     };
   }, [refresh]);
 
-  async function act(path: string, method: "POST" | "DELETE", body?: string) {
+  /** `focusId` is the heading that takes focus once the acted-on button has left the page. */
+  async function act(
+    path: string,
+    method: "POST" | "DELETE",
+    doneMessage: string,
+    { body, focusId }: { body?: string; focusId?: string } = {},
+  ) {
     if (busy) return;
     setBusy(true);
     setError("");
@@ -59,6 +68,8 @@ export function Friends() {
       await fetchApi(path, { method, ...(body ? { body } : {}) });
       if (body) setEmail("");
       await refresh();
+      if (focusId) document.getElementById(focusId)?.focus();
+      announce(doneMessage);
     } catch (failure) {
       if (failure instanceof ApiError) {
         const code =
@@ -87,7 +98,9 @@ export function Friends() {
       setError(t("errors.invalid"));
       return;
     }
-    void act("/friends", "POST", JSON.stringify({ email: normalizedEmail }));
+    void act("/friends", "POST", t("announcements.sent"), {
+      body: JSON.stringify({ email: normalizedEmail }),
+    });
   }
 
   return (
@@ -130,9 +143,9 @@ export function Friends() {
           {t("loading")}
         </p>
       ) : (
-        <div className="mt-5 grid gap-5 md:grid-cols-3">
+        <div className="mt-5 grid grid-cols-1 gap-5 md:grid-cols-3">
           <section aria-labelledby="accepted-friends">
-            <h3 id="accepted-friends" className="font-semibold">
+            <h3 id="accepted-friends" tabIndex={-1} className="font-semibold">
               {t("accepted")}
             </h3>
             {lists.friends.length === 0 && <p className="mt-2 text-sm text-muted-foreground">{t("empty")}</p>}
@@ -149,15 +162,20 @@ export function Friends() {
                   </p>
                   <Action
                     label={t("remove")}
+                    ariaLabel={t("removeNamed", { name: friend.user.displayName })}
                     disabled={busy}
-                    onClick={() => void act(`/friends/${friend.id}`, "DELETE")}
+                    onClick={() =>
+                      void act(`/friends/${friend.id}`, "DELETE", t("announcements.removed"), {
+                        focusId: "accepted-friends",
+                      })
+                    }
                   />
                 </li>
               ))}
             </ul>
           </section>
           <section aria-labelledby="incoming-friends">
-            <h3 id="incoming-friends" className="font-semibold">
+            <h3 id="incoming-friends" tabIndex={-1} className="font-semibold">
               {t("incoming")}
             </h3>
             {lists.incoming.length === 0 && <p className="mt-2 text-sm text-muted-foreground">{t("empty")}</p>}
@@ -167,20 +185,30 @@ export function Friends() {
                   <Person connection={connection} />
                   <Action
                     label={t("accept")}
+                    ariaLabel={t("acceptNamed", { name: connection.user.displayName })}
                     disabled={busy}
-                    onClick={() => void act(`/friends/${connection.id}/accept`, "POST")}
+                    onClick={() =>
+                      void act(`/friends/${connection.id}/accept`, "POST", t("announcements.accepted"), {
+                        focusId: "incoming-friends",
+                      })
+                    }
                   />
                   <Action
                     label={t("decline")}
+                    ariaLabel={t("declineNamed", { name: connection.user.displayName })}
                     disabled={busy}
-                    onClick={() => void act(`/friends/${connection.id}`, "DELETE")}
+                    onClick={() =>
+                      void act(`/friends/${connection.id}`, "DELETE", t("announcements.declined"), {
+                        focusId: "incoming-friends",
+                      })
+                    }
                   />
                 </li>
               ))}
             </ul>
           </section>
           <section aria-labelledby="outgoing-friends">
-            <h3 id="outgoing-friends" className="font-semibold">
+            <h3 id="outgoing-friends" tabIndex={-1} className="font-semibold">
               {t("outgoing")}
             </h3>
             {lists.outgoing.length === 0 && <p className="mt-2 text-sm text-muted-foreground">{t("empty")}</p>}
@@ -190,8 +218,13 @@ export function Friends() {
                   <Person connection={connection} />
                   <Action
                     label={t("cancel")}
+                    ariaLabel={t("cancelNamed", { name: connection.user.displayName })}
                     disabled={busy}
-                    onClick={() => void act(`/friends/${connection.id}`, "DELETE")}
+                    onClick={() =>
+                      void act(`/friends/${connection.id}`, "DELETE", t("announcements.canceled"), {
+                        focusId: "outgoing-friends",
+                      })
+                    }
                   />
                 </li>
               ))}
@@ -212,13 +245,24 @@ function Person({ connection }: { connection: Connection }) {
   );
 }
 
-function Action({ label, disabled, onClick }: { label: string; disabled: boolean; onClick: () => void }) {
+function Action({
+  label,
+  ariaLabel,
+  disabled,
+  onClick,
+}: {
+  label: string;
+  ariaLabel: string;
+  disabled: boolean;
+  onClick: () => void;
+}) {
   return (
     <button
       type="button"
+      aria-label={ariaLabel}
       disabled={disabled}
       onClick={onClick}
-      className="me-3 mt-2 text-sm font-semibold text-primary underline-offset-2 hover:underline focus-ring disabled:opacity-50"
+      className="me-3 mt-2 text-sm font-semibold text-primary underline-offset-2 hover:underline focus-ring disabled:opacity-50 dark:text-accent-foreground"
     >
       {label}
     </button>

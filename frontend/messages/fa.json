@@ -196,6 +196,17 @@
       "decline": "رد کردن",
       "cancel": "لغو درخواست",
       "remove": "حذف دوست",
+      "acceptNamed": "پذیرش درخواست {name}",
+      "declineNamed": "رد کردن درخواست {name}",
+      "cancelNamed": "لغو درخواست {name}",
+      "removeNamed": "حذف دوست {name}",
+      "announcements": {
+        "sent": "درخواست دوستی ارسال شد",
+        "accepted": "درخواست دوستی پذیرفته شد",
+        "declined": "درخواست دوستی رد شد",
+        "canceled": "درخواست دوستی لغو شد",
+        "removed": "دوست حذف شد"
+      },
       "errors": {
         "invalid": "یک نشانی ایمیل معتبر وارد کنید",
         "noUser": "کاربر پیدا نشد",

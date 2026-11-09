@@ -196,6 +196,17 @@
       "decline": "Ablehnen",
       "cancel": "Anfrage zurückziehen",
       "remove": "Freund entfernen",
+      "acceptNamed": "Annehmen: Anfrage von {name}",
+      "declineNamed": "Ablehnen: Anfrage von {name}",
+      "cancelNamed": "Anfrage zurückziehen: {name}",
+      "removeNamed": "Freund entfernen: {name}",
+      "announcements": {
+        "sent": "Freundschaftsanfrage gesendet",
+        "accepted": "Freundschaftsanfrage angenommen",
+        "declined": "Freundschaftsanfrage abgelehnt",
+        "canceled": "Freundschaftsanfrage zurückgezogen",
+        "removed": "Freund entfernt"
+      },
       "errors": {
         "invalid": "Gib eine gültige E-Mail-Adresse ein",
         "noUser": "Kein Nutzer gefunden",

@@ -196,6 +196,17 @@
       "decline": "Decline",
       "cancel": "Cancel request",
       "remove": "Remove friend",
+      "acceptNamed": "Accept request from {name}",
+      "declineNamed": "Decline request from {name}",
+      "cancelNamed": "Cancel request to {name}",
+      "removeNamed": "Remove friend {name}",
+      "announcements": {
+        "sent": "Friend request sent",
+        "accepted": "Friend request accepted",
+        "declined": "Friend request declined",
+        "canceled": "Friend request canceled",
+        "removed": "Friend removed"
+      },
       "errors": {
         "invalid": "Enter a valid email address",
         "noUser": "No user found",

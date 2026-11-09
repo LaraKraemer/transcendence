@@ -309,8 +309,9 @@ The profile page includes friend requests by exact email (trimmed and lowercased
 Only accepted friends see online/offline (activity within the previous ten
 minutes); fully verified sign-in (including 2FA) and authenticated API activity
 refresh presence at most once per minute. Pending 2FA sessions do not count.
-This is approximate, not instant offline. Requests are limited per account and IP
-to ten per fifteen minutes (override with `FRIEND_RATE_LIMIT_MAX`).
+This is approximate, not instant offline. Requests are limited to ten per account
+per fifteen minutes (override with `FRIEND_RATE_LIMIT_MAX`) and, so users sharing
+an IP don't block each other, to 100 per IP (`FRIEND_IP_RATE_LIMIT_MAX`).
 
 | Method | Endpoint | Purpose |
 |---|---|---|

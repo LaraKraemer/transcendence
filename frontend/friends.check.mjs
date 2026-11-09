@@ -46,6 +46,12 @@ try {
   const acceptedViolations = (await new AxeBuilder({ page: alice }).analyze()).violations;
   assert.equal(acceptedViolations.filter(({ impact }) => ["serious", "critical"].includes(impact)).length, 0);
 
+  await aliceContext.addCookies([{ name: "theme", value: "dark", url: frontendUrl }]);
+  await alice.reload();
+  await accepted.getByText("Online").waitFor();
+  const darkViolations = (await new AxeBuilder({ page: alice }).analyze()).violations;
+  assert.equal(darkViolations.filter(({ impact }) => ["serious", "critical"].includes(impact)).length, 0);
+
   let polls = 0;
   alice.on("request", (request) => {
     if (request.method() === "GET" && new URL(request.url()).pathname === "/friends") polls++;
