@@ -886,7 +886,7 @@ For local setup and tests, see the [Monitoring guide](docs/monitoring.md).
 | Service | What it does | Access |
 |---|---|---|
 | Prometheus | Collects measurements and checks the alert rules in `monitoring/alerts.yml` | Internal; use the debug Compose file for temporary browser access |
-| Grafana | Shows the Backend and Database dashboards | http://localhost:3002; log in with the admin details from the root `.env` |
+| Grafana | Shows the Backend and Database dashboards in the **Poolaki** folder | http://localhost:3002; log in with the admin details from the root `.env` |
 | PostgreSQL exporter | Provides database connection counts, transactions per second and database size | Internal: `postgres-exporter:9187` |
 | cAdvisor | Measures container CPU and memory use | Internal: `cadvisor:8080` |
 | Alertmanager | Groups alerts and sends Telegram messages when enabled | Internal: `alertmanager:9093` |

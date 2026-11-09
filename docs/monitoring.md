@@ -1,4 +1,4 @@
-# Monitoring
+# Poolaki monitoring
 
 Run commands from the repository root. Components, metrics and alert conditions
 are listed in the [README](../README.md#monitoring).
@@ -78,12 +78,16 @@ are listed in the [README](../README.md#monitoring).
 | Resource | Access |
 |---|---|
 | Grafana | http://localhost:3002; login with the Grafana credentials from `.env` |
-| Dashboards | **Expense Tracker** → **Backend-Dashboard** / **Database-Dashboard** |
+| Dashboards | **Poolaki** → **Backend-Dashboard** / **Database-Dashboard** |
 | Alerts | http://localhost:3002/alerting/list; Prometheus data source-managed rules |
 | Pause / resume | `make stop` / `make up` |
 
 
 > **Info:** To keep dashboard edits, export them back to the JSON files in `monitoring/grafana/dashboards/`.
+
+For an existing installation, if dashboards remain in **Expense Tracker**, delete
+the new **Poolaki** folder only if it is empty, then rename **Expense Tracker** to
+**Poolaki** in Grafana. Fresh installations create the **Poolaki** folder automatically.
 
 
 ### Temporary Prometheus access
@@ -105,7 +109,7 @@ are listed in the [README](../README.md#monitoring).
 
 | Check | Expected result |
 |---|---|
-| `sh scripts/monitoring.check.sh` | Valid Compose, five rules and both receiver configurations; no messages sent |
+| `sh scripts/monitoring.check.sh` | Valid Compose, six rules and both receiver configurations; no messages sent |
 | `sh scripts/monitoring-db.check.sh` | Fresh/repeated role setup, password rotation and restricted permissions on a disposable database |
 | Prometheus Targets | Backend, Prometheus, PostgreSQL exporter and cAdvisor are UP |
 | `pg_up{job="postgres-exporter"}` | `1` |
@@ -117,6 +121,11 @@ are listed in the [README](../README.md#monitoring).
 Backend checks: see [Code Checks](../README.md#code-checks) and
 [Unit Tests](../README.md#unit-tests).
 
+`BackendDown` covers an unreachable backend; `PostgresExporterDown` covers an
+unreachable exporter. `PostgresDown` means the exporter is running but cannot
+connect to PostgreSQL. Error-rate, latency and pool-queue rules evaluate available
+measurements rather than duplicating the service-down alarms.
+
 ### Live Telegram delivery test
 
 | Step | Action | Expected result |
@@ -125,6 +134,9 @@ Backend checks: see [Code Checks](../README.md#code-checks) and
 | 2 | Wait about two minutes | **BackendDown** becomes **Firing**; Telegram receives **FIRING** |
 | 3 | `docker compose start backend` | Backend starts |
 | 4 | Wait until healthy and the alarm clears | Telegram receives **RESOLVED**, usually within another minute |
+
+To test exporter availability instead, stop/start `postgres-exporter` with the
+same commands. Expect `PostgresExporterDown` and its recovery message.
 
 Wait for each state change before continuing. If delivery fails:
 

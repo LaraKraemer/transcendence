@@ -14,9 +14,14 @@ receivers:
         send_resolved: true
         parse_mode: ""
         message: |-
-          Expense Tracker: {{ .Status | toUpper }}
+          Poolaki: {{ .Status | toUpper }}
           {{ range .Alerts }}
           [{{ .Status | toUpper }}] {{ .Labels.alertname }} ({{ .Labels.severity }})
+          {{ if eq .Status "resolved" -}}
+          {{ .Annotations.resolved_summary }}
+          {{ .Annotations.resolved_description }}
+          {{ else -}}
           {{ .Annotations.summary }}
           {{ .Annotations.description }}
+          {{ end -}}
           {{ end }}
