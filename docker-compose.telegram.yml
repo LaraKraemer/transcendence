@@ -1,0 +1,14 @@
+# Opt-in Telegram delivery. Create both local secret files before enabling.
+services:
+  alertmanager:
+    volumes:
+      - ./monitoring/alertmanager.telegram.yml:/etc/alertmanager/alertmanager.yml:ro
+    secrets:
+      - telegram_bot_token
+      - telegram_chat_id
+
+secrets:
+  telegram_bot_token:
+    file: ./.secrets/telegram_bot_token
+  telegram_chat_id:
+    file: ./.secrets/telegram_chat_id

@@ -260,4 +260,6 @@ backend/avatars/
 
 /backups/
 /nginx/certs/
+
+# Local monitoring credentials
 /.secrets/
