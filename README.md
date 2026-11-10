@@ -10,7 +10,7 @@ Poolaki is a personal expense tracker developed as the final team project of the
 |---|---|
 | Goal | Help users understand their finances through an independent personal ledger. |
 | Core features | Accounts, categorized income and expenses, transfers, balances and per-currency analytics. |
-| Account management | Email/password and optional Google sign-in, profiles and avatars. |
+| Account management | Email/password and optional Google sign-in, two-factor authentication, profiles, avatars and friends. |
 | Data tools | Transaction search, JSON import, CSV export and interactive charts. |
 | Interface | Responsive UI, light/dark themes, English, German, Persian (RTL) and Ukrainian, with accessibility checks. |
 
@@ -64,7 +64,7 @@ Major technologies and their purpose are listed below; exact dependency versions
 | Frontend | Next.js 16.3.0, React 19.2.8 | Server-rendered pages, App Router and server actions for authenticated data flows. |
 | UI and localization | Tailwind CSS 4, Lucide, next-intl 4 | Reusable themed components, responsive layouts, translations and Persian RTL. |
 | Backend | Express 5.2.x | Explicit HTTP routing and middleware for validation, authentication and ownership. |
-| Database | PostgreSQL 17, Drizzle ORM 0.45.2 | Relational ownership, constraints, atomic ledger writes, SQL aggregation and typed migrations. |
+| Database | PostgreSQL 17, Drizzle ORM 0.45.2 | A ledger needs relational integrity: foreign keys tie transactions to accounts and users, CHECK constraints enforce amount signs, transfers write both legs atomically, and balances and analytics are computed with SQL aggregation. Drizzle adds type-safe queries and versioned migrations. |
 | Authentication and validation | bcryptjs, session cookies, Google OAuth 2.0, authenticator-app TOTP (2FA), Zod and backend validators | Password hashing, Google sign-in, an additional verification step for password and Google logins, and validation at both input boundaries. |
 | Visualization | Recharts 3 | Interactive financial charts with table alternatives. |
 | Development and verification | Docker Compose v2, Make, GitHub Actions, Vitest, Bruno, Playwright/axe, ESLint and Prettier | Repeatable services and automated code, API and browser checks. |
