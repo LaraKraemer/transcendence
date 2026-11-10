@@ -51,9 +51,11 @@ restart: $(CERT)
 logs:
 	$(COMPOSE) logs -f
 
-# Delete project containers and volumes, including database and avatar data.
+# Confirm before deleting project containers and database/avatar/monitoring volumes.
 # Host backups in ./backups survive this command.
 clean:
+	@printf 'Delete database, avatar and monitoring volumes? Host backups survive. Type yes to continue: '; \
+	IFS= read -r confirmation && [ "$$confirmation" = "yes" ] || { printf 'Cancelled.\n'; exit 1; }
 	$(COMPOSE) down --volumes --remove-orphans
 
 # Remove unused Docker resources across all projects, including unused images.
