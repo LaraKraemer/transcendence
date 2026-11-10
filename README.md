@@ -336,27 +336,27 @@ The following selection follows subject v21.1: each Major is worth 2 points, eac
 
 ### Major modules
 
-| Category | Module | Points | Status | Justification and implementation | Contributors |
-|---|---|---|---|---|---|
-| Web | Frameworks for frontend and backend | 2 | Implemented in this branch | Next.js/React and Express structure the UI, server rendering and authenticated API. | lkramer, vkhvosto, gansari, dbilenko |
-| Accessibility and Internationalization | Complete WCAG 2.1 AA accessibility | 2 | Implemented in this branch | Accessible components, keyboard navigation, screen-reader support, contrast/reflow checks and axe/browser checks; see the [accessibility audit](docs/accessibility.md). | dbilenko, gansari, lkramer |
-| User Management | Standard user management and authentication | 2 | Implemented in this branch | Authentication, editable profiles, avatars, friend requests and approximate online status. | lkramer, vkhvosto, dbilenko, gansari |
-| Devops | Monitoring with Prometheus and Grafana | 2 | Implemented in this branch | Prometheus metrics, PostgreSQL exporter/cAdvisor, provisioned Grafana dashboards, alert rules/Alertmanager and authenticated Grafana access. | lkramer |
-| Data and Analytics | Advanced analytics dashboard | 2 | Implemented in this branch | Interactive per-currency charts, date/account/category/type filters, CSV and browser PDF printing; data updates through 30-second visible-tab polling. | vkhvosto, dbilenko |
+| Category | Module | Points | Justification and implementation | Contributors |
+| --- | --- | --- | --- | --- |
+| Web | Frameworks for frontend and backend | 2 | Next.js/React and Express structure the UI, server rendering and authenticated API. | lkramer, vkhvosto, gansari, dbilenko |
+| Accessibility and Internationalization | Complete WCAG 2.1 AA accessibility | 2 | Accessible components, keyboard navigation, screen-reader support, contrast/reflow checks and axe/browser checks; see the [accessibility audit](docs/accessibility.md). | dbilenko, gansari, lkramer |
+| User Management | Standard user management and authentication | 2 | Authentication, editable profiles, avatars, friend requests and approximate online status. | lkramer, vkhvosto, dbilenko, gansari |
+| Devops | Monitoring with Prometheus and Grafana | 2 | Prometheus metrics, PostgreSQL exporter/cAdvisor, provisioned Grafana dashboards, alert rules/Alertmanager and authenticated Grafana access. | lkramer |
+| Data and Analytics | Advanced analytics dashboard | 2 | Interactive per-currency charts, date/account/category/type filters, CSV and browser PDF printing; data updates through 30-second visible-tab polling. | vkhvosto, dbilenko |
 
 ### Minor modules
 
-| Category | Module | Points | Status | Justification and implementation | Contributors |
-|---|---|---|---|---|---|
-| Web | Database ORM | 1 | Implemented in this branch | Drizzle provides typed PostgreSQL queries, schema definitions and SQL migrations. | lkramer, vkhvosto, dbilenko, gansari |
-| Web | Custom design system | 1 | Implemented in this branch | More than ten reusable components with theme colors, typography and icons; public `/design-system` catalog. | gansari, dbilenko, lkramer |
-| Web | Advanced search | 1 | Implemented in this branch | Transaction search combines filters, sorting and pagination with URL-backed UI state. | lkramer, gansari |
-| Web | File upload and management | 1 | Implemented in this branch | JPEG/PNG avatars provide validation, access-controlled storage, preview, progress and deletion; JSON transaction files support validated preview/import without file retention. | vkhvosto, dbilenko, lkramer |
-| Accessibility and Internationalization | Multiple languages | 1 | Implemented in this branch | English, German, Persian and Ukrainian catalogs with a language switcher. | gansari, dbilenko, vkhvosto, lkramer |
-| Accessibility and Internationalization | RTL support | 1 | Implemented in this branch | Persian document direction, mirrored layouts and directional controls. | gansari, dbilenko, lkramer |
-| User Management | Remote OAuth authentication | 1 | Implemented in this branch | Google sign-in with state/PKCE and protected identity linking; requires OAuth credentials. | gansari, vkhvosto |
-| User Management | Two-factor authentication | 1 | Implemented in this branch | TOTP setup/enable/disable, encrypted secrets, single-use recovery codes and rate-limited challenges after password or Google sign-in. | vkhvosto |
-| Devops | Health checks, status page, backups and disaster recovery | 1 | Implemented in this branch | Readiness endpoint, public dependency/backup status, retained database/avatar backups and documented restore procedure. | lkramer |
+| Category | Module | Points | Justification and implementation | Contributors |
+| --- | --- | --- | --- | --- |
+| Web | Database ORM | 1 | Drizzle provides typed PostgreSQL queries, schema definitions and SQL migrations. | lkramer, vkhvosto, dbilenko, gansari |
+| Web | Custom design system | 1 | More than ten reusable components with theme colors, typography and icons; public `/design-system` catalog. | gansari, dbilenko, lkramer |
+| Web | Advanced search | 1 | Transaction search combines filters, sorting and pagination with URL-backed UI state. | lkramer, gansari |
+| Web | File upload and management | 1 | JPEG/PNG avatars provide validation, access-controlled storage, preview, progress and deletion; JSON transaction files support validated preview/import without file retention. | vkhvosto, dbilenko, lkramer |
+| Accessibility and Internationalization | Multiple languages | 1 | English, German, Persian and Ukrainian catalogs with a language switcher. | gansari, dbilenko, vkhvosto, lkramer |
+| Accessibility and Internationalization | RTL support | 1 | Persian document direction, mirrored layouts and directional controls. | gansari, dbilenko, lkramer |
+| User Management | Remote OAuth authentication | 1 | Google sign-in with state/PKCE and protected identity linking; requires OAuth credentials. | gansari, vkhvosto |
+| User Management | Two-factor authentication | 1 | TOTP setup/enable/disable, encrypted secrets, single-use recovery codes and rate-limited challenges after password or Google sign-in. | vkhvosto |
+| Devops | Health checks, status page, backups and disaster recovery | 1 | Readiness endpoint, public dependency/backup status, retained database/avatar backups and documented restore procedure. | lkramer |
 
 ### Point calculation
 
