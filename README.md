@@ -195,6 +195,8 @@ During development, we added GitHub Actions pipelines to automate backend type c
 | `frontend/` | `npm run lint && npm run check:format && npm run check:import && npm run check:filters && npm run build` |
 
 See the [testing guide](docs/testing.md) for API/browser checks, prerequisites and opt-in database tests.
+The [evaluator resilience checks](docs/testing.md#evaluator-resilience-checks) exercise malformed inputs,
+ownership, concurrent actions and bounded load against an explicitly disposable local instance.
 
 ### Operations
 
