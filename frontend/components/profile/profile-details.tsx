@@ -45,7 +45,7 @@ function photoErrorFor(result: ActionResponse): PhotoError {
 }
 
 /**
- * The profile page body after docs/design/desktop/profile.html: the header card
+ * The profile page body contains the header card
  * (cover, photo, name, email) and the Profile Information card, whose password and
  * delete-profile rows open dialogs from components/profile/profile-row-actions.tsx. Photo changes
  * and the name form go through lib/actions/profile.ts, which refreshes the route,

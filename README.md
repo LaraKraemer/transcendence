@@ -1,1030 +1,404 @@
-# Transcendence
+*This project has been created as part of the 42 curriculum by vkhvosto, dbilenko, lkramer, gansari.*
 
-Final group project as part of the 42 curriculum, building a full-stack expense tracker application.
+# Poolaki
+
+Poolaki is a personal expense tracker developed as the final team project of the 42 curriculum.
+
+## Description
+
+| Topic | Description |
+|---|---|
+| Goal | Help users understand their finances through an independent personal ledger. |
+| Core features | Accounts, categorized income and expenses, transfers, balances and per-currency analytics. |
+| Account management | Email/password and optional Google sign-in, two-factor authentication, profiles, avatars and friends. |
+| Data tools | Transaction search, JSON import, CSV export and interactive charts. |
+| Interface | Responsive UI, light/dark themes, English, German, Persian (RTL) and Ukrainian, with accessibility checks. |
 
 ## Table of Contents
 
-- [Tech Stack](#tech-stack)
-- [Prerequisites](#prerequisites)
-	- [Docker](#docker)
-	- [Node.js](#nodejs)
-- [Clone the Repository](#clone-the-repository)
-- [Node Version Setup](#node-version-setup)
-- [Project Structure](#project-structure)
-- [Environment Setup](#environment-setup)
-- [Monitoring](#monitoring)
-- [Start the Application](#start-the-application)
-- [Database](#database)
-- [Authentication API](#authentication-api)
-- [Expense Tracker API](#expense-tracker-api)
-- [Local API Testing](#local-api-testing)
-- [Unit Tests](#unit-tests)
-- [Docker Commands](#docker-commands)
-- [Development Workflow](#development-workflow)
-- [Running Without Docker](#running-without-docker)
-  - [Backend](#backend)
-  - [Frontend](#frontend)
-- [Troubleshooting](#troubleshooting)
-- [Git Workflow](#git-workflow)
-- [Current Project Status](#current-project-status)
-- [Team Notes](#team-notes)
+- [Description](#description)
+- [Team Information](#team-information)
+- [Project Management](#project-management)
+- [Technical Stack](#technical-stack)
+- [Instructions](#instructions)
+  - [Prerequisites](#prerequisites)
+  - [Docker setup](#docker-setup)
+  - [Environment Setup](#environment-setup)
+  - [Running Without Docker](#running-without-docker)
+  - [Testing and CI](#testing-and-ci)
+- [Database Schema](#database-schema)
+- [Features List](#features-list)
+- [Modules](#modules)
+- [Resources](#resources)
+- [Individual Contributions](#individual-contributions)
 
-## Tech Stack
+## Team Information
 
-| Area | Technologies |
+| 42 login | Assigned roles | Responsibilities |
+|---|---|---|
+| vkhvosto | Technical Lead / Architect, Developer | Architecture, technology choices, code quality and critical reviews. |
+| dbilenko | Developer | Shared developer responsibilities below. |
+| lkramer | Scrum Master, Developer | Team coordination, meetings, progress tracking, communication and blockers. |
+| gansari | Product Owner, Developer | Product vision, backlog priorities and validation of completed work. |
+
+All four members contribute to implementation, code reviews, testing and documentation.
+
+## Project Management
+
+| Area | Organization |
 |---|---|
-| Frontend | TypeScript, Next.js |
-| Backend | TypeScript, Node.js, Express |
-| Database | PostgreSQL, Drizzle ORM |
-| Development Tools | Docker, Docker Compose, Makefile, GitHub Repository, GitHub Projects
+| Work tracking | GitHub Kanban board. |
+| Tasks | GitHub Issues grouped into milestones. |
+| Assignment | Each team member assigned themselves to issues. |
+| Meetings and coordination | A weekly remote meeting with actions to discuss. |
+| Communication | Telegram and Google. |
+| Reviews and completion | Changes were submitted through GitHub pull requests and reviewed by another team member, issues were marked complete once acceptance criteria were met, checks passed and changes were merged. |
 
-<br>
+## Technical Stack
 
-# Prerequisites
+Major technologies and their purpose are listed below; exact dependency versions are committed in each application's lockfile.
 
-Before starting, make sure you have the following tools installed.
+| Area | Technologies | Rationale |
+|---|---|---|
+| Runtime and language | Node.js 22, TypeScript 5 | Shared language and static checking across both applications. |
+| Frontend | Next.js 16.3.0, React 19.2.8 | Server-rendered pages, App Router and server actions for authenticated data flows. |
+| UI and localization | Tailwind CSS 4, Lucide, next-intl 4 | Reusable themed components, responsive layouts, translations and Persian RTL. |
+| Backend | Express 5.2.x | Explicit HTTP routing and middleware for validation, authentication and ownership. |
+| Database | PostgreSQL 17, Drizzle ORM 0.45.2 | A ledger needs relational integrity: foreign keys tie transactions to accounts and users, CHECK constraints enforce amount signs, transfers write both legs atomically, and balances and analytics are computed with SQL aggregation. Drizzle adds type-safe queries and versioned migrations. |
+| Authentication and validation | bcryptjs, session cookies, Google OAuth 2.0, authenticator-app TOTP (2FA), Zod and backend validators | Password hashing, Google sign-in, an additional verification step for password and Google logins, and validation at both input boundaries. |
+| Visualization | Recharts 3 | Interactive financial charts with table alternatives. |
+| Development and verification | Docker Compose v2, Make, GitHub Actions, Vitest, Bruno, Playwright/axe, ESLint and Prettier | Repeatable services and automated code, API and browser checks. |
+| HTTPS | Nginx, mkcert | One trusted HTTPS entry point with internal-only application ports. |
+| Monitoring | prom-client, Prometheus, Grafana, Alertmanager and Telegram | Collect metrics, visualize service health and send operational alerts to Telegram. |
 
-### Docker
+## Instructions
 
-Check installation:
-```bash
-docker --version
-docker compose version
-```
+Run commands from the repository root unless stated otherwise; frontend and backend are independent npm projects.
 
-Install:
-https://www.docker.com/products/docker-desktop/
+### Prerequisites
 
+- Git
+- Docker Engine or Docker Desktop, installed and running
+- mkcert for local HTTPS certificates; see [certificate setup](docs/development.md#local-https)
+- Docker Compose v2
+- GNU Make 3.81 or newer
+- Node.js 22 and npm for host development or local checks; provided by Docker otherwise
+- PostgreSQL 17 for host development; provided by Docker Compose otherwise
 
-### mkcert
+Keep ports 3000 (frontend), 8443 (backend API), 3002 (Grafana) and 5432 (database) available.
 
-Creates the local HTTPS certificate.
-
-macOS (`nss` adds Firefox support):
-```bash
-brew install mkcert nss
-```
-
-Debian/Ubuntu (`libnss3-tools` adds Chrome and Firefox support):
-```bash
-sudo apt install mkcert libnss3-tools
-```
-
-Other systems: https://github.com/FiloSottile/mkcert#installation
-
-On Linux, open Chrome or Firefox once before the first `make up`. mkcert only
-adds its CA to browser certificate stores that already exist. It also asks for
-your sudo password to update the system store. Without sudo rights, run
-`TRUST_STORES=nss make certs` first to skip that store (`certutil` from
-`libnss3-tools` must already be installed).
-
-
-### Node.js
-
-Required version:
-```
-Node.js 22 LTS
-```
-
-Check your version:
-```bash
-node --version
-npm --version
-```
-
-
-<br>
-
-# Clone the Repository
+### Docker setup
 
 ```bash
-git clone https://github.com/LaraKraemer/transcendence.git
-
-cd transcendence
+make up          # Full stack including backups, monitoring.
+make dev         # Database, backend, frontend, Nginx and backups
 ```
 
-<br>
+When switching from the full stack to development mode, run `make down` first.
 
-# Node Version Setup
+1. Clone the repository and enter its directory:
 
-This project uses Node.js 22.
-Install and use the correct version with `nvm`.
+   ```bash
+   git clone https://github.com/LaraKraemer/transcendence.git poolaki
+   cd poolaki
+   ```
 
-https://github.com/nvm-sh/nvm
+2. Create the root `.env` if it does not already exist, then replace the monitoring password and Grafana placeholders:
 
-Then:
-```bash
-nvm install
-nvm use
-```
+   ```bash
+   cp .env.example .env
+   ```
 
-The repository contains an `.nvmrc` file specifying the required Node version.
+3. Start the services; this creates a trusted local certificate with mkcert if missing (may ask for your password), builds missing images and starts the application, HTTPS proxy, backups and monitoring. Compose creates the restricted monitoring database user automatically:
 
+   ```bash
+   make up
+   ```
 
-<br>
+4. Check the containers and wait for the application services to become healthy:
 
-# Project Structure
+   ```bash
+   docker compose ps
+   ```
 
-```
-transcendence/
+5. Verify database readiness and operational status:
 
-├── frontend/              # Next.js frontend application
-│
-├── backend/               # TypeScript backend service
-│
-├── docker-compose.yml     # Container orchestration
-├── Makefile               # Development commands
-└── README.md
-```
+   ```bash
+   curl -fsS --cacert nginx/certs/ca/rootCA.pem https://localhost:8443/health
+   curl -fsS --cacert nginx/certs/ca/rootCA.pem https://localhost:8443/status
+   ```
 
-<br>
+6. Open https://localhost:3000 (restart your browser after certificate setup); Grafana is at http://localhost:3002 (login required).
 
-# Environment Setup
+If a service does not become healthy, run `make logs` to inspect startup errors.
+The root `.env` is required for monitoring; Google sign-in, 2FA and Telegram delivery use the optional settings below.
 
-Before starting Compose, copy the root environment template and set the exporter password and Grafana admin credentials:
+### Environment Setup
 
-```bash
-cp .env.example .env
-```
+Environment variables tell the backend how to connect to PostgreSQL and tell the frontend where to send API requests.
 
-Compose creates the PostgreSQL monitoring user automatically before starting the exporter.
-See [Monitoring setup](docs/monitoring.md#1-initial-setup-once-per-installation).
-Docker Compose provides the database configuration for local development.
-When running the backend outside Docker, create `backend/.env` with a local
-PostgreSQL connection string:
+#### Docker development
+
+Set these values in the root `.env` before `make up`:
 
 ```env
-DATABASE_URL=postgres://expense:expense@localhost:5432/expense_tracker
+POSTGRES_EXPORTER_PASSWORD=<monitoring-database-password>
+GRAFANA_ADMIN_USER=<grafana-admin-username>
+GRAFANA_ADMIN_PASSWORD=<grafana-admin-password>
 ```
 
-### Google sign-in (optional)
+See the [monitoring setup](docs/monitoring.md#setup) for password generation, database initialization and Telegram secrets.
 
-Without these variables, the "Continue with Google" button returns to the login
-page with an error. To turn it on:
+#### Host development
 
-1. In the [Google Cloud Console](https://console.cloud.google.com/), create a project.
-2. Configure the OAuth consent screen: choose **External**, keep it in **Testing**,
-   and add the Google accounts that may sign in as test users.
-3. Under **Credentials**, create an **OAuth client ID** of type **Web application**
-   with the authorized redirect URI `https://localhost:3000/auth/google`
-   (it must match exactly; add your deployed origin's `/auth/google` too).
-   An existing client needs this URI added, because the old `http://localhost:3000` one no longer applies.
-4. Create `.env` in the repository root (ignored by Git). Docker Compose passes it
-   to the backend and frontend:
+1. Create `backend/.env`:
 
    ```env
-   GOOGLE_CLIENT_ID=xxxx.apps.googleusercontent.com
-   GOOGLE_CLIENT_SECRET=xxxx
+   DATABASE_URL=postgres://expense:expense@localhost:5432/expense_tracker
    ```
 
-5. Run `make up`. Running without Docker, put both variables in `backend/.env`
-   and `GOOGLE_CLIENT_ID` in `frontend/.env.local`.
+   `DATABASE_URL` connects the backend to PostgreSQL; the frontend origin defaults to `http://localhost:3000`.
 
-### Two-factor authentication (optional)
-
-Users can turn on time-based one-time passwords (authenticator apps such as Google
-Authenticator or 1Password). This needs no Google Cloud setup. The backend only needs a key
-to encrypt the stored TOTP secrets:
-
-```bash
-openssl rand -base64 32
-```
-
-Put the result in the git-ignored root `.env` as `TOTP_ENCRYPTION_KEY=...` (Docker Compose passes it
-to the backend), or in `backend/.env` when running without Docker. Without it, `POST /auth/2fa/setup`
-returns `404`, and the backend refuses to start if any user already has 2FA on. Keep the key with your
-other secrets: if it is lost or changed, stored secrets cannot be decrypted and affected users must
-sign in with a recovery code and set 2FA up again.
-
-In the app, open **Profile → Two-factor authentication → Enable**: scan the QR code with an authenticator app
-(or type the secret shown under it), enter the 6-digit code, then save the 10 recovery codes (copy or download;
-they are shown once). Signing in then asks for a code after the password or Google, with a "Use a recovery
-code" link. **Disable** asks for the password (accounts that have one) and a code.
-
-<br>
-
-# Start the Application
-
-### Build Docker Containers
-
-```bash
-make build
-```
-
-### Start Development Environment
-
-```bash
-make up
-```
-
-### Or Two Commands combined in One:
-```bash
-make rebuild
-```
-
-The application will start:
-
-| Service | URL |
-|---|---|
-| Frontend | https://localhost:3000 |
-| Backend API | https://localhost:8443 |
-| Grafana | http://localhost:3002 (login required) |
-| Prometheus | http://localhost:9090 (debug mode only) |
-
-See [Monitoring](docs/monitoring.md#temporary-prometheus-access) to enable debug access.
-
-### HTTPS
-
-Nginx (`nginx/nginx.conf`) is the only entry point. Plain HTTP sent to port 3000
-only redirects to HTTPS. The frontend and backend containers listen on plain HTTP
-(ports 3000 and 3001) only inside the Docker network, and port 3001 is closed on
-the host.
-
-The first `make up` runs `make certs`, which uses mkcert to add a local CA to
-this machine's trust stores (it may ask for your password) and writes a
-certificate to the git-ignored `nginx/certs/`. Restart the browser afterwards.
-Each developer creates their own. Never share the `rootCA-key.pem` file in
-`mkcert -CAROOT`.
-
-Scripts verify the certificate against the CA. Do not use `curl -k` or
-`NODE_TLS_REJECT_UNAUTHORIZED=0`:
-
-```bash
-curl --cacert nginx/certs/ca/rootCA.pem https://localhost:8443/health
-NODE_EXTRA_CA_CERTS=nginx/certs/ca/rootCA.pem node my-script.mjs
-cd backend/bruno && npx bru run --env local --cacert ../../nginx/certs/ca/rootCA.pem
-```
-
-In the Bruno desktop app, select `nginx/certs/ca/rootCA.pem` as the custom CA
-certificate under **Preferences**.
-
-To replace the certificate, delete `nginx/certs/` and run `make down && make up`.
-
-<br>
-
-# Database
-
-Docker Compose starts PostgreSQL with the following **development-only**
-credentials:
-
-| Setting | Value |
-|---|---|
-| User | `expense` |
-| Password | `expense` |
-| Database | `expense_tracker` |
-
-The backend applies the committed Drizzle migrations automatically when it
-starts. To work with the database manually:
-
-```bash
-# Open a PostgreSQL shell
-docker compose exec db psql -U expense -d expense_tracker
-
-# Run migrations manually, if needed
-docker compose exec backend npm run db:migrate
-```
-
-Migrations leave 17 reference currencies.
-
-Migration `0008_remove_user_deleted_at` aborts if soft-deleted users exist. Resolve those users explicitly before retrying to avoid unintentionally restoring access.
-
-Inside `psql`, list tables with `\dt` and inspect transactions with:
-
-```sql
-SELECT * FROM "transaction";
-```
-
-Run `docker compose exec backend npm run db:generate` only after changing
-`backend/srcs/db/schema.ts`; commit the generated files in `backend/drizzle/`.
-
-Database data is stored in the `db-data` Docker volume and survives normal
-container restarts. Profile images are stored in the `avatar-data` volume
-mounted at `/app/avatars` inside the backend container; override the path with
-the `AVATAR_DIR` environment variable. `make clean` removes both volumes.
-PostgreSQL reads its initial user, password, and database name only when this
-volume is first created, so changing those values later requires recreating the volume.
-
-### Backups and recovery
-
-Daily database/avatar backups live in the host `./backups` directory and survive
-cleanup. See [disaster recovery](docs/disaster-recovery.md) for retention,
-limitations and the restore procedure and its confirmation argument.
-
-
-<br>
-
-# Authentication API
-
-The backend supports email/password registration and session-based login. The
-session is stored in an HTTP-only cookie; clients must send requests with
-credentials enabled. Sessions expired or revoked more than seven days ago are
-deleted at startup and every six hours.
-
-| Method | Endpoint | Purpose |
-|---|---|---|
-| `POST` | `/auth/register` | Create an account and start a session |
-| `POST` | `/auth/login` | Start a session with email and password |
-| `POST` | `/auth/google` | Start a session with a Google authorization code (called by the frontend) |
-| `PATCH` | `/auth/password` | Change password and revoke every session |
-| `POST` | `/auth/2fa/setup` | Create a TOTP secret; returns `secret` and `otpauthUri` (2FA stays off) |
-| `POST` | `/auth/2fa/enable` | `{"code"}`: turn 2FA on; returns 10 recovery codes, shown once |
-| `POST` | `/auth/2fa/verify` | `{"code"}`: finish a login that returned `twoFactorRequired` |
-| `POST` | `/auth/2fa/recover` | `{"recoveryCode"}`: finish a pending login with a single-use recovery code |
-| `POST` | `/auth/2fa/disable` | `{"password","code"}` (or `recoveryCode`): turn 2FA off and revoke other sessions |
-| `POST` | `/auth/logout` | Revoke the current session |
-| `GET` | `/auth/me` | Return the current authenticated user |
-| `PATCH` | `/auth/me` | Update the current user's display name |
-| `PUT` | `/auth/me/avatar` | Upload or replace the profile image (raw JPEG/PNG body, max 5 MiB) |
-| `GET` | `/auth/me/avatar` | Retrieve the profile image |
-| `DELETE` | `/auth/me/avatar` | Remove the profile image |
-
-`PUT /auth/me/avatar` takes the image as the raw request body with
-`Content-Type: image/jpeg` or `image/png` (not multipart). Anything else is
-rejected with 415 and bodies over 5 MiB with 413. The upload is also validated
-by reading the file's format signature (the first bytes every JPEG/PNG file
-must start with), so a renamed non-image with the right header is still
-rejected. `GET /auth/me`, login and register return `avatarUrl` as
-`/auth/me/avatar?v=<version>` when an image exists, otherwise `null`; the
-version changes with every upload, so browsers fetch a replaced image.
-
-```bash
-curl -i --cacert nginx/certs/ca/rootCA.pem -b cookies.txt -X PUT \
-  -H 'Content-Type: image/png' \
-  --data-binary @avatar.png \
-  https://localhost:8443/auth/me/avatar
-```
-
-Example registration request:
-
-```bash
-curl -i --cacert nginx/certs/ca/rootCA.pem -c cookies.txt \
-  -H 'Content-Type: application/json' \
-  -d '{"email":"you@example.com","password":"a-secure-password","displayName":"Your name"}' \
-  https://localhost:8443/auth/register
-```
-
-Passwords must have at least 12 characters (`.length >= 12`) and at most 72 UTF-8
-bytes. Password hashes, not passwords, are stored in the database.
-
-### Friends
-
-The profile page includes friend requests by exact email (trimmed and lowercased).
-Only accepted friends see online/offline (activity within the previous ten
-minutes); fully verified sign-in (including 2FA) and authenticated API activity
-refresh presence at most once per minute. Pending 2FA sessions do not count.
-This is approximate, not instant offline. Requests are limited to ten per account
-per fifteen minutes (override with `FRIEND_RATE_LIMIT_MAX`) and, so users sharing
-an IP don't block each other, to 100 per IP (`FRIEND_IP_RATE_LIMIT_MAX`).
-
-| Method | Endpoint | Purpose |
-|---|---|---|
-| `GET` | `/friends` | `{ friends, incoming, outgoing }`; only friends have boolean `online`; no-store |
-| `POST` | `/friends` | Send a pending request with `{"email":"..."}` |
-| `POST` | `/friends/:connectionId/accept` | Accept an incoming pending request |
-| `DELETE` | `/friends/:connectionId` | Cancel, decline or remove a friendship |
-
-With the stack running,
-`cd frontend && NODE_EXTRA_CA_CERTS=../nginx/certs/ca/rootCA.pem node friends.check.mjs`
-exercises the profile's friend requests, accessible states and visible-only polling.
-
-### Google sign-in
-
-The "Continue with Google" button opens the frontend route `/auth/google`, which
-sends the browser to Google with a random state and a PKCE challenge. Google
-sends the browser back to the same route, which checks the state and calls
-`POST /auth/google` with `{"code", "codeVerifier", "redirectUri"}`. The backend
-exchanges the code with Google, then:
-
-- rejects the sign-in (`401`) if Google has not verified the account's email;
-- signs in the user already linked to this Google account (`200`);
-- links the Google account to an existing account with the same email only when
-  that account's `email_verified_at` is set (`200`);
-- otherwise returns `409` (`An account with this email already exists`), and the
-  login page shows a dedicated "email taken" message. This also happens when
-  the account is already linked to a different Google account;
-- creates a new account (`201`) when no account uses the email. The account has
-  no password, and its email counts as verified.
-
-Linking to an unverified account is refused because whoever registered that
-email first would keep password access to the Google user's account. Nothing
-sets `email_verified_at` for password accounts yet, so until email verification
-exists, they always get the `409`. To test linking locally:
-
-```bash
-docker compose exec db psql -U expense -d expense_tracker \
-  -c "UPDATE app_user SET email_verified_at = now() WHERE email = 'you@gmail.com';"
-```
-
-Linked Google accounts are stored in `user_identity` (one per provider per
-user). Accounts created with Google cannot log in with a password (`401`) or
-change it (`400`). `GET /auth/me` returns `hasPassword: false` for them.
-
-Two-factor authentication applies to every sign-in method. When the user has 2FA on, `POST /auth/login`
-and `POST /auth/google` return `{"twoFactorRequired":true}` (no user data) and a pending session cookie
-that lasts 10 minutes. Every route except `POST /auth/2fa/verify`, `POST /auth/2fa/recover` and
-`POST /auth/logout` answers `401` for a pending session. `verify` accepts the current 30-second code and one
-step either side, and each step works once. `disable` needs the password too (Google-only users send just the
-code) and always answers a generic `401` for a wrong password or code. `GET /auth/me` returns
-`twoFactorEnabled`. The four code endpoints share a limit of 10 attempts per client IP and user per 15
-minutes (`TWOFA_RATE_LIMIT_MAX`), answering `429` after that.
-
-`PATCH /auth/password` requires authentication and a JSON body:
-`{"currentPassword":"a-secure-password","newPassword":"another-secure-password"}`.
-The new password follows the registration policy. Success returns `204`, atomically
-updates the password hash, `password_changed_at`, and `updated_at`, revokes every
-session (including other devices), and clears the session cookie. Log in again
-with the new password. Missing/non-string fields or invalid new passwords return
-`400`; unauthenticated requests return `401`; incorrect current passwords return
-`401` with `{"error":"Invalid current password"}`. Rejected requests leave the
-password and sessions unchanged.
-
-Registration, login and Google sign-in share a per-IP limit of 100 requests per 15 minutes.
-Login also allows 10 attempts per client IP and normalized email per 15
-minutes. Override the maximum request counts with `AUTH_RATE_LIMIT_MAX`,
-`LOGIN_RATE_LIMIT_MAX` and `TWOFA_RATE_LIMIT_MAX`. The default limiter stores counts in memory, so they
-reset when the backend restarts and are not shared across backend instances.
-
-By default, forwarded client-IP headers are ignored. If the backend is behind
-a trusted reverse proxy, set `TRUST_PROXY` to the number of trusted proxy hops
-(for example, `1` for one proxy); leave it unset when connecting directly.
-Only enable this when every request reaches the backend through the configured
-proxy chain. The proxy must overwrite or sanitize client-supplied forwarding
-headers, and clients must not be able to connect directly to the backend.
-Docker Compose sets it to `1` for the Nginx proxy.
-
-Session cookies are `Secure` when `NODE_ENV` is `production` or `COOKIE_SECURE`
-is `true`. Docker Compose sets `COOKIE_SECURE` on the backend and the frontend.
-
-
-<br>
-
-# Expense Tracker API
-
-Account, category, and transaction routes require an active session cookie.
-Each route is scoped to the authenticated user, so one user cannot read or
-modify another user's financial data.
-
-| Resource | Endpoints |
-|---|---|
-| Accounts | `GET`, `POST` `/accounts`; `GET`, `PATCH`, `DELETE` `/accounts/:accountId` |
-| Categories | `GET`, `POST` `/categories`; `GET`, `PATCH`, `DELETE` `/categories/:categoryId` |
-| Transactions | `GET`, `POST` `/transactions`; `POST` `/transactions/transfers`; `GET` `/transactions/summary`; `GET` `/transactions/export`; `GET` `/transactions/count/:categoryId`; `GET`, `PATCH`, `DELETE` `/transactions/:transactionId` |
-| Currencies | `GET` `/currencies` |
-| Analytics | `GET` `/analytics/timeseries`; `GET` `/analytics/categories` |
-
-`DELETE /auth/me` requires an active session and permanently deletes the authenticated user, all their accounts (including archived accounts), categories, transactions, and sessions. Transactions cascade when their account or creator is deleted,
-following the account hard-delete policy from #48. Deletion is atomic, returns `204`, and clears the session cookie; all previous sessions then return `401`. The request cannot select another user. Deleted email addresses can be registered again.
-
-`GET /currencies` requires an active session and returns global reference data
-ordered by code. Each object contains `code`, `name`, `symbol`, and numeric
-`minorUnit` (`2` for all catalogue currencies). Convert integer minor units with
-`amountMinor / 10 ** minorUnit` and use locale-aware formatting for display.
-The catalog is not an exhaustive ISO 4217
-validator; accounts still accept any three-uppercase-letter currency code.
-
-`PATCH /accounts/:accountId` rejects a different `currencyCode` with `409` while
-transactions currently exist in the account. Submitting the current currency used is allowed. Accounts without transactions may change currency, even with an opening
-balance; this does not convert the opening balance, so we need to review and adjust it as needed.
-
-Archived accounts remain readable. Existing transactions can be edited and deleted without restoring the account.
-`{"error":"Account is archived. Restore it before making changes."}`.
-Restore with `PATCH /accounts/:accountId` using only `{"isArchived": false}`, then edit
-separately. Repeated archiving returns `200`; missing or foreign resources return `404`.
-Permanent account deletion is handled separately in #48.
-
-`GET /transactions` lists one account with `?accountId=`, or without it the transactions of all your accounts, archived ones included. Search with `q` (case-insensitive, max 500 characters), filter with `categoryId` (owned UUID or `none`) and `minAmountMinor`/`maxAmountMinor` (absolute amounts). Sort with `sort=bookedOn|amountMinor|createdAt` and `order=asc|desc` (default: `bookedOn desc`; amount sorting uses signed amounts). `total`, `moneyInMinor` and `moneyOutMinor` (the sums of the positive and negative amounts, regardless of currency) cover all filtered matches, not only the page.
-`GET /accounts` lists active accounts; `GET /accounts?archived=true`
-lists only archived ones. Category and
-transaction deletion is permanent; deleting a category sets `categoryId = null` on its linked
-transactions. `GET /transactions/count/:categoryId` returns how many transactions use a category.
-
-Every transaction has a `type` (`expense`, `income` or `transfer`) and its signed `amountMinor` must
-match it. A category has `types` (one or both of `expense` and `income`) and can be edited at any
-time; changing or deleting it never changes existing transactions. Transfers between two of your
-accounts are created with `POST /transactions/transfers`: two linked transactions without a
-category, deleted together.
-
-`DELETE /accounts/:accountId` permanently removes the owned account and all its transactions.
-`DELETE /transactions/:transactionId` permanently removes one transaction.
-
-Transactions accept an optional `merchant` (max 100 trimmed characters); `null` or blank clears it.
-
-## Analytics and CSV export
-
-These authenticated routes include archived accounts. Time series and CSV export also show transfers (see below);
-category totals leave them out.
-Both `from` and `to` are required calendar dates (`YYYY-MM-DD`), inclusive, with
-`from <= to` and at most 1827 days between them (about five years). Invalid or
-repeated filter values return `400`; missing or foreign accounts/categories return
-`404`. Optional `type` is `expense` or `income`. Optional `accountId` restricts the
-result to one owned account; otherwise all owned accounts are included.
-
-| Endpoint | Additional query parameters | Response |
-|---|---|---|
-| `/analytics/timeseries` | Required `granularity=day\|week\|month`; optional `categoryId` | Array of `{ period, currencyCode, incomeMinor, expenseMinor, transferOutMinor, transferInMinor }` |
-| `/analytics/categories` | Optional `categoryId` | Array of `{ categoryId, type, totalMinor, count, currencyCode }` |
-| `/transactions/export` | Required `format=csv`; optional `categoryId` | UTF-8 CSV attachment, `transactions.csv` |
-
-JSON amounts are integer minor units with their original signs: income positive,
-expense negative. Totals always remain separate per currency; there is no
-converted grand total. Category IDs can be `null` for uncategorized transactions.
-The existing `/transactions/summary?accountId=` response is unchanged.
-
-Time-series `period` is the bucket's start date: the date itself, Monday for
-weeks, or the first day for months. A first bucket may start before `from`, but
-its totals still include only transactions inside the requested dates. Rows are
-ordered by period then currency.
-
-`transferOutMinor` (negative legs) and `transferInMinor` (positive legs) are
-informational: each transfer leg counts in its own account's currency, and they are
-never part of income or expense because a transfer between your own accounts does
-not change the overall balance. They are `0` when `type` or `categoryId` is given,
-since transfer legs match neither. The CSV export lists transfer legs with type
-`transfer` and an empty category.
-
-```text
-GET /analytics/timeseries?from=2025-01-01&to=2025-01-03&granularity=day
-GET /analytics/categories?from=2025-01-01&to=2025-01-31&type=expense
-GET /transactions/export?format=csv&from=2025-01-01&to=2025-01-31
-```
-
-CSV columns are `account,currency,date,type,category,merchant,description,amount`,
-ordered by booked date, creation time, then transaction ID. Amounts use a decimal
-point and the reference currency's `minorUnit` (fallback `2` for currencies outside
-the catalog, matching the UI).
-
-The frontend's **Analytics** page (`/analytics`; on mobile under **More**) draws
-these routes as line, bar and donut charts, one set per currency, each with a
-"Show as table" alternative. Its Net is the change of balance: income and expenses
-plus transfers in and out (shown apart, and hidden under a type or category filter).
-Its filters (period, account, category, type) live in the URL, and it reloads its data every 30 seconds while the tab is visible.
-**Export CSV** downloads `/transactions/export` with the same filters. **Print or
-save as PDF** opens the browser's print dialog: the PDF is the browser's own
-print-to-PDF, with navigation and controls hidden by a print stylesheet.
-
-<br>
-
-# Local API Testing
-
-The repository includes a Bruno collection for repeatable local API testing in
-`backend/bruno/`. It registers a disposable user, creates two accounts, a category,
-and a transaction, then updates and deletes that transaction, makes and deletes a transfer, and permanently deletes the account.
-It also checks the currency catalog populated by migrations.
-The final analytics requests verify two-currency totals, archived data,
-zero-filled periods, transfer legs, and spreadsheet-safe CSV.
-
-1. Start the services:
+2. Copy `frontend/.env.example` to `frontend/.env.local`:
 
    ```bash
-   make rebuild
+   cp frontend/.env.example frontend/.env.local
    ```
 
-2. Create your untracked Bruno environment file:
+   The example sets `NEXT_PUBLIC_API_URL` and `API_URL` to `http://localhost:3001`.
+   `NEXT_PUBLIC_API_URL` is used by the browser; `API_URL` is used by Next.js on the server, so Docker uses the internal HTTPS proxy at `https://nginx:8443` with its trusted CA.
 
-   ```bash
-   cp backend/bruno/.env.example backend/bruno/.env
-   ```
+#### Google Sign-in and Two-Factor Authentication
 
-3. Set `TEST_PASSWORD` in `backend/bruno/.env` to a password of at least 12
-   characters.
+See the development guide for [Google sign-in setup](docs/development.md#google-sign-in-setup), [two-factor authentication](docs/development.md#two-factor-authentication) and [environment and HTTPS notes](docs/development.md#environment-and-https-notes).
 
-4. Open the `backend/bruno/` folder as a collection in the Bruno desktop app,
-   choose the `local` environment, and run requests in numerical order.
+### Application URLs
 
-	OR run bruno test from CLI
+| Service | URL | Verification |
+|---|---|---|
+| Frontend | https://localhost:3000 | Open in the browser. |
+| Backend readiness | https://localhost:8443/health | `curl -fsS --cacert nginx/certs/ca/rootCA.pem https://localhost:8443/health` |
+| Backend operational status | https://localhost:8443/status | `curl -fsS --cacert nginx/certs/ca/rootCA.pem https://localhost:8443/status` |
+| Grafana | http://localhost:3002 | Sign in with the admin credentials from `.env`. |
 
-	```bash
-   cd backend/bruno
-	npx bru run --env local
-   ```
+### Running Without Docker
 
-See [the Bruno collection guide](backend/bruno/README.md) for details. The
-local `.env` file and any `cookies.txt` files are ignored by Git.
+See the [host development setup](docs/development.md#running-without-docker).
 
+### Testing and CI
 
-<br>
+During development, we added GitHub Actions pipelines to automate backend type checking, linting, formatting, unit and API tests, plus frontend linting, self-checks, builds, and browser accessibility and status-page checks.
 
-# Code Checks
-
-Run backend checks from `backend/`:
-
-```bash
-npm ci
-npm run typecheck          # source, tests, Vitest and Drizzle configuration
-npm run lint               # ESLint recommended JavaScript/TypeScript rules
-npm run format:check       # verify Prettier formatting
-npm run format             # apply formatting
-```
-
-Prettier uses the root `.prettierrc.json` (print width 100). Generated migrations,
-Bruno files, coverage output and the package lockfile are excluded from formatting.
-To ignore the dedicated formatting commit in local blame output, run
-`git config blame.ignoreRevsFile .git-blame-ignore-revs` from the repository root.
-
-Backend CI runs these checks and unit tests, plus the complete Bruno collection against a fresh PostgreSQL 17 database.
-with `TEST_DATABASE_URL` set using
-`npx vitest run tests/db/user-deletion.integration.test.ts` from `backend/`.
-API startup applies migrations; CI waits for `/health`, then runs requests and
-prints the API log if a step fails.
-
-From `frontend/`, run `npm ci`, `npm run lint`, `npm run check:format`, `npm run check:import`, `npm run check:filters` and `npm run build`.
-With the stack running (`make up`), `NODE_EXTRA_CA_CERTS=../nginx/certs/ca/rootCA.pem npm run check:a11y` scans every page with axe (run `npx playwright install chromium` once first); see `docs/accessibility.md`.
-Frontend CI runs lint, the `formatAmount` self-check and build, and the accessibility scan against a production build. Both workflows run on relevant pull requests and pushes to
-`main`, with read-only repository permissions and cancellation of superseded runs.
-
-<br>
-
-# Unit Tests
-
-Backend unit tests run without Docker, a database, or a live server. They use
-a fake pool to intercept Drizzle queries, so every route handler, auth helper,
-and validation function is covered in isolation.
-
-```bash
-cd backend
-npm test                   # single run, exits with pass/fail
-npm run test:watch         # watch mode — re-runs affected files on save
-npm run test:coverage      # single run with V8 coverage report (writes backend/coverage/)
-```
-
-Test files live in `backend/tests/`, mirroring `backend/srcs/`:
-
-| Test file | Covers |
+| Run inside | Main checks after `npm ci` |
 |---|---|
-| `tests/auth.test.ts` | session lifecycle, hashing, middleware |
-| `tests/routes/auth.test.ts` | register, login, logout, me |
-| `tests/routes/protection.test.ts` | protected routes reject unauthenticated requests |
-| `tests/routes/account.test.ts` | account CRUD + balance |
-| `tests/routes/category.test.ts` | category CRUD |
-| `tests/routes/friends.test.ts` | friend request responses, recipient scoping, pending presence |
-| `tests/routes/currency.test.ts` | currency metadata, ordering, empty results, errors |
-| `tests/routes/transaction.test.ts` | transaction CRUD, type/sign and category rules, transfers |
-| `tests/routes/analytics.test.ts` | bounded filters, ownership, time series, category totals, safe CSV |
-| `tests/db/analytics.integration.test.ts` | PostgreSQL aggregation, zero filling, currency separation, export filters (opt-in) |
-| `tests/validation.test.ts` | isEmail, isUuid, isCurrencyCode, isIsoTimestamp, isDateOnly, isHexColor |
-| `tests/db/accounts.test.ts` | findOwnedAccount ownership filter |
-| `tests/db/client.test.ts` | DATABASE_URL guard, pool error handler |
-| `tests/app.test.ts` | HTTP wiring: health, CORS, router mount, error handler |
+| `backend/` | `npm run typecheck && npm run lint && npm run format:check && npm test` |
+| `frontend/` | `npm run lint && npm run check:format && npm run check:import && npm run check:filters && npm run build` |
 
-<br>
+See the [testing guide](docs/testing.md) for API/browser checks, prerequisites and opt-in database tests.
 
-# Docker Commands
-### Docker Commands
+### Operations
 
-| Command | Description |
-|---|---|
-| `make certs` | Create the local HTTPS certificate (`make up` does this when it is missing) |
-| `make up` | Start containers |
-| `make down` | Stop and remove containers |
-| `make stop` | Stop containers without removing them or their volumes |
-| `make build` | Rebuild containers |
-| `make rebuild` | Rebuild and renew dependency volumes after Dockerfile or dependency changes |
-| `make restart` | Restart containers |
-| `make logs` | View container logs |
-| `make clean` | Remove containers and volumes (preserves host backups) |
-| `make backup` | Back up the database and avatars now |
-| `make restore BACKUP=backups/<snapshot> CONFIRM=--confirm` | Replace database and avatars from a trusted snapshot |
-| `make prune` | Remove unused images to free storage |
-<br>
+Use `make logs` for diagnostics and `make down` to stop containers while preserving data; see the [development guide](docs/development.md) for rebuilds and troubleshooting, and the [recovery guide](docs/disaster-recovery.md) for backups and restores.
 
-# Development Workflow
+**Back up first: `make clean` requires typing `yes` before deleting database, avatar and monitoring data volumes; anything else cancels. Host `./backups` survives.**
 
-Both app containers install locked dependencies with `npm ci` and run as the
-unprivileged `node` user. `make rebuild` renews anonymous dependency volumes,
-while preserving the named database volume. On Linux, bind-mounted directories
-must be writable by the container user (UID 1000), including `backend/drizzle/`
-for migration generation and `frontend/` for `.next` output.
+## Database Schema
 
-The Docker setup uses volume mounting.
+The implemented schema is defined in [schema.ts](backend/srcs/db/schema.ts); the table below summarizes its key fields and relationships.
 
-This means source code changes are automatically reflected without rebuilding containers.
+### Implemented schema diagram
 
-### Frontend Changes
+This diagram shows the nine tables in this branch; planned tables are excluded.
 
-Edit:
+```mermaid
+erDiagram
+    app_user ||--o{ session : "has"
+    app_user ||--o{ recovery_code : "has"
+    app_user ||--o{ user_identity : "links"
+    app_user ||--o{ account : "owns"
+    app_user ||--o{ user_connection : "requests"
+    app_user ||--o{ user_connection : "receives"
+    app_user ||--o{ category : "owns"
+    app_user ||--o{ transaction : "creates"
+    account ||--o{ transaction : "contains"
+    category o|--o{ transaction : "labels"
 
-```
-frontend/app/
-```
-
-Next.js automatically reloads changes.
-
-
-### Backend Changes
-
-Edit:
-
-```
-backend/srcs/
-```
-
-The backend automatically restarts.
-
-<br>
-
-# Running Without Docker
-
-Docker is the recommended development method.
-However, both applications can run independently, over plain HTTP on this
-machine only. Use the Docker setup whenever HTTPS is required.
-
-
-### Backend
-
-| Step | Command / Information |
-|---|---|
-| Navigate | `cd backend` |
-| Install dependencies | `npm install` |
-| Start development server | `npm run dev` |
-| Backend URL | `http://localhost:3001` |
-
-
-### Frontend
-
-| Step | Command / Information |
-|---|---|
-| Navigate | `cd frontend` |
-| Install dependencies | `npm install` |
-| Start development server | `npm run dev` |
-| Frontend URL | `http://localhost:3000` |
-
-
-<br>
-
-# Troubleshooting
-
-### 502 Bad Gateway
-
-Nginx resolves `frontend` and `backend` when it starts. After recreating only one of them, run:
-
-```bash
-docker compose restart nginx
-```
-
-### Port Already In Use
-
-Check running containers:
-
-```bash
-docker ps
-```
-
-Stop containers:
-
-```bash
-make down
-```
-
-### Dependency Changes
-
-If `package.json` changes:
-
-Rebuild containers:
-
-```bash
-make rebuild
-```
-
-Uninstall dependencies:
-```bash
-cd backend
-rm -rf node_modules package-lock.json
-npm install
-```
-
----
-
-### Complete Docker Reset
-
-If Docker behaves unexpectedly:
-
-```bash
-make clean
-make rebuild
-```
-
----
-
-# Git Workflow
-
-Update your branch:
-
-```bash
-git fetch origin
-git pull
-```
-
-Create a feature branch:
-
-```bash
-git checkout -b feature/<feature-name>
-```
-
-Commit changes:
-
-```bash
-git add -p
-
-git commit -m "Describe your change"
-```
-
-Push:
-
-```bash
-git push origin feature/<feature-name>
-```
-
-Create Pull Request on GitHub.
-
----
-
-# Current Project Status
-
-### Completed
-
-- [x] Next.js frontend and TypeScript (Express) backend
-- [x] Docker development environment and Makefile commands
-- [x] PostgreSQL integration (Drizzle ORM, automatic migrations)
-- [x] Database schema
-- [x] Authentication (email/password, sessions, password change, account deletion)
-- [x] Expense management (accounts, categories, transactions, multi-currency transfers)
-- [x] File upload management (avatars, JSON transaction import)
-- [x] Advanced search and filtering
-- [x] Custom design system
-- [x] Analytics dashboard and CSV export
-- [x] Internationalization (EN, DE, FA with RTL, UK)
-- [x] Accessibility (WCAG 2.1 AA, automated axe check)
-- [x] Security hardening (rate limiting, HTTP-only sessions)
-- [x] Status page, healthchecks, automated backups and disaster recovery
-- [x] CI pipelines (tests, lint, API smoke test, a11y)
-- [x] Google sign-in
-- [x] Two-factor authentication
-- [x] Prometheus monitoring
-- [x] Grafana dashboards
-
----
-
-# Team Notes
-
-The goal of this setup is to provide a simple and consistent development environment.
-
-New team members should be able to:
-
-1. Clone the repository
-2. Run `nvm use`
-3. Run `make build`
-4. Run `make up`
-5. Start developing
-
-
-## Avatar upload preview
-
-Avatar selection now opens a local preview: **Upload** saves it, **Replace selection**
-chooses another file and **Cancel** leaves the current avatar untouched. Saving uses
-an indeterminate progress indicator; JPEG/PNG and the 5 MiB limit are unchanged.
-
-## JSON transaction import
-
-Use **Import JSON** on the transactions page, select an active destination account,
-choose a file, review the preview and confirm **Import all**. Rows are imported as expense/income transactions. Each row may include an optional
-`category` name matching an existing category belonging to you and allowing its transaction
-type. Names are trimmed and matched exactly (case-sensitive); missing, null or blank names
-leave the transaction uncategorized. Unknown or incompatible categories reject the whole import. Canceling the preview writes nothing.
-The file is not retained. Importing it again creates duplicates; check the list before
-retrying after a network failure, since the previous import may have completed.
-
-`POST /transactions/import?accountId=<uuid>` requires authentication and accepts a raw
-`application/json` document, up to **5 MiB** and **1–1,000 transactions**:
-
-```json
-{
-  "version": 1,
-  "currency": "EUR",
-  "transactions": [
-    {
-      "bookedOn": "2026-10-20",
-      "type": "expense",
-      "amountMinor": -2499,
-      "description": "Weekly groceries"
+    app_user {
+        uuid id PK
+        text email
+        timestamptz last_active_at "nullable"
+        text password_hash "nullable"
+        text totp_secret_encrypted "nullable"
+        timestamptz totp_enabled_at "nullable"
     }
-  ]
-}
+    session {
+        uuid id PK
+        uuid user_id FK
+        text token_hash UK
+        timestamptz twofa_verified_at "nullable"
+    }
+    recovery_code {
+        uuid id PK
+        uuid user_id FK
+        text code_hash
+        timestamptz used_at "nullable"
+    }
+    user_identity {
+        uuid id PK
+        uuid user_id FK
+        text provider
+        text provider_user_id
+    }
+    account {
+        uuid id PK
+        uuid user_id FK
+        text currency_code
+        bigint opening_balance_minor
+    }
+    category {
+        uuid id PK
+        uuid user_id FK
+        text name
+    }
+    transaction {
+        uuid id PK
+        uuid account_id FK
+        uuid category_id FK "nullable"
+        uuid created_by_id FK
+        bigint amount_minor
+        date booked_on
+        uuid transfer_group_id "nullable"
+    }
+    user_connection {
+        uuid id PK
+        uuid requester_id FK
+        uuid addressee_id FK
+        text status
+    }
+    currency {
+        text code PK
+        text name
+        text symbol
+        smallint minor_unit
+    }
 ```
 
-`bookedOn`, `type` and `amountMinor` are required. `description`, `notes`, `category` and
-`occurredAt` are optional and use the same limits/defaults as manual creation.
-Money is a signed non-zero safe integer in minor units; currency must match the
-account. Unsupported fields/versions, transfers, invalid rows and missing/foreign
-or archived destinations are rejected. Row errors identify the first invalid row.
-The server locks the destination account and inserts the whole batch atomically.
-Success returns `201 { "imported": <count> }`. Validation failures return 400,
-missing/foreign accounts 404, archived accounts 409 and oversized bodies 413.
+A transaction can have no category. Currency is reference data with no foreign keys; transfer entries share a group ID, not a separate table.
 
-Frontend import preview regression check: `cd frontend && npm run check:import`.
+### Implemented tables
 
-Public status page: `/status` is available without signing in, linked in the footer, and refreshes every 30 seconds, with a pause/resume control. It shows dependency health and the latest backup, or an unreachable message when the backend is offline. Run its browser regression check against the running frontend with `cd frontend && node status.check.mjs`.
-
-Public operational status: `GET /status` reports database latency, avatar storage
-permission, process uptime, version and the latest successful backup. `/health`
-remains the database readiness endpoint used by CI.
-
-## Design system
-
-`/design-system` (linked in the footer, public) shows the colour palette with light/dark
-values and contrast ratios, the type scale, the icons and every component below in the
-current theme and language. Reuse these instead of copying class strings:
-
-- Colours are tokens in `frontend/app/globals.css` (`bg-card`, `text-muted-foreground`, …).
-- Type roles set size, weight and tracking together: `text-title` (page `<h1>`),
-  `text-heading` (dialog title), `text-subheading` (card heading), `text-body`,
-  `text-label` (form label), `text-caption` (hint, error), `text-overline` (with `uppercase`).
-- `focus-ring` is the keyboard focus ring of links and buttons; add
-  `focus-visible:ring-offset-*` where the ring needs a gap.
-- Icons are `lucide-react`, `aria-hidden` next to visible text; add `rtl:-scale-x-100` to
-  arrows. Category icons come from `CATEGORY_ICONS` in `components/categories/category-icon.tsx`.
-
-| Component (`components/ui/`) | Props | When to use |
+| Table | Key fields and types | Relationships |
 |---|---|---|
-| `Button`, `buttonClassName` | `variant`: `primary` \| `success` \| `outline` \| `danger`, plus `<button>` props | Full-width form and dialog actions. Show loading as `disabled` with a "…ing" label. `buttonClassName(variant)` styles a `<Link>` as a button. |
-| `IconButton` | `label`, `children` (the icon, `aria-hidden`), `variant?` (default `muted`), `size?`: `inline` \| `sm` (default) \| `md` \| `lg` \| `xl` \| `fab`, plus `<button>` props | Every button that shows only an icon: add, edit, archive, delete, close, import, log out. `label` is its accessible name and tooltip. Variants: `primary`, `success`, `danger` (filled); `muted`, `muted-danger`, `muted-warning` (row actions); `card`, `card-danger` (on a muted tile); `ghost`, `plain`, `outline`, `outline-danger`. |
-| `ToggleButton` | `label`, `pressed`, `onPressedChange`, plus `IconButton` props | An icon button that is on or off, e.g. show password. The label stays the same; `aria-pressed` tells the state. |
-| `TextField` | `id`, `label`, `error?`, `trailing?`, `children?`, plus `<input>` props | Every text, email, password, number or date input. `error` marks it invalid and links the message. |
-| `SelectField` | `id`, `label`, `error?`, `hint?`, `children` (`<option>`s), plus `<select>` props | A choice from a list. Required unless `required={false}`. |
-| `ChoiceGroup`, `choiceSegmentsClassName`, `choiceSegmentClassName` | `legend`, `idPrefix`, `error?`, `children` | A labelled group of radios or checkboxes with one error. The two class names give the choices the segmented look (`peer sr-only` input, then a styled `<span>`). |
-| `Modal` | `open`, `title`, `onClose`, `busy?`, `describedBy?`, `closeOnBackdropClick?` | Forms in a dialog. Mark the first field `data-autofocus`. `busy` blocks closing while saving. |
-| `ConfirmDialog` | `open`, `title`, `children`, `confirmLabel`, `onConfirm`, `onCancel`, `pending?`, `confirmDisabled?`, `error?` | Before a destructive action. Focus starts on Cancel. |
-| `LiveStatusProvider`, `useAnnounce` | `announce(message)` | Tell screen readers the result of an action whose row disappears ("“Savings” archived"). |
-| `FormAlert` | `message` (`null` hides it), `tone?`: `danger` \| `success` | A form-level error at the top of a form, e.g. a network failure, or with `tone="success"` a result such as "Password changed". |
-| `Card` | `as?`: `div` \| `section` \| `article` \| `details`, `className` (padding), plus HTML props | Every bordered panel. Use `as="section"` with `aria-labelledby` when it has a heading. |
-| `Badge`, `badgeToneClassName` | `tone?`: `neutral` \| `info` \| `success` \| `warning` \| `danger`, `variant?`: `label` \| `pill` | `label`: short uppercase status next to a name. `pill`: a value with an icon. The text must make sense without the colour. |
-| `EmptyState` | `href?`, `className` (spacing), `children` | The message where a list has nothing to show. `href` makes it a link to where the user can add something. |
-| `StrengthMeter` | `score`, `segments?` (3), `label`, `tone`: `danger` \| `success` | A segmented level with a text label, e.g. password strength (`PasswordStrength` in `components/auth`). |
-| `UserAvatar` | `displayName`, `avatarUrl`, `alt` (`""` = decorative), `className` (size and colours) | A user's photo, with initials when there is none or it fails to load. |
-| `ThemeToggle` | `variant?`: `auth` (42 px) \| `app` (40 px) | Light/dark switch in page headers. An `IconButton` whose label names the theme it switches to. |
-| `LocaleSwitcher` | `variant?`: `select` \| `pill` \| `list` | Language picker: `select` on public pages, `pill` in the app header, `list` on the mobile More page. |
+| `app_user` | `id uuid`, `email text`, nullable `password_hash text` | Owns accounts, categories and authentication data |
+| `session` | `id uuid`, `user_id uuid`, `token_hash text`, `expires_at timestamptz` | Login session for one user |
+| `user_connection` | `id uuid`, `requester_id uuid`, `addressee_id uuid`, `status text` | Friend request or accepted friendship between two users |
+| `recovery_code` | `id uuid`, `user_id uuid`, `code_hash text` | Single-use 2FA recovery code for one user |
+| `user_identity` | `id uuid`, `user_id uuid`, `provider text`, `provider_user_id text` | External login linked to one user |
+| `account` | `id uuid`, `user_id uuid`, `currency_code text`, `opening_balance_minor bigint`, `is_archived boolean` | Belongs to one user; contains transactions |
+| `category` | `id uuid`, `user_id uuid`, `name text`, `types text[]` | User-owned category for expenses and/or income |
+| `transaction` | `id uuid`, `account_id uuid`, `category_id uuid`, `amount_minor bigint`, `booked_on date` | Belongs to one account and creator; category is optional |
+| `currency` | `code text`, `symbol text`, `minor_unit smallint` | Global reference data; no foreign keys |
 
-## Monitoring
+See [schema.ts](backend/srcs/db/schema.ts) for all columns and constraints.
 
-For local setup and tests, see the [Monitoring guide](docs/monitoring.md).
-“Internal” means a service is available inside Docker, without a port open on your computer.
+## Features List
 
-### Services and access
+Contributors reflect commit authorship and co-authorship; team review can add unrecorded work.
 
-| Service | What it does | Access |
+| Implemented feature | Availability and behavior | Contributors |
 |---|---|---|
-| Prometheus | Collects measurements and checks the alert rules in `monitoring/alerts.yml` | Internal; use the debug Compose file for temporary browser access |
-| Grafana | Shows the Backend and Database dashboards in the **Poolaki** folder | http://localhost:3002; log in with the admin details from the root `.env` |
-| PostgreSQL exporter | Provides database connection counts, transactions per second and database size | Internal: `postgres-exporter:9187` |
-| cAdvisor | Measures container CPU and memory use | Internal: `cadvisor:8080` |
-| Alertmanager | Groups alerts and sends Telegram messages when enabled | Internal: `alertmanager:9093` |
-| Backend metrics | Provides Node.js, request, business and database connection measurements | Internal: `backend:9100/metrics` |
+| Authentication | UI + API: register, sign in/out, change passwords and manage sessions. | lkramer, vkhvosto, gansari |
+| Friends and online status | UI + API: friend requests and online status based on the last ten minutes of activity. | vkhvosto |
+| Google sign-in | UI + API: Google login and protected account linking. | gansari, vkhvosto |
+| Two-factor authentication | UI + API: authenticator codes and single-use recovery codes for password/Google login. | vkhvosto |
+| Profiles and avatars | UI + API: edit name, preview/manage photo, initials fallback and delete profile. | vkhvosto, dbilenko, lkramer, gansari |
+| Accounts | UI + API: create/edit/delete accounts, opening balances, currencies, balances and archive/restore. | lkramer, vkhvosto, dbilenko, gansari |
+| Categories | UI + API: manage categories, icons, colors, allowed types and usage counts. | lkramer, vkhvosto, dbilenko, gansari |
+| Transactions | UI + API: categorized income/expenses and linked multi-currency transfers; merchant is API-only. | lkramer, vkhvosto, dbilenko, gansari |
+| Search and filtering | UI + API: search, filters, sorting and pagination; UI filters saved in the URL. | lkramer, gansari |
+| Dashboard | UI + API: balances, recent transactions and monthly summaries. | gansari, lkramer, vkhvosto |
+| Analytics | UI + API: per-currency charts/tables, filters and 30-second visible-tab refresh. | vkhvosto, dbilenko |
+| Export | UI + API: filtered CSV; UI: browser print/save-as-PDF. | vkhvosto, dbilenko |
+| JSON import | UI + API: bulk import with validation, preview and category matching. | lkramer |
+| Currency catalog | API used by UI: 17 currencies; no exchange-rate conversion. | vkhvosto, lkramer |
+| Localization and themes | UI: EN/DE/FA/UK, Persian RTL, responsive layouts and light/dark themes. | gansari, dbilenko, vkhvosto, lkramer |
+| Accessibility and design system | UI: keyboard/screen-reader support and themed components; `/design-system` showcase. | dbilenko, gansari, lkramer |
+| Operations | Status UI/API, health checks, database/avatar backups and restore procedure. | lkramer |
+| Monitoring | Internal metrics, Grafana dashboards and alerts with optional Telegram delivery. | lkramer |
+| Legal information | Public `/privacy` and `/terms` pages. | gansari |
+| Development checks | CI: code, API, build and browser checks. | vkhvosto, lkramer, dbilenko, gansari |
 
-### Settings and security
+Detailed endpoint contracts and archived-account restrictions are in the [API reference](docs/api.md).
 
-| Setting | Details |
-|---|---|
-| Automatic Grafana setup | Loads the data source and dashboards from files in `monitoring/grafana/` |
-| Grafana login | Available only on your computer; login required; users cannot sign themselves up |
-| Alert page | http://localhost:3002/alerting/list; shows the rules checked by Prometheus |
-| Notifications | Alerts appear in the browser by default; Telegram can also send FIRING and RESOLVED messages |
-| Enable Telegram | Add local `.secrets/` files and use `docker-compose.telegram.yml`; see the guide |
-| Backend package | `prom-client` in `backend/package.json`; run `make rebuild` after changing dependencies |
-| Backend setup | No database table changes; `METRICS_HOST` controls the metrics listener address |
-| Metrics access | Keep port 9100 inside Docker; it has no login protection |
-| Running without Docker | Port 9100 defaults to `127.0.0.1`; Compose sets `METRICS_HOST=0.0.0.0` for internal scraping |
+## Modules
 
-### Backend measurements
+Subject v21.1 requires 14 points: Major = 2, Minor = 1; final credit depends on evaluation.
 
-| Metric | Labels | What it measures |
+### Major modules
+
+| Category | Module | Points | Implementation | Contributors |
+| --- | --- | --- | --- | --- |
+| Web | Frameworks for frontend and backend | 2 | Next.js/React UI and Express API provide structured full-stack development. | lkramer, vkhvosto, gansari, dbilenko |
+| Accessibility and Internationalization | Complete WCAG 2.1 AA accessibility | 2 | Keyboard/screen-reader support, contrast and reflow checks; [audit](docs/accessibility.md). | dbilenko, gansari, lkramer |
+| User Management | Standard user management and authentication | 2 | Login, editable profiles, avatars, friends and approximate online status. | lkramer, vkhvosto, dbilenko, gansari |
+| Devops | Monitoring with Prometheus and Grafana | 2 | Exporters, provisioned dashboards and alerts track service health; Grafana requires login. | lkramer |
+| Data and Analytics | Advanced analytics dashboard | 2 | Per-currency charts, filters, CSV/PDF printing and 30-second visible-tab updates. | vkhvosto, dbilenko |
+
+### Minor modules
+
+| Category | Module | Points | Implementation | Contributors |
+| --- | --- | --- | --- | --- |
+| Web | Database ORM | 1 | Drizzle provides typed queries and PostgreSQL migrations. | lkramer, vkhvosto, dbilenko, gansari |
+| Web | Custom design system | 1 | 10+ reusable components, theme colors, typography and icons; `/design-system` showcase. | gansari, dbilenko, lkramer |
+| Web | Advanced search | 1 | Transaction search, combined filters, sorting and pagination saved in the URL. | lkramer, gansari |
+| Web | File upload and management | 1 | Validated JPEG/PNG avatars with private storage, preview, progress and deletion; JSON import with preview. | vkhvosto, dbilenko, lkramer |
+| Accessibility and Internationalization | Multiple languages | 1 | English, German, Persian and Ukrainian with a language switcher. | gansari, dbilenko, vkhvosto, lkramer |
+| Accessibility and Internationalization | RTL support | 1 | Mirrored Persian layouts and directional controls. | gansari, dbilenko, lkramer |
+| User Management | Remote OAuth authentication | 1 | Google login with state/PKCE and protected account linking. | gansari, vkhvosto |
+| User Management | Two-factor authentication | 1 | TOTP for password/Google login, encrypted secrets, recovery codes and rate limits. | vkhvosto |
+| Devops | Health checks, status page, backups and disaster recovery | 1 | Health/status endpoints, database/avatar backups and restore instructions. | lkramer |
+
+### Point calculation
+
+| Scope | Calculation | Points |
 |---|---|---|
-| `http_request_duration_seconds` | `method`, `route`, `status_code` | Request times in seconds, grouped into time buckets; `_count` counts requests |
-| `users_registered_total` | — | New password or Google users saved successfully |
-| `logins_total` | `result`: `success` or `failure` | Completed password/Google logins or rejected credentials, including 2FA codes |
-| `transactions_created_total` | — | Saved transaction rows: 1 for a normal transaction, 2 for a transfer, one per imported row |
-| `pg_pool_connections` | `state`: `total` or `idle` | Total database connections and connections that are free to use |
-| `pg_pool_waiting_count` | — | Requests waiting for a free database connection |
-| `process_*`, `nodejs_*` | Depends on the metric | Standard Node.js measurements, such as CPU and memory use |
+| **Implemented project total, subject to evaluation** | **5 Major × 2 + 9 Minor × 1** | **19** |
 
-### How counting works
 
-| Item | Behavior |
+## Resources
+
+### Documentation and project guides
+
+| Reference | Topic / use |
 |---|---|
-| Counters | Start again when the backend restarts; deleting data does not reduce them |
-| Registration | Counts saved password users and committed Google registrations, even if later session creation fails |
-| Failed database changes | Changes that fail or are undone do not count |
-| Failed logins | Counts rejected passwords, Google codes and 2FA/recovery codes; pending 2FA is not a success; rate limits and server errors remain HTTP metrics |
-| Database connection values | Updated when Prometheus collects them; do not include the separate status-check connections |
-| Request measurements | Include completed public responses, `/health` and `/status`; do not include requests to the internal metrics server |
-| Route names | Use patterns such as `/transactions/:transactionId`, never actual IDs or URL query values |
-| Requests without a matched route | Use `unmatched`; this can include requests rejected before a route is selected because the user is not logged in |
+| [Node.js 22 documentation](https://nodejs.org/docs/latest-v22.x/api/) | runtime and standard library. |
+| [Next.js documentation](https://nextjs.org/docs) and [React documentation](https://react.dev/learn) | routing, rendering and UI. |
+| [Express documentation](https://expressjs.com/) | HTTP routing and middleware. |
+| [PostgreSQL 17 documentation](https://www.postgresql.org/docs/17/) and [Drizzle documentation](https://orm.drizzle.team/docs/overview) | SQL, schema and migrations. |
+| [Docker Compose documentation](https://docs.docker.com/compose/) | local container orchestration. |
+| [Tailwind CSS documentation](https://tailwindcss.com/docs) and [next-intl documentation](https://next-intl.dev/docs/getting-started) | styling and localization. |
+| [Google OpenID Connect documentation](https://developers.google.com/identity/openid-connect/openid-connect) | identity and OAuth integration. |
+| [WCAG 2.1](https://www.w3.org/TR/WCAG21/) | accessibility requirements; see the [project audit](docs/accessibility.md) for recorded evidence. |
+| [Vitest documentation](https://vitest.dev/guide/) and [Playwright documentation](https://playwright.dev/docs/intro) | unit and browser checks. |
+| API guide | [Endpoints, validation and request examples](docs/api.md). |
+| Development guide | [Host development, migrations, Docker commands and troubleshooting](docs/development.md). |
+| Testing guide | [Local checks, API/browser tests and CI](docs/testing.md). |
+| Monitoring guide | [Setup, metrics, alerts and Telegram delivery](docs/monitoring.md). |
+| Design system | Open `/design-system` for the live component showcase; shared components are in `frontend/components/ui/`. |
+| Existing project guides | [Bruno API checks](backend/bruno/README.md), [disaster recovery](docs/disaster-recovery.md). |
+| Evaluation subject | Supplied ft_transcendence **v21.1**, chapter IV (modules) and chapter VI (README). PDF not committed to the repository. |
 
-### Example queries from our panels
+### AI usage
 
-PromQL means Prometheus Query Language. These queries read and calculate measurements.
-The panel files also filter backend requests with `job="backend"`.
+AI was used for concept development, schema brainstorming, documentation, code reviews, debugging, code explanations and implementation suggestions. It helped explore alternative approaches and identify potential issues during development. 
 
-| Example | Query |
-|---|---|
-| Requests per second by route | `sum by (route) (rate(http_request_duration_seconds_count[5m]))` |
-| p95 response time by route (95% of requests are at or below this time) | `histogram_quantile(0.95, sum by (le, route) (rate(http_request_duration_seconds_bucket[5m])))` |
-| Requests waiting for a database connection | `pg_pool_waiting_count` |
+## Individual Contributions
+
+Implementation contributions are listed in the [feature](#features-list) and [module](#modules) tables above.
+
+| 42 login | Challenge | Resolution |
+|---|---|---|
+| vkhvosto | Keeping financial calculations accurate across currencies and transfers. | Store integer minor units, separate currency totals and test transfer/reporting rules. |
+| dbilenko | Making forms, dialogs and charts usable with keyboards, screen readers and narrow screens. | Improve focus handling, labels, contrast and layout; add chart tables and accessibility checks. |
+| lkramer | Keeping Docker dependencies consistent and recovering database/avatar data reliably. | Rebuild dependency volumes, automate backups and verify restoration through a recovery drill. |
+| gansari | Keeping transaction filters, pagination and displayed results synchronized. | Store filters in the URL, reset pagination when filters change and add parsing checks. |

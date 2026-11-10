@@ -23,7 +23,7 @@ type ModalProps = {
 /**
  * Modal shell on the native <dialog>: `showModal()` traps focus, makes the page
  * inert, and returns focus to the opener on close. Focus starts on the element
- * marked `data-autofocus`. Styled after the modal in docs/design/desktop/categories.html.
+ * marked `data-autofocus`.
  */
 export function Modal({ open, title, onClose, busy, describedBy, closeOnBackdropClick = false, className = "", children }: ModalProps) {
   const t = useTranslations("common");

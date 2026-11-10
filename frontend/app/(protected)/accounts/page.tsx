@@ -47,8 +47,7 @@ async function withBalances(accounts: Account[]): Promise<AccountWithBalance[]> 
 }
 
 /**
- * Accounts overview: stat cards and the account list, styled after the cards
- * and "Connected Wallets" rows in docs/design/desktop/profile.html. Rendered
+ * Accounts overview: stat cards and the account list. Rendered
  * inside the app shell, which provides navigation, the user card and the
  * language/theme switchers.
  */

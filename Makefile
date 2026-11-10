@@ -4,7 +4,7 @@ CERT_DIR=nginx/certs
 CERT=$(CERT_DIR)/localhost.pem
 
 # These targets are commands, even if a file with the same name exists.
-.PHONY: build certs up rebuild down stop restart logs clean prune backup restore
+.PHONY: build certs up dev rebuild down stop restart logs clean prune backup restore
 
 # Build service images without starting containers.
 build:
@@ -20,9 +20,13 @@ $(CERT):
 	mkcert -cert-file $(CERT) -key-file $(CERT_DIR)/localhost-key.pem localhost 127.0.0.1 ::1 nginx
 	cp "$$(mkcert -CAROOT)/rootCA.pem" $(CERT_DIR)/ca/rootCA.pem
 
-# Start services in the background, creating containers when needed.
+# Start the full evaluation stack, including backups and monitoring.
 up: $(CERT)
 	$(COMPOSE) up -d
+
+# Start the app, HTTPS proxy and backups without monitoring.
+dev: $(CERT)
+	$(COMPOSE) up -d db backend frontend nginx backup
 
 # Rebuild images and renew dependency volumes; keep database and avatar volumes.
 # Nginx resolves its upstreams only at startup, so restart it to pick up new container IPs.
@@ -47,10 +51,15 @@ restart: $(CERT)
 logs:
 	$(COMPOSE) logs -f
 
-# Delete project containers and volumes, including database and avatar data.
+# Confirm before deleting project containers and database/avatar/monitoring volumes.
 # Host backups in ./backups survive this command.
 clean:
-	$(COMPOSE) down --volumes --remove-orphans
+	@printf 'Delete database, avatar and monitoring volumes? Host backups survive. Type yes to continue: '; \
+	if IFS= read -r confirmation && [ "$$confirmation" = "yes" ]; then \
+		$(COMPOSE) down --volumes --remove-orphans; \
+	else \
+		printf 'Cancelled.\n'; \
+	fi
 
 # Remove unused Docker resources across all projects, including unused images.
 # Docker asks for confirmation before pruning.
