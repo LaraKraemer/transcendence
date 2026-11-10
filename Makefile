@@ -55,8 +55,11 @@ logs:
 # Host backups in ./backups survive this command.
 clean:
 	@printf 'Delete database, avatar and monitoring volumes? Host backups survive. Type yes to continue: '; \
-	IFS= read -r confirmation && [ "$$confirmation" = "yes" ] || { printf 'Cancelled.\n'; exit 1; }
-	$(COMPOSE) down --volumes --remove-orphans
+	if IFS= read -r confirmation && [ "$$confirmation" = "yes" ]; then \
+		$(COMPOSE) down --volumes --remove-orphans; \
+	else \
+		printf 'Cancelled.\n'; \
+	fi
 
 # Remove unused Docker resources across all projects, including unused images.
 # Docker asks for confirmation before pruning.
