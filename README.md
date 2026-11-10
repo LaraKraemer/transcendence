@@ -303,69 +303,67 @@ See [schema.ts](backend/srcs/db/schema.ts) for all columns and constraints.
 
 ## Features List
 
-Contributors below are identified from implementation and test commits, including co-authored commits; team review can add work not recorded in Git.
+Contributors reflect commit authorship and co-authorship; team review can add unrecorded work.
 
 | Implemented feature | Availability and behavior | Contributors |
 |---|---|---|
-| Authentication | UI + API: register, sign in/out, change passwords and manage secure sessions. | lkramer, vkhvosto, gansari |
-| Friends and online status | UI + API: send, accept, decline or remove requests; accepted friends see approximate online status based on activity in the previous ten minutes. | vkhvosto |
-| Google sign-in | UI + API: Google authentication and protected account linking; requires OAuth credentials. | gansari, vkhvosto |
-| Two-factor authentication | UI + API: authenticator-app codes after password or Google login, with single-use recovery codes. | vkhvosto |
-| Profiles and avatars | UI + API: display name, photo preview/upload/replace/delete, initials fallback and permanent profile deletion. | vkhvosto, dbilenko, lkramer, gansari |
-| Accounts | UI + API: account CRUD, opening balances, currencies, calculated balances, archive/restore and permanent deletion. | lkramer, vkhvosto, dbilenko, gansari |
-| Categories | UI + API: CRUD, icon/color, expense/income applicability and linked-transaction counts before deletion. | lkramer, vkhvosto, dbilenko, gansari |
-| Transactions | UI + API: income/expenses, categorization, edit/delete and atomic multi-currency transfers; merchant field is API-only. | lkramer, vkhvosto, dbilenko, gansari |
-| Search and filtering | UI + API: transaction search, combined filters, sorting, pagination and URL-backed UI filters. | lkramer, gansari |
-| Dashboard | UI + API: account balance, recent transactions and monthly category/type summaries. | gansari, lkramer, vkhvosto |
-| Analytics | UI + API: per-currency charts and tables, customizable filters and 30-second visible-tab refresh. | vkhvosto, dbilenko |
-| Export | UI + API: filtered CSV download; UI also supports browser print/save-as-PDF. | vkhvosto, dbilenko |
-| JSON import | UI + API: validated bulk import with preview and existing-category matching. | lkramer |
-| Currency catalog | API used by UI: 17 reference currencies; no exchange-rate conversion. | vkhvosto, lkramer |
-| Localization and themes | UI: EN/DE/FA/UK, Persian RTL, language switcher, responsive layouts and light/dark themes. | gansari, dbilenko, vkhvosto, lkramer |
-| Accessibility and design system | UI: accessible controls, keyboard/screen-reader support and reusable themed components; public `/design-system` catalog. | dbilenko, gansari, lkramer |
-| Operations | Public status UI + API, readiness health endpoint, Compose health checks, automated database/avatar backups and documented restore procedure. | lkramer |
-| Monitoring | Internal Prometheus metrics, Grafana dashboards and Alertmanager alerts with optional Telegram delivery. | lkramer |
-| Legal information | Public `/privacy` and `/terms` pages linked from the application. | gansari |
-| Development checks | CI: automated code, API, build and browser regression checks. | vkhvosto, lkramer, dbilenko, gansari |
+| Authentication | UI + API: register, sign in/out, change passwords and manage sessions. | lkramer, vkhvosto, gansari |
+| Friends and online status | UI + API: friend requests and online status based on the last ten minutes of activity. | vkhvosto |
+| Google sign-in | UI + API: Google login and protected account linking. | gansari, vkhvosto |
+| Two-factor authentication | UI + API: authenticator codes and single-use recovery codes for password/Google login. | vkhvosto |
+| Profiles and avatars | UI + API: edit name, preview/manage photo, initials fallback and delete profile. | vkhvosto, dbilenko, lkramer, gansari |
+| Accounts | UI + API: create/edit/delete accounts, opening balances, currencies, balances and archive/restore. | lkramer, vkhvosto, dbilenko, gansari |
+| Categories | UI + API: manage categories, icons, colors, allowed types and usage counts. | lkramer, vkhvosto, dbilenko, gansari |
+| Transactions | UI + API: categorized income/expenses and linked multi-currency transfers; merchant is API-only. | lkramer, vkhvosto, dbilenko, gansari |
+| Search and filtering | UI + API: search, filters, sorting and pagination; UI filters saved in the URL. | lkramer, gansari |
+| Dashboard | UI + API: balances, recent transactions and monthly summaries. | gansari, lkramer, vkhvosto |
+| Analytics | UI + API: per-currency charts/tables, filters and 30-second visible-tab refresh. | vkhvosto, dbilenko |
+| Export | UI + API: filtered CSV; UI: browser print/save-as-PDF. | vkhvosto, dbilenko |
+| JSON import | UI + API: bulk import with validation, preview and category matching. | lkramer |
+| Currency catalog | API used by UI: 17 currencies; no exchange-rate conversion. | vkhvosto, lkramer |
+| Localization and themes | UI: EN/DE/FA/UK, Persian RTL, responsive layouts and light/dark themes. | gansari, dbilenko, vkhvosto, lkramer |
+| Accessibility and design system | UI: keyboard/screen-reader support and themed components; `/design-system` showcase. | dbilenko, gansari, lkramer |
+| Operations | Status UI/API, health checks, database/avatar backups and restore procedure. | lkramer |
+| Monitoring | Internal metrics, Grafana dashboards and alerts with optional Telegram delivery. | lkramer |
+| Legal information | Public `/privacy` and `/terms` pages. | gansari |
+| Development checks | CI: code, API, build and browser checks. | vkhvosto, lkramer, dbilenko, gansari |
 
 Detailed endpoint contracts and archived-account restrictions are in the [API reference](docs/api.md).
 
 ## Modules
 
-The following selection follows subject v21.1: each Major is worth 2 points, each Minor is worth 1, and 14 points are required; contributors are identified from commit authorship and co-authorship, and evaluation determines credit.
+Subject v21.1 requires 14 points: Major = 2, Minor = 1; final credit depends on evaluation.
 
 ### Major modules
 
-| Category | Module | Points | Justification and implementation | Contributors |
+| Category | Module | Points | Implementation | Contributors |
 | --- | --- | --- | --- | --- |
-| Web | Frameworks for frontend and backend | 2 | Next.js/React and Express structure the UI, server rendering and authenticated API. | lkramer, vkhvosto, gansari, dbilenko |
-| Accessibility and Internationalization | Complete WCAG 2.1 AA accessibility | 2 | Accessible components, keyboard navigation, screen-reader support, contrast/reflow checks and axe/browser checks; see the [accessibility audit](docs/accessibility.md). | dbilenko, gansari, lkramer |
-| User Management | Standard user management and authentication | 2 | Authentication, editable profiles, avatars, friend requests and approximate online status. | lkramer, vkhvosto, dbilenko, gansari |
-| Devops | Monitoring with Prometheus and Grafana | 2 | Prometheus metrics, PostgreSQL exporter/cAdvisor, provisioned Grafana dashboards, alert rules/Alertmanager and authenticated Grafana access. | lkramer |
-| Data and Analytics | Advanced analytics dashboard | 2 | Interactive per-currency charts, date/account/category/type filters, CSV and browser PDF printing; data updates through 30-second visible-tab polling. | vkhvosto, dbilenko |
+| Web | Frameworks for frontend and backend | 2 | Next.js/React UI and Express API provide structured full-stack development. | lkramer, vkhvosto, gansari, dbilenko |
+| Accessibility and Internationalization | Complete WCAG 2.1 AA accessibility | 2 | Keyboard/screen-reader support, contrast and reflow checks; [audit](docs/accessibility.md). | dbilenko, gansari, lkramer |
+| User Management | Standard user management and authentication | 2 | Login, editable profiles, avatars, friends and approximate online status. | lkramer, vkhvosto, dbilenko, gansari |
+| Devops | Monitoring with Prometheus and Grafana | 2 | Exporters, provisioned dashboards and alerts track service health; Grafana requires login. | lkramer |
+| Data and Analytics | Advanced analytics dashboard | 2 | Per-currency charts, filters, CSV/PDF printing and 30-second visible-tab updates. | vkhvosto, dbilenko |
 
 ### Minor modules
 
-| Category | Module | Points | Justification and implementation | Contributors |
+| Category | Module | Points | Implementation | Contributors |
 | --- | --- | --- | --- | --- |
-| Web | Database ORM | 1 | Drizzle provides typed PostgreSQL queries, schema definitions and SQL migrations. | lkramer, vkhvosto, dbilenko, gansari |
-| Web | Custom design system | 1 | More than ten reusable components with theme colors, typography and icons; public `/design-system` catalog. | gansari, dbilenko, lkramer |
-| Web | Advanced search | 1 | Transaction search combines filters, sorting and pagination with URL-backed UI state. | lkramer, gansari |
-| Web | File upload and management | 1 | JPEG/PNG avatars provide validation, access-controlled storage, preview, progress and deletion; JSON transaction files support validated preview/import without file retention. | vkhvosto, dbilenko, lkramer |
-| Accessibility and Internationalization | Multiple languages | 1 | English, German, Persian and Ukrainian catalogs with a language switcher. | gansari, dbilenko, vkhvosto, lkramer |
-| Accessibility and Internationalization | RTL support | 1 | Persian document direction, mirrored layouts and directional controls. | gansari, dbilenko, lkramer |
-| User Management | Remote OAuth authentication | 1 | Google sign-in with state/PKCE and protected identity linking; requires OAuth credentials. | gansari, vkhvosto |
-| User Management | Two-factor authentication | 1 | TOTP setup/enable/disable, encrypted secrets, single-use recovery codes and rate-limited challenges after password or Google sign-in. | vkhvosto |
-| Devops | Health checks, status page, backups and disaster recovery | 1 | Readiness endpoint, public dependency/backup status, retained database/avatar backups and documented restore procedure. | lkramer |
+| Web | Database ORM | 1 | Drizzle provides typed queries and PostgreSQL migrations. | lkramer, vkhvosto, dbilenko, gansari |
+| Web | Custom design system | 1 | 10+ reusable components, theme colors, typography and icons; `/design-system` showcase. | gansari, dbilenko, lkramer |
+| Web | Advanced search | 1 | Transaction search, combined filters, sorting and pagination saved in the URL. | lkramer, gansari |
+| Web | File upload and management | 1 | Validated JPEG/PNG avatars with private storage, preview, progress and deletion; JSON import with preview. | vkhvosto, dbilenko, lkramer |
+| Accessibility and Internationalization | Multiple languages | 1 | English, German, Persian and Ukrainian with a language switcher. | gansari, dbilenko, vkhvosto, lkramer |
+| Accessibility and Internationalization | RTL support | 1 | Mirrored Persian layouts and directional controls. | gansari, dbilenko, lkramer |
+| User Management | Remote OAuth authentication | 1 | Google login with state/PKCE and protected account linking. | gansari, vkhvosto |
+| User Management | Two-factor authentication | 1 | TOTP for password/Google login, encrypted secrets, recovery codes and rate limits. | vkhvosto |
+| Devops | Health checks, status page, backups and disaster recovery | 1 | Health/status endpoints, database/avatar backups and restore instructions. | lkramer |
 
 ### Point calculation
 
 | Scope | Calculation | Points |
 |---|---|---|
-| Implemented in this branch | 5 Major × 2 + 9 Minor × 1 | 19 |
 | **Implemented project total, subject to evaluation** | **5 Major × 2 + 9 Minor × 1** | **19** |
 
-User Management is a separate subject category from Accessibility and Internationalization; OAuth and application 2FA are independent Minor modules and do not require completing the standard user-management Major.
 
 ## Resources
 
