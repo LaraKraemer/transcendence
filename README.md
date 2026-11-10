@@ -287,19 +287,19 @@ A transaction can have no category. Currency is reference data with no foreign k
 
 ### Implemented tables
 
-| Table | Key fields and types | Relationships and constraints |
+| Table | Key fields and types | Relationships |
 |---|---|---|
-| `app_user` | `id uuid`, `email text`, nullable `password_hash text`, `display_name text`, nullable `avatar_url text`, encrypted TOTP secret, last-used step and verification/2FA/presence/create/update timestamps | Case-insensitive unique email. Avatar field stores an internal file key; API exposes a versioned URL. Google-only users have no password hash. |
-| `session` | `id uuid`, `user_id uuid`, `token_hash text`, optional user agent/IP text, expiry/revocation/2FA-verification/create timestamps | Many sessions per user; unique SHA-256 token hash; user deletion cascades. |
-| `user_connection` | `id uuid`, requester/addressee UUIDs, `status text`, creation timestamp | Friend requests and accepted friendships; unique user pair, no self-request; both user foreign keys cascade on deletion. |
-| `recovery_code` | `id uuid`, `user_id uuid`, `code_hash text`, nullable `used_at` and creation timestamps | Single-use 2FA recovery codes stored as hashes; unique user/hash pair; user deletion cascades. |
-| `user_identity` | `id uuid`, `user_id uuid`, `provider text`, `provider_user_id text`, creation timestamp | Many identities per user; unique provider/external ID and user/provider pairs; user deletion cascades. |
-| `account` | `id uuid`, `user_id uuid`, name/type/currency `text`, `opening_balance_minor bigint`, `is_archived boolean`, optional institution/reference text, create/update timestamps | Many accounts per user; user deletion cascades. Currency code has no reference-table FK. |
-| `category` | `id uuid`, `user_id uuid`, name/icon/color `text`, `types text[]`, creation timestamp | Many categories per user; name unique per user; user deletion cascades. Types are a nonempty subset of expense/income. |
-| `transaction` | `id uuid`, account/category/creator UUIDs, `type text`, `amount_minor bigint`, nullable `transfer_group_id uuid`, `booked_on date`, optional occurrence timestamp and description/notes/merchant text, create/update timestamps | Account and creator deletion cascade; category deletion sets category to NULL. Amount is nonzero and sign must match type. Transfer group is present exactly for transfers. |
-| `currency` | `code text` primary key, `name text`, `symbol text`, `minor_unit smallint` | Global reference data; 17 currencies, currently all with two decimal places; no ledger foreign keys. |
+| `app_user` | `id uuid`, `email text`, nullable `password_hash text` | Owns accounts, categories and authentication data |
+| `session` | `id uuid`, `user_id uuid`, `token_hash text`, `expires_at timestamptz` | Login session for one user |
+| `user_connection` | `id uuid`, `requester_id uuid`, `addressee_id uuid`, `status text` | Friend request or accepted friendship between two users |
+| `recovery_code` | `id uuid`, `user_id uuid`, `code_hash text` | Single-use 2FA recovery code for one user |
+| `user_identity` | `id uuid`, `user_id uuid`, `provider text`, `provider_user_id text` | External login linked to one user |
+| `account` | `id uuid`, `user_id uuid`, `currency_code text`, `opening_balance_minor bigint`, `is_archived boolean` | Belongs to one user; contains transactions |
+| `category` | `id uuid`, `user_id uuid`, `name text`, `types text[]` | User-owned category for expenses and/or income |
+| `transaction` | `id uuid`, `account_id uuid`, `category_id uuid`, `amount_minor bigint`, `booked_on date` | Belongs to one account and creator; category is optional |
+| `currency` | `code text`, `symbol text`, `minor_unit smallint` | Global reference data; no foreign keys |
 
-See the [full implemented schema](docs/full-db-schema.md) for all columns and relationships.
+See [schema.ts](backend/srcs/db/schema.ts) for all columns and constraints.
 
 ## Features List
 

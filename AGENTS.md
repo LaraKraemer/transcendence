@@ -92,7 +92,7 @@ Browser → Nginx (HTTPS, host `:3000` and `:8443`) → Next.js `:3000` / Expres
 - `PATCH /auth/password` verifies the current password, atomically updates the password hash and timestamps and revokes all user sessions, then clears the session cookie.
 - CORS allows `FRONTEND_ORIGIN` (default `http://localhost:3000`; Compose sets `https://localhost:3000`) with credentials, so frontend fetches to `NEXT_PUBLIC_API_URL` must use `credentials: "include"`.
 - Queries live in `srcs/db/{accounts,categories,currencies,transactions,users}.ts`; routers in `srcs/routes/` call them. Reuse these helpers, e.g. `findOwnedAccount`.
-- The schema's source of truth is `srcs/db/schema.ts`. `docs/full-db-schema.md` documents the implemented tables, columns and relationships; the README contains a shorter diagram.
+- The schema's source of truth is `srcs/db/schema.ts`. The README documents the implemented tables and relationships in its Database Schema section.
 - Avatar files are stored on a persistent Docker volume mounted at `/app/avatars` (override with `AVATAR_DIR`). `PUT /auth/me/avatar` reads a raw JPEG/PNG body through `express.raw` (no multipart); `GET /auth/me`, login and register expose `avatarUrl` as `/auth/me/avatar?v=<hash of the storage key>` (`v` changes with every upload so browsers refetch), never the storage key. File I/O lives in `srcs/storage.ts`; mock it in tests with `vi.mock("../../srcs/storage.ts")`. Storage keys are `<uuid>.<ext>` server-generated — never derived from client-supplied filenames.
 
 | Mount | Routes |
@@ -148,7 +148,7 @@ Browser → Nginx (HTTPS, host `:3000` and `:8443`) → Next.js `:3000` / Expres
 
 ## Keeping docs current
 
-Whenever the database schema changes, update `docs/full-db-schema.md` in the same change to reflect the affected fields and relationships.
+Whenever the database schema changes, update the Database Schema section in `README.md` in the same change to reflect the affected fields and relationships.
 
 After editing code, re-read `AGENTS.md` and `README.md`. If your change made anything in them outdated (commands, routes, domain rules, conventions, setup steps), suggest the concrete edits to the user.
 
