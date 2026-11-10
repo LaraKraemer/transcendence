@@ -147,11 +147,7 @@ GRAFANA_ADMIN_USER=<grafana-admin-username>
 GRAFANA_ADMIN_PASSWORD=<grafana-admin-password>
 ```
 
-Generate passwords with `openssl rand -hex 24`. Compose initializes the monitoring database user automatically; no manual SQL setup is needed.
-Compose supplies the application database and API URLs: PostgreSQL at `db:5432`, Nginx at `https://nginx:8443` for Next.js, and `https://localhost:8443` for browser API requests. Only Nginx exposes the app to the host; backend port 3001 stays internal.
-
-For Telegram alerts, create `.secrets/telegram_bot_token` and `.secrets/telegram_chat_id`, then enable the Telegram Compose override as described in the [monitoring setup](docs/monitoring.md#1-initial-setup-once-per-installation).
-Never commit `.env` or `.secrets/`.
+See the [monitoring setup](docs/monitoring.md#setup) for password generation, database initialization and Telegram secrets.
 
 #### Host development
 
@@ -187,7 +183,7 @@ See the development guide for [Google sign-in setup](docs/development.md#google-
 
 ### Running Without Docker
 
-Use Node.js 22 and PostgreSQL 17, configure `backend/.env` and `frontend/.env.local` with the host values above, then run `npm ci` and `npm run dev` in each application directory using separate terminals; follow the [complete host setup](docs/development.md#running-without-docker) for commands and storage requirements.
+See the [host development setup](docs/development.md#running-without-docker).
 
 ### Testing and CI
 
@@ -204,7 +200,7 @@ See the [testing guide](docs/testing.md) for API/browser checks, prerequisites a
 
 Use `make logs` for diagnostics and `make down` to stop containers while preserving data; see the [development guide](docs/development.md) for rebuilds and troubleshooting, and the [recovery guide](docs/disaster-recovery.md) for backups and restores.
 
-**`make clean` deletes database, avatar and monitoring data volumes; host `./backups` survives.**
+**Back up first: `make clean` requires typing `yes` before deleting database, avatar and monitoring data volumes; anything else cancels. Host `./backups` survives.**
 
 ## Database Schema
 
@@ -303,15 +299,7 @@ A transaction can have no category. Currency is reference data with no foreign k
 | `transaction` | `id uuid`, account/category/creator UUIDs, `type text`, `amount_minor bigint`, nullable `transfer_group_id uuid`, `booked_on date`, optional occurrence timestamp and description/notes/merchant text, create/update timestamps | Account and creator deletion cascade; category deletion sets category to NULL. Amount is nonzero and sign must match type. Transfer group is present exactly for transfers. |
 | `currency` | `code text` primary key, `name text`, `symbol text`, `minor_unit smallint` | Global reference data; 17 currencies, currently all with two decimal places; no ledger foreign keys. |
 
-### Schema conventions and scope
-
-| Topic | Rule |
-|---|---|
-| Ownership | A user owns many sessions, recovery codes, identities, accounts, categories and created transactions; each transaction belongs to one account and optionally one category. |
-| Types | PostgreSQL-generated UUID keys except currency code; `date` for booking dates, timezone-aware timestamps for events, application-validated text values and SQL transaction constraints. |
-| Money and transfers | Safe-integer minor units; transfer legs share a group UUID, not a separate table or foreign key. |
-| Implemented scope | Nine tables in this branch; [full](docs/full-db-schema.md) and [MVP](docs/mvp-db-schema.md) design documents also contain planned entities, including budgets and savings goals. |
-| Operations | Migrations apply at backend startup; inspection, migration and persistence details are in the [development guide](docs/development.md#database-operations). |
+See the [full implemented schema](docs/full-db-schema.md) for all columns and relationships.
 
 ## Features List
 
@@ -404,7 +392,7 @@ User Management is a separate subject category from Accessibility and Internatio
 
 ### AI usage
 
-AI was used for concept development, code reviews, debugging, code explanations and suggested implementations in TODO (specific project components), with its output verified through TODO (actual review and testing methods).
+AI was used for concept development, schema brainstorming, documentation, code reviews, debugging, code explanations and implementation suggestions. It helped explore alternative approaches and identify potential issues during development. 
 
 ## Individual Contributions
 

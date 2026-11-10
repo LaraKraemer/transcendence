@@ -2,9 +2,7 @@
 
 [Back to project README](../README.md)
 
-Docker base URL: `https://localhost:8443`; backend port 3001 is internal. Scripts must trust `nginx/certs/ca/rootCA.pem`. These endpoints are available in this branch.
-Send JSON unless stated otherwise. Protected routes need the `session` cookie; browser requests must use `credentials: "include"`.
-Users can access only their own data. Missing items and items owned by someone else both return `404`.
+Docker base URL: `https://localhost:8443`; backend port 3001 is internal. Scripts must trust `nginx/certs/ca/rootCA.pem`. Send JSON unless stated otherwise. Protected requests need the session cookie (credentials: "include" in browser fetches). Missing or other users’ resources return 404.
 
 ## Authentication and profile
 
@@ -30,13 +28,6 @@ Users can access only their own data. Missing items and items owned by someone e
 Passwords need at least 12 JavaScript characters and at most 72 UTF-8 bytes; only hashes are stored.
 `avatarUrl` is a versioned image URL, or `null` without an image; replacing the image changes the URL.
 
-Google sign-in requires a verified Google email. Linking an existing same-email account requires its email to be verified too; otherwise the API returns `409`.
-Google-only accounts return `hasPassword: false` and cannot use password login or password changes.
-See [Google setup](development.md#google-sign-in-setup) for credentials and redirect configuration.
-
-When 2FA is enabled, password and Google login return `twoFactorRequired: true` with a ten-minute pending session; only verification, recovery and logout are allowed until the second step succeeds.
-`GET /auth/me` includes `twoFactorEnabled`; 2FA setup requires `TOTP_ENCRYPTION_KEY`.
-
 ## Friends
 
 | Method | Endpoint | Purpose / input |
@@ -46,7 +37,6 @@ When 2FA is enabled, password and Google login return `twoFactorRequired: true` 
 | `POST` | `/friends/:connectionId/accept` | Accept an incoming request. |
 | `DELETE` | `/friends/:connectionId` | Cancel, decline or remove a friendship. |
 
-Only accepted friends see online status: authenticated activity in the previous ten minutes, refreshed at most once a minute. Pending 2FA sessions do not count; offline status is not instant.
 Requests are limited to ten per account and 100 per IP per 15 minutes (`FRIEND_RATE_LIMIT_MAX`, `FRIEND_IP_RATE_LIMIT_MAX`).
 
 ## Accounts and categories
@@ -60,10 +50,6 @@ Requests are limited to ten per account and 100 per IP per 15 minutes (`FRIEND_R
 | `GET`, `PATCH`, `DELETE` | `/categories/:categoryId` | Read, update or delete a category; deletion leaves its transactions uncategorized. |
 | `GET` | `/currencies` | List reference currencies with `code`, `name`, `symbol`, `minorUnit`. |
 
-Archived accounts stay readable and appear in reports. They cannot receive new transactions, imports or transfers, but existing non-transfer transactions can still be edited/deleted.
-Restore with `PATCH {"isArchived": false}` before editing account details; permanent deletion is allowed without restoring.
-Changing an account's currency returns `409` if transactions exist; otherwise it is allowed but does not convert the opening balance.
-Account currency codes accept any three uppercase letters; the reference catalog has 17 currencies, all with `minorUnit: 2`.
 
 ## Transactions
 
@@ -77,11 +63,6 @@ Account currency codes accept any three uppercase letters; the reference catalog
 | `POST` | `/transactions/import?accountId=<uuid>` | Import JSON; see below. |
 | `GET` | `/transactions/export` | Export CSV; see Reports below. |
 
-Money uses safe integers in minor units: `-2499` means an expense of 24.99 for a two-decimal currency. Zero is rejected; expenses are negative, income positive.
-Categories allow expense, income or both; changing a category does not change existing transactions.
-Transfers have no category and cannot be edited. Deleting either entry deletes both; deleting an account can leave the other account's entry behind.
-Same-currency transfer amounts must match. Optional `merchant` accepts up to 100 trimmed characters; blank or `null` clears it.
-The summary returns `{ categoryId, type, totalMinor, count }` rows, including uncategorized entries and transfers, in the selected account's currency.
 
 ### List filters
 
@@ -94,8 +75,6 @@ The summary returns `{ categoryId, type, totalMinor, count }` rows, including un
 | `sort`, `order` | `bookedOn`, `amountMinor` or `createdAt`; `asc` or `desc`; default `bookedOn desc`. Amount sorting uses signed values. |
 | `limit`, `offset` | Page size and number of items to skip. |
 
-The response includes `total`, `moneyInMinor` and `moneyOutMinor` across all matches, not just the page; these sums can mix currencies.
-When both transfer entries are in the account selection, the list shows one item with the other account and amount.
 
 ## Reports and CSV export
 
@@ -108,10 +87,6 @@ Optional filters are `accountId`, `categoryId` and `type` (`expense` or `income`
 | `/analytics/categories` | None | Rows of `{ categoryId, type, totalMinor, count, currencyCode }`; no transfers. |
 | `/transactions/export` | Required `format=csv` | UTF-8 file `transactions.csv`, including transfer entries. |
 
-Expenses stay negative. Weeks start Monday, months on day 1; time series include empty periods as zero rows.
-A period can start before `from`, but only transactions within the requested range count.
-Transfer fields are separate from income/expense and zero when a type or category filter is used; CSV transfer entries have an empty category.
-CSV columns: `account,currency,date,type,category,merchant,description,amount`; ordered by booked date, creation time and ID. Amounts use a decimal point and the currency's precision (fallback 2).
 
 ```text
 GET /analytics/timeseries?from=2026-01-01&to=2026-01-31&granularity=week
@@ -133,8 +108,6 @@ Send raw `application/json` to `POST /transactions/import?accountId=<uuid>`: up 
 ```
 
 Each row needs `bookedOn`, `type` and `amountMinor`; optional fields are `description`, `notes`, `category`, `occurredAt`.
-An optional category name must match an existing owned category after trimming, with the same case, and allow the transaction type; blank/null means no category.
-Transfers, unknown fields/versions and invalid rows are rejected. All rows are saved together or none are saved; success returns `201 { "imported": <count> }`.
 The source file is not stored. Importing again creates duplicates, so check the list before retrying after a network error.
 
 ## Public status

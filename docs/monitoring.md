@@ -1,62 +1,43 @@
 # Poolaki monitoring
 
-Run commands from the repository root.
+Run commands from the repository root; `make up` starts monitoring, while `make dev` does not.
 
-## 1. Initial setup (once per installation)
+## Setup
 
-1. Copy `.env.example` to `.env` if missing. Set these values; generate passwords
-   with `openssl rand -hex 24`:
+1. Copy `.env.example` to `.env` if missing, then replace these placeholders; generate passwords with `openssl rand -hex 24`:
 
-   **Environment variables**
-
-   | Variable | Purpose |
-   |---|---|
-   | `POSTGRES_EXPORTER_PASSWORD` | Password for the database user created below |
-   | `GRAFANA_ADMIN_USER` | Initial Grafana admin username |
-   | `GRAFANA_ADMIN_PASSWORD` | Initial Grafana admin password |
-
-2. Start the stack. Compose waits for PostgreSQL, then `monitoring-db-init`
-   creates the restricted `monitoring` user and sets its password from `.env`.
-   The exporter starts only after this succeeds. No manual SQL setup is needed.
-
-   ```bash
-   make up
+   ```env
+   POSTGRES_EXPORTER_PASSWORD=<monitoring-database-password>
+   GRAFANA_ADMIN_USER=<grafana-admin-username>
+   GRAFANA_ADMIN_PASSWORD=<grafana-admin-password>
    ```
 
-   Setup also works after `make clean` and when the monitoring user already exists.
-   After changing the exporter password, run `docker compose up -d` to update both
-   the database role and the exporter. `docker compose restart` does not rerun setup.
-   Use `make rebuild` instead after dependency changes. Grafana loads its data
-   source and dashboards automatically; no manual dashboard creation is needed.
+2. Run `make up`; Compose creates the monitoring database user and Grafana loads its dashboards automatically.
+   After changing the exporter password, run `docker compose up -d` to update the database role and exporter; restarting alone does not apply the change.
 
-3. For Telegram, obtain the shared bot token and intended group ID privately from the maintainer.
-   Create the local directory:
+### Telegram alerts
+
+1. Obtain the bot token and group ID privately from the maintainer, then create the secret directory:
 
    ```bash
    mkdir -p .secrets
    chmod 700 .secrets
    ```
 
-4. Save the values in your editor, without quotes or variable names:
-
-   **Telegram credential files**
-
-   | File | Content |
-   |---|---|
-   | `.secrets/telegram_bot_token` | Bot token only |
-   | `.secrets/telegram_chat_id` | Group ID only, including its leading minus sign |
+2. In your editor, save only the token in `.secrets/telegram_bot_token` and only the group ID in `.secrets/telegram_chat_id`, including any leading minus sign; do not add quotes or variable names.
+   Keep the directory private while allowing the container to read its files:
 
    ```bash
    chmod 644 .secrets/telegram_bot_token .secrets/telegram_chat_id
    ```
 
-5. Add this line to the existing root `.env` on macOS/Linux:
+3. Add this to the existing root `.env` on macOS/Linux:
 
-   ```dotenv
+   ```env
    COMPOSE_FILE=docker-compose.yml:docker-compose.telegram.yml
    ```
 
-6. Validate and activate:
+4. Validate and activate; repeat after changing Telegram credentials:
 
    ```bash
    sh scripts/monitoring.check.sh
@@ -64,82 +45,38 @@ Run commands from the repository root.
    docker compose restart prometheus
    ```
 
-> **Info:** Telegram sends **FIRING** and **RESOLVED** to the configured group. Outbound Internet
-> access is required. Repeat the activation commands after changing credentials.
-> To disable Telegram, remove `COMPOSE_FILE` and recreate Alertmanager.
+Telegram sends **FIRING** and **RESOLVED** messages and needs outbound Internet access.
+To disable delivery, remove `COMPOSE_FILE` and recreate Alertmanager.
+Never commit `.env` or `.secrets/`.
 
-## 2. Daily use
+## Access
 
-### Access and daily commands
-
-| Resource | Access |
+| Resource | Location |
 |---|---|
-| Grafana | http://localhost:3002; login with the Grafana credentials from `.env` |
-| Dashboards | **Poolaki** → **Backend-Dashboard** / **Database-Dashboard** |
-| Alerts | http://localhost:3002/alerting/list; Prometheus data source-managed rules |
-| Pause / resume | `make stop` / `make up` |
+| Grafana | http://localhost:3002; sign in with the credentials from `.env` |
+| Dashboards | Poolaki → Backend-Dashboard / Database-Dashboard |
+| Alerts | http://localhost:3002/alerting/list |
 
-> **Info:** To keep dashboard edits, export them back to the JSON files in `monitoring/grafana/dashboards/`.
+Prometheus, Alertmanager, exporters and backend metrics stay inside Docker; do not expose their unauthenticated ports.
+Dashboard files are in `monitoring/grafana/`; alert rules are in `monitoring/alerts.yml`.
 
-### Temporary Prometheus access
+## Verify alerts
 
-| Step | Action / command |
-|---|---|
-| Default access | Prometheus, exporters, Alertmanager and backend metrics port 9100 are internal only |
-| 1. Open without Telegram | `docker compose -f docker-compose.yml -f docker-compose.monitoring-debug.yml up -d prometheus` |
-| 1. Open with Telegram | `docker compose -f docker-compose.yml -f docker-compose.telegram.yml -f docker-compose.monitoring-debug.yml up -d prometheus` |
-| 2. View scrape targets | http://localhost:9090/targets |
-| 2. View alert states | http://localhost:9090/alerts |
-| 3. Close debug access | `docker compose up -d --force-recreate prometheus` (uses the normal root `.env` configuration) |
-| 4. Verify closure | `docker compose ps` must show `9090/tcp` without a host mapping such as `127.0.0.1:9090->9090/tcp` |
-| After closing | Grafana and Telegram continue to work |
+- Run `sh scripts/monitoring.check.sh` to validate configuration without sending messages
+- Open Grafana in a private browser window and confirm login is required
+- In Grafana Explore, check `up{job="backend"}` and `pg_up{job="postgres-exporter"}` both return `1`
 
-## 3. Verification
+Alerts cover backend/database/exporter availability, high error rate, slow responses and database connection queues.
 
-### Configuration and security checks
+### Telegram delivery test
 
-| Check | Expected result |
-|---|---|
-| `sh scripts/monitoring.check.sh` | Valid Compose, six rules and both receiver configurations; no messages sent |
-| `sh scripts/monitoring-db.check.sh` | Fresh/repeated role setup, password rotation and restricted permissions on a disposable database |
-| Prometheus Targets | Backend, Prometheus, PostgreSQL exporter and cAdvisor are UP |
-| `pg_up{job="postgres-exporter"}` | `1` |
-| Existing [Bruno smoke test](testing.md#api-smoke-tests) | Passes; Grafana traffic panels change |
-| Fresh private browser at http://localhost:3002/dashboards | Login required |
-| `curl -i --cacert nginx/certs/ca/rootCA.pem https://localhost:8443/metrics` | HTTP 404 |
-| `docker compose ps` after closing debug access | No host-port mappings for internal monitoring services |
+1. Run `docker compose stop backend`; leave monitoring running.
+2. Wait about two minutes for a **BackendDown FIRING** message.
+3. Run `docker compose start backend`.
+4. Wait for the backend to recover and a **RESOLVED** message, usually within another minute.
 
-Backend checks: see [Code Checks](testing.md#local-checks) and
-[Unit Tests](testing.md#backend).
-
-`BackendDown` covers an unreachable backend; `PostgresExporterDown` covers an
-unreachable exporter. `PostgresDown` means the exporter is running but cannot
-connect to PostgreSQL. Error-rate, latency and pool-queue rules evaluate available
-measurements rather than duplicating the service-down alarms.
-
-### Live Telegram delivery test
-
-| Step | Action | Expected result |
-|---|---|---|
-| 1 | `docker compose stop backend` | Backend stops |
-| 2 | Wait about two minutes | **BackendDown** becomes **Firing**; Telegram receives **FIRING** |
-| 3 | `docker compose start backend` | Backend starts |
-| 4 | Wait until healthy and the alarm clears | Telegram receives **RESOLVED**, usually within another minute |
-
-To test exporter availability instead, stop/start `postgres-exporter` with the
-same commands. Expect `PostgresExporterDown` and its recovery message.
-
-Wait for each state change before continuing. If delivery fails:
+If no message arrives, check the group ID, bot permissions, token and network, then inspect:
 
 ```bash
 docker compose logs --since=10m alertmanager
 ```
-
-Check the group ID, bot permissions, token and network. Stopping the entire stack
-also stops monitoring. `make clean` deletes database, avatar and monitoring data volumes.
-
-## Internal metrics
-
-Prometheus, Alertmanager, exporters and backend metrics (`backend:9100/metrics`) stay inside Docker; only Grafana is exposed on localhost and requires login.
-Do not publish the backend metrics port: it has no authentication. Host runs bind it to `127.0.0.1` by default; Compose sets `METRICS_HOST=0.0.0.0` for internal scraping.
-Dashboard definitions and queries live in `monitoring/grafana/`; alert rules live in `monitoring/alerts.yml`.

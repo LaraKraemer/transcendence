@@ -68,18 +68,3 @@ Status: **Pass**, **N/A** (no such content), **Implemented** (implementation con
 | 4.1.2 | A | Name, Role, Value | Implemented | axe. Native elements, `aria-pressed` on toggles, `aria-current` on navigation. |
 | 4.1.3 | AA | Status Messages | Implemented | LiveStatusProvider announces results such as saves, archives and deletions. |
 
-## Manual regression checks
-
-The team confirms the accessibility implementation is complete; use these walkthroughs for regression checks and record the date, tester, browser and screen reader when running them.
-
-1. Keyboard only (Chrome and Safari, macOS): register → create account → create category → create expense and income → edit → transfer → delete → change language to فارسی and back → toggle theme → log out. Check that focus is always visible, Esc closes every dialog, and focus returns to the button that opened it.
-2. VoiceOver (macOS, Safari): the same flows. Listen for field names and errors, dialog titles and descriptions, the "archived/deleted/saved" announcements, and the current page in the navigation.
-
-Out of scope: WCAG 2.2 and AAA criteria, mobile screen readers (TalkBack, iOS VoiceOver; untested), and the PDF of the print export.
-
-## Pages added later
-
-Add new pages and dialogs to `publicPages`, `protectedPages` or `dialogs` in `frontend/a11y.check.mjs`, and update the scope and scan count above. Charts need a text or table alternative (1.1.1).
-
-The status page is included in the automated scan; `node status.check.mjs` checks its refresh, failure and pause/resume behavior separately.
-Manual accessibility verification for the status page was reported complete by the user on 2026-11-02, including VoiceOver navigation.
