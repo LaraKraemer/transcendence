@@ -11,15 +11,27 @@ export function formatAmount(
   locale: string,
   signDisplay: Intl.NumberFormatOptions["signDisplay"] = "auto",
 ): string {
-  // ponytail: float division is exact enough for realistic amounts (≪ 2^53 minor units);
-  // switch to formatting a decimal string if huge values ever matter.
+  if (!Number.isSafeInteger(amountMinor)) throw new RangeError("Monetary amount exceeds the safe integer range");
+  const decimal = `${amountMinor}e${-minorUnit}` as Intl.StringNumericLiteral;
   return new Intl.NumberFormat(locale, {
     style: "currency",
     currency: currencyCode,
     signDisplay,
     minimumFractionDigits: minorUnit,
     maximumFractionDigits: minorUnit,
-  }).format(amountMinor / 10 ** minorUnit);
+  }).format(decimal);
+}
+
+/** Adds minor units exactly, including cancellation, or rejects an unrepresentable result. */
+export function sumMinorUnits(amounts: number[]): number {
+  let total = BigInt(0);
+  for (const amount of amounts) {
+    if (!Number.isSafeInteger(amount)) throw new RangeError("Monetary amount exceeds the safe integer range");
+    total += BigInt(amount);
+  }
+  const result = Number(total);
+  if (!Number.isSafeInteger(result)) throw new RangeError("Monetary total exceeds the safe integer range");
+  return result;
 }
 
 /** A readable transaction name, including when optional details are absent. */

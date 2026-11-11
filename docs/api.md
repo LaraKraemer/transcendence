@@ -21,12 +21,13 @@ Docker base URL: `https://localhost:8443`; backend port 3001 is internal. Script
 | `PATCH` | `/auth/me` | Change `displayName`. |
 | `PATCH` | `/auth/password` | Send `currentPassword` and `newPassword`; success returns `204` and ends all sessions. |
 | `DELETE` | `/auth/me` | Permanently delete the user and all owned data, including archived accounts; returns `204` and ends all sessions. |
-| `PUT` | `/auth/me/avatar` | Upload a raw JPEG/PNG body, up to 5 MiB; use `image/jpeg` or `image/png`, not multipart. |
+| `PUT` | `/auth/me/avatar` | Upload a decodable JPEG/PNG, up to 5 MiB and 16 megapixels; use `image/jpeg` or `image/png`, not multipart. |
 | `GET` | `/auth/me/avatar` | Get the profile image. |
 | `DELETE` | `/auth/me/avatar` | Remove the profile image. |
 
 Passwords need at least 12 JavaScript characters and at most 72 UTF-8 bytes; only hashes are stored.
 `avatarUrl` is a versioned image URL, or `null` without an image; replacing the image changes the URL.
+Invalid or truncated images are rejected before replacing the current photo.
 
 ## Friends
 
@@ -65,6 +66,12 @@ Requests are limited to ten per account and 100 per IP per 15 minutes (`FRIEND_R
 
 
 ### List filters
+
+Money uses integer minor units. Balances and aggregate totals outside the safe integer range
+(`-9007199254740991` to `9007199254740991`) return `422`, never a rounded amount.
+Free-text fields reject NUL characters.
+Optional `occurredAt` accepts a real `YYYY-MM-DD` date or
+`YYYY-MM-DDTHH:mm:ss[.SSS]Z` (also numeric timezone offsets); its UTC year must be 0001–9999.
 
 | Parameter | Meaning |
 |---|---|
@@ -128,7 +135,8 @@ Errors return `{ "error": "message" }`.
 | `404` | Item missing or owned by another user. |
 | `409` | Conflict, such as an archived destination or email already in use. |
 | `413` | Body exceeds the size limit. |
-| `415` | Unsupported avatar content type. |
+| `415` | Unsupported, invalid or oversized-in-pixels avatar image. |
+| `422` | A monetary total cannot be represented safely. |
 | `429` | Too many authentication attempts. |
 
 See the [Bruno collection](../backend/bruno/README.md) for runnable API examples and the [testing guide](testing.md) for checks.

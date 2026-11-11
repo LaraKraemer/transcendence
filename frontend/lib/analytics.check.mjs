@@ -71,5 +71,31 @@ assert.deepEqual(
 // Net is the change of balance, transfers included; a transfer-only account still has one.
 assert.deepEqual(reports.map(netMinor), [250, 20]);
 assert.equal(netMinor(reports[1].series[1]), 70);
+assert.equal(
+  netMinor({
+    incomeMinor: Number.MAX_SAFE_INTEGER,
+    expenseMinor: 0,
+    transferInMinor: 2,
+    transferOutMinor: -Number.MAX_SAFE_INTEGER,
+  }),
+  2,
+);
+assert.throws(
+  () =>
+    reportsByCurrency(
+      [
+        {
+          period: "2026-10-01",
+          currencyCode: "EUR",
+          incomeMinor: Number.MAX_SAFE_INTEGER,
+          expenseMinor: 0,
+          ...noTransfers,
+        },
+        { period: "2026-10-02", currencyCode: "EUR", incomeMinor: 2, expenseMinor: 0, ...noTransfers },
+      ],
+      [],
+    ),
+  RangeError,
+);
 
 console.log("analytics.ts: all checks passed");

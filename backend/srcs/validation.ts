@@ -15,6 +15,21 @@ export const TEXT_LIMITS = {
   notes: 2000,
 } as const;
 
+/** A monetary result cannot be represented by the API's integer number contract. */
+export class MoneyRangeError extends RangeError {
+  constructor() {
+    super("Monetary total exceeds the safe integer range");
+    this.name = "MoneyRangeError";
+  }
+}
+
+/** Converts an exact SQL/BigInt monetary result without silently rounding it. */
+export function toSafeMoneyNumber(value: string | bigint): number {
+  const amount = Number(value);
+  if (!Number.isSafeInteger(amount)) throw new MoneyRangeError();
+  return amount;
+}
+
 /** Returns whether a value is a valid UUID string. */
 export function isUuid(value: unknown): value is string {
   return typeof value === "string" && UUID_PATTERN.test(value);
@@ -22,7 +37,12 @@ export function isUuid(value: unknown): value is string {
 
 /** Returns whether a normalized email meets the registration and friend-request rules. */
 export function isEmail(value: unknown): value is string {
-  return typeof value === "string" && value.length <= TEXT_LIMITS.email && /^\S+@\S+\.\S+$/.test(value);
+  return (
+    typeof value === "string" &&
+    !value.includes("\0") &&
+    value.length <= TEXT_LIMITS.email &&
+    /^\S+@\S+\.\S+$/.test(value)
+  );
 }
 
 /** Returns whether a value has the three-uppercase-letter ISO 4217 format. */
@@ -30,9 +50,19 @@ export function isCurrencyCode(value: unknown): value is string {
   return typeof value === "string" && CURRENCY_CODE_PATTERN.test(value);
 }
 
-/** Returns whether a value is a parseable ISO 8601 timestamp string. */
+/** Accepts real ISO dates or millisecond timestamps whose UTC year fits 0001–9999. */
 export function isIsoTimestamp(value: unknown): value is string {
-  return typeof value === "string" && !Number.isNaN(Date.parse(value));
+  if (
+    typeof value !== "string" ||
+    !/^\d{4}-\d{2}-\d{2}(?:T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d{1,3})?(?:Z|[+-](?:[01]\d|2[0-3]):[0-5]\d))?$/.test(
+      value,
+    ) ||
+    !isDateOnly(value.slice(0, 10)) ||
+    Number.isNaN(Date.parse(value))
+  ) {
+    return false;
+  }
+  return isDateOnly(new Date(value).toISOString().slice(0, 10));
 }
 
 /** Returns whether a value is a YYYY-MM-DD date string. */
@@ -80,7 +110,7 @@ export function isJpegOrPng(header: Buffer): "image/jpeg" | "image/png" | null {
  */
 export function parseOptionalText(value: unknown, maxLength: number): string | null | undefined {
   if (value === null) return null;
-  if (typeof value !== "string") return undefined;
+  if (typeof value !== "string" || value.includes("\0")) return undefined;
   const text = value.trim();
   if (text.length > maxLength) return undefined;
   return text === "" ? null : text;
@@ -91,9 +121,7 @@ export function parseOptionalText(value: unknown, maxLength: number): string | n
  * blank, or longer than `maxLength` trimmed characters.
  */
 export function parseRequiredText(value: unknown, maxLength: number): string | undefined {
-  if (typeof value !== "string") return undefined;
-  const text = value.trim();
-  return text === "" || text.length > maxLength ? undefined : text;
+  return parseOptionalText(value, maxLength) ?? undefined;
 }
 
 /** Returns an error message when the sign of the amount contradicts an expense or income type. */

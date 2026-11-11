@@ -2,6 +2,7 @@ import { createHash, randomBytes, randomUUID } from "node:crypto";
 
 import express, { Router } from "express";
 import type { Request, Response } from "express";
+import sharp from "sharp";
 
 import {
   clearSessionCookie,
@@ -52,6 +53,8 @@ import { isEmail, isJpegOrPng, isValidPassword, parseRequiredText, TEXT_LIMITS }
 
 export const authRouter = Router();
 const avatarMaxBytes = 5 * 1024 * 1024;
+const avatarMaxPixels = 16_000_000;
+const avatarDecodeTimeoutSeconds = 5;
 const avatarRoute = "/auth/me/avatar";
 
 /**
@@ -116,7 +119,7 @@ authRouter.post("/login", async (req, res) => {
   const { email, password } = req.body ?? {};
   const normalizedEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
 
-  if (!normalizedEmail || typeof password !== "string") {
+  if (!isEmail(normalizedEmail) || typeof password !== "string") {
     logins.inc({ result: "failure" });
     res.status(401).json({ error: "Invalid email or password" });
     return;
@@ -254,6 +257,17 @@ authRouter.put(
     const mimeType = Buffer.isBuffer(image) ? isJpegOrPng(image) : null;
     if (!Buffer.isBuffer(image) || mimeType === null) {
       res.status(415).json({ error: "Body must be a JPEG or PNG image" });
+      return;
+    }
+
+    try {
+      await sharp(image, { limitInputPixels: avatarMaxPixels, failOn: "warning" })
+        .timeout({ seconds: avatarDecodeTimeoutSeconds })
+        .raw()
+        .toBuffer();
+    } catch (error) {
+      console.warn("Avatar decoding rejected:", error instanceof Error ? error.message : error);
+      res.status(415).json({ error: "Body must be a valid JPEG or PNG image of at most 16 megapixels" });
       return;
     }
 

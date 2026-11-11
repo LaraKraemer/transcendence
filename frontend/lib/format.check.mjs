@@ -2,7 +2,7 @@
 //   node --experimental-strip-types lib/format.check.mjs
 import assert from "node:assert/strict";
 
-import { formatAmount, transactionLabel } from "./format.ts";
+import { formatAmount, sumMinorUnits, transactionLabel } from "./format.ts";
 
 const NBSP = "\u00a0"; // Intl puts a no-break space between a code/symbol and the number
 
@@ -15,6 +15,13 @@ assert.equal(formatAmount(1250, "JPY", 2, "en-US"), "¥12.50"); // our minorUnit
 assert.equal(formatAmount(1250, "EUR", 2, "de-DE"), `12,50${NBSP}€`); // locale: separators and symbol position
 assert.equal(formatAmount(123456789, "EUR", 2, "de-DE"), `1.234.567,89${NBSP}€`);
 assert.equal(formatAmount(1250, "EUR", 2, "en-US", "exceptZero"), "+€12.50");
+assert.equal(formatAmount(Number.MAX_SAFE_INTEGER, "EUR", 2, "en-US"), "€90,071,992,547,409.91");
+assert.equal(formatAmount(-Number.MAX_SAFE_INTEGER, "EUR", 2, "de-DE"), `-90.071.992.547.409,91${NBSP}€`);
+assert.equal(formatAmount(-1, "EUR", 2, "en-US"), "-€0.01");
+assert.throws(() => formatAmount(9007199254740992, "EUR", 2, "en-US"), RangeError);
+assert.equal(sumMinorUnits([Number.MAX_SAFE_INTEGER, 2, -Number.MAX_SAFE_INTEGER]), 2);
+assert.throws(() => sumMinorUnits([Number.MAX_SAFE_INTEGER, 2]), RangeError);
+assert.throws(() => sumMinorUnits([1.5]), RangeError);
 console.log("formatAmount: ok");
 
 assert.equal(transactionLabel({ description: "Lunch", merchant: "Cafe" }, "Food", "Expense"), "Lunch");

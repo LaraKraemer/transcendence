@@ -14,6 +14,7 @@ vi.mock("../../srcs/auth.ts", () => ({
 }));
 
 import { accountsRouter } from "../../srcs/routes/account.ts";
+import { MoneyRangeError } from "../../srcs/validation.ts";
 import { dispatch } from "../helpers/dispatch.ts";
 
 const accountId = "550e8400-e29b-41d4-a716-446655440000";
@@ -91,6 +92,18 @@ describe("GET /accounts/:accountId/balance", () => {
   function balance(id = accountId) {
     return dispatch(accountsRouter, { url: `/${id}/balance` });
   }
+
+  it("rejects a balance outside the API number range instead of rounding it", async () => {
+    query.mockResolvedValueOnce({ rows: [accountRow({ openingBalanceMinor: "9007199254740991" })] });
+    query.mockResolvedValueOnce({ rows: [["2"]] });
+    await expect(balance()).rejects.toThrow(MoneyRangeError);
+  });
+
+  it("adds the opening balance before converting an unsafe transaction sum to a number", async () => {
+    query.mockResolvedValueOnce({ rows: [accountRow({ openingBalanceMinor: "-9007199254740991" })] });
+    query.mockResolvedValueOnce({ rows: [["9007199254740993"]] });
+    expect(await balance()).toEqual({ status: 200, body: { balanceMinor: 2, currencyCode: "EUR" } });
+  });
 
   it.each([
     ["3000", 13000],
@@ -245,6 +258,7 @@ describe("POST /accounts", () => {
   it.each([
     [{ ...validBody, name: undefined }, "name must be between 1 and 100 characters"],
     [{ ...validBody, name: "  " }, "name must be between 1 and 100 characters"],
+    [{ ...validBody, name: "before\0after" }, "name must be between 1 and 100 characters"],
     [{ ...validBody, name: "a".repeat(101) }, "name must be between 1 and 100 characters"],
   ])("rejects invalid name", async (body, error) => {
     expect(await post(body)).toEqual({ status: 400, body: { error } });

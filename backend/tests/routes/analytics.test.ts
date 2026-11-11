@@ -19,6 +19,7 @@ vi.mock("../../srcs/auth.ts", () => ({
 import { analyticsRouter } from "../../srcs/routes/analytics.ts";
 import { transactionsRouter } from "../../srcs/routes/transaction.ts";
 import { accounts, categories } from "../../srcs/db/schema.ts";
+import { MoneyRangeError } from "../../srcs/validation.ts";
 
 const userId = "550e8400-e29b-41d4-a716-446655440001";
 const accountId = "550e8400-e29b-41d4-a716-446655440002";
@@ -105,6 +106,13 @@ describe.each(routes)("$url reporting filters", ({ router, url, params }) => {
 });
 
 describe("GET /analytics/timeseries", () => {
+  it("rejects a period total outside the safe number range", async () => {
+    query.mockResolvedValueOnce({ rows: [["2025-01-01", "EUR", "9007199254740993", "0", "0", "0"]] });
+    await expect(
+      dispatch(analyticsRouter, { url: "/timeseries", query: { ...range, granularity: "day" } }),
+    ).rejects.toThrow(MoneyRangeError);
+  });
+
   it.each([undefined, "year", "", ["day", "month"]])("rejects granularity %j", async (granularity) => {
     expect(await dispatch(analyticsRouter, { url: "/timeseries", query: { ...range, granularity } })).toEqual({
       status: 400,
@@ -157,6 +165,11 @@ describe("GET /analytics/timeseries", () => {
 });
 
 describe("GET /analytics/categories", () => {
+  it("rejects an unsafe category total instead of returning rounded money", async () => {
+    query.mockResolvedValueOnce({ rows: [[null, "income", "9007199254740993", "2", "EUR"]] });
+    await expect(dispatch(analyticsRouter, { url: "/categories", query: range })).rejects.toThrow(MoneyRangeError);
+  });
+
   it("returns signed totals, currency codes and uncategorized entries using the shared summary", async () => {
     query.mockResolvedValueOnce({
       rows: [

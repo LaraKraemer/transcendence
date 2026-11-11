@@ -649,6 +649,10 @@ describe("POST /transactions", () => {
     [{ ...validBody, notes: "a".repeat(2001) }, "notes must be a string of at most 2000 characters or null"],
     [{ ...validBody, categoryId: "not-a-uuid" }, "categoryId must be a valid UUID"],
     [{ ...validBody, occurredAt: "not-a-date" }, "occurredAt must be a valid ISO 8601 timestamp or null"],
+    [
+      { ...validBody, occurredAt: "-010000-01-01T00:00:00.000Z" },
+      "occurredAt must be a valid ISO 8601 timestamp or null",
+    ],
   ])("returns 400 for invalid body %j", async (body, error) => {
     expect(await post(body)).toEqual({ status: 400, body: { error } });
     expect(query).not.toHaveBeenCalled();
@@ -788,6 +792,7 @@ describe("PATCH /transactions/:transactionId", () => {
     [{ notes: "a".repeat(2001) }, "notes must be a string of at most 2000 characters or null"],
     [{ bookedOn: "2025/01/01" }, "bookedOn must use YYYY-MM-DD format"],
     [{ occurredAt: "not-a-date" }, "occurredAt must be a valid ISO 8601 timestamp or null"],
+    [{ occurredAt: "-010000-01-01T00:00:00.000Z" }, "occurredAt must be a valid ISO 8601 timestamp or null"],
   ])("returns 400 for invalid field %j (found tx)", async (body, error) => {
     query.mockResolvedValueOnce({ rows: [txRow()] }); // findOwnedTransaction
     expect(await patch(transactionId, body)).toEqual({ status: 400, body: { error } });
@@ -1033,6 +1038,10 @@ describe("POST /transactions/transfers", () => {
     [{ ...validBody, notes: 1 }, "notes must be a string of at most 2000 characters or null"],
     [{ ...validBody, notes: "a".repeat(2001) }, "notes must be a string of at most 2000 characters or null"],
     [{ ...validBody, occurredAt: "nope" }, "occurredAt must be a valid ISO 8601 timestamp or null"],
+    [
+      { ...validBody, occurredAt: "-010000-01-01T00:00:00.000Z" },
+      "occurredAt must be a valid ISO 8601 timestamp or null",
+    ],
   ])("returns 400 for invalid body %j", async (body, error) => {
     expect(await post(body)).toEqual({ status: 400, body: { error } });
     expect(query).not.toHaveBeenCalled();
@@ -1273,7 +1282,7 @@ describe("transaction merchants", () => {
   it.each([null, "Cafe"])("includes merchant %j in list and detail", async (merchant) => {
     query.mockResolvedValueOnce({ rows: [acctRow()] });
     query.mockResolvedValueOnce({ rows: [txRow({ merchant })] });
-    query.mockResolvedValueOnce({ rows: [[1]] });
+    query.mockResolvedValueOnce({ rows: [[1, "0", "0"]] });
     expect(await dispatch(transactionsRouter, { url: "/", query: { accountId } })).toMatchObject({
       status: 200,
       body: { items: [{ merchant }] },

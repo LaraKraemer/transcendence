@@ -19,6 +19,7 @@ import { alias } from "drizzle-orm/pg-core";
 
 import { transactionsCreated } from "../metrics.ts";
 import type { TransactionImport } from "../transaction-import.ts";
+import { toSafeMoneyNumber } from "../validation.ts";
 import { db } from "./client.ts";
 import { accounts, categories, currencies, transactions } from "./schema.ts";
 import type { NewTransaction, Transaction } from "./schema.ts";
@@ -158,11 +159,11 @@ export async function listTransactions(
         total: count(),
         moneyInMinor:
           sql<number>`coalesce(sum(${transactions.amountMinor}) filter (where ${transactions.amountMinor} > 0), 0)`.mapWith(
-            Number,
+            toSafeMoneyNumber,
           ),
         moneyOutMinor:
           sql<number>`coalesce(sum(${transactions.amountMinor}) filter (where ${transactions.amountMinor} < 0), 0)`.mapWith(
-            Number,
+            toSafeMoneyNumber,
           ),
       })
       .from(transactions)
@@ -197,7 +198,7 @@ export async function summarizeTransactionsByCategory(
     .select({
       categoryId: transactions.categoryId,
       type: transactions.type,
-      totalMinor: sql<number>`SUM(${transactions.amountMinor})`.mapWith(Number),
+      totalMinor: sql<number>`SUM(${transactions.amountMinor})`.mapWith(toSafeMoneyNumber),
       count: sql<number>`COUNT(*)`.mapWith(Number),
       currencyCode: accounts.currencyCode,
     })
@@ -221,18 +222,18 @@ export async function transactionTimeSeries(
         period: period.as("total_period"),
         currencyCode: accounts.currencyCode,
         incomeMinor: sql<number>`sum(${transactions.amountMinor}) filter (where ${transactions.type} = 'income')`
-          .mapWith(Number)
+          .mapWith(toSafeMoneyNumber)
           .as("income_minor"),
         expenseMinor: sql<number>`sum(${transactions.amountMinor}) filter (where ${transactions.type} = 'expense')`
-          .mapWith(Number)
+          .mapWith(toSafeMoneyNumber)
           .as("expense_minor"),
         transferOutMinor:
           sql<number>`sum(${transactions.amountMinor}) filter (where ${transactions.type} = 'transfer' and ${transactions.amountMinor} < 0)`
-            .mapWith(Number)
+            .mapWith(toSafeMoneyNumber)
             .as("transfer_out_minor"),
         transferInMinor:
           sql<number>`sum(${transactions.amountMinor}) filter (where ${transactions.type} = 'transfer' and ${transactions.amountMinor} > 0)`
-            .mapWith(Number)
+            .mapWith(toSafeMoneyNumber)
             .as("transfer_in_minor"),
       })
       .from(transactions)
@@ -263,10 +264,10 @@ export async function transactionTimeSeries(
     .select({
       period: periods.period,
       currencyCode: accountCurrencies.currencyCode,
-      incomeMinor: sql<number>`coalesce(${totals.incomeMinor}, 0)`.mapWith(Number),
-      expenseMinor: sql<number>`coalesce(${totals.expenseMinor}, 0)`.mapWith(Number),
-      transferOutMinor: sql<number>`coalesce(${totals.transferOutMinor}, 0)`.mapWith(Number),
-      transferInMinor: sql<number>`coalesce(${totals.transferInMinor}, 0)`.mapWith(Number),
+      incomeMinor: sql<number>`coalesce(${totals.incomeMinor}, 0)`.mapWith(toSafeMoneyNumber),
+      expenseMinor: sql<number>`coalesce(${totals.expenseMinor}, 0)`.mapWith(toSafeMoneyNumber),
+      transferOutMinor: sql<number>`coalesce(${totals.transferOutMinor}, 0)`.mapWith(toSafeMoneyNumber),
+      transferInMinor: sql<number>`coalesce(${totals.transferInMinor}, 0)`.mapWith(toSafeMoneyNumber),
     })
     .from(periods)
     .crossJoin(accountCurrencies)

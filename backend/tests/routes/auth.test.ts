@@ -1,3 +1,4 @@
+import sharp from "sharp";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const { query } = vi.hoisted(() => ({ query: vi.fn() }));
@@ -791,8 +792,9 @@ function meRow(avatarUrl: string | null = null) {
   return [userId, "alice@example.com", "Alice", avatarUrl, true, false];
 }
 
-const jpegBytes = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00]);
-const pngBytes = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00]);
+const pixel = { create: { width: 1, height: 1, channels: 3 as const, background: "#ffffff" } };
+const jpegBytes = await sharp(pixel).jpeg().toBuffer();
+const pngBytes = await sharp(pixel).png().toBuffer();
 
 describe("PUT /me/avatar", () => {
   const avatarRequest = (body?: unknown) =>
@@ -837,6 +839,33 @@ describe("PUT /me/avatar", () => {
     expect(storedKey).toMatch(/^[0-9a-f-]{36}\.jpg$/);
     expect(storedBytes).toBe(jpegBytes);
     expect(query.mock.calls[2]![1]).toContain(storedKey);
+  });
+
+  it.each([
+    ["a PNG signature without image data", pngBytes.subarray(0, 8)],
+    ["a JPEG signature without image data", jpegBytes.subarray(0, 3)],
+    ["a truncated PNG", pngBytes.subarray(0, Math.floor(pngBytes.length / 2))],
+    ["a truncated JPEG", jpegBytes.subarray(0, Math.floor(jpegBytes.length / 2))],
+  ])("rejects %s before touching stored images", async (_label, body) => {
+    query.mockResolvedValueOnce({ rows: [[userId, "session-id", new Date()]] });
+    expect(await avatarRequest(body)).toEqual({
+      status: 415,
+      body: { error: "Body must be a valid JPEG or PNG image of at most 16 megapixels" },
+    });
+    expect(query).toHaveBeenCalledTimes(1);
+    expect(storageMocks.writeAvatar).not.toHaveBeenCalled();
+    expect(storageMocks.deleteAvatar).not.toHaveBeenCalled();
+  });
+
+  it("rejects a decodable image above the pixel limit", async () => {
+    const oversized = await sharp({
+      create: { width: 4001, height: 4000, channels: 3, background: "#ffffff" },
+    })
+      .png()
+      .toBuffer();
+    query.mockResolvedValueOnce({ rows: [[userId, "session-id", new Date()]] });
+    expect((await avatarRequest(oversized)).status).toBe(415);
+    expect(storageMocks.writeAvatar).not.toHaveBeenCalled();
   });
 
   it("stores a PNG with a .png key", async () => {

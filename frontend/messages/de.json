@@ -237,7 +237,7 @@
       "nameSaved": "Name gespeichert"
     },
     "errors": {
-      "photoType": "Wähle ein JPEG- oder PNG-Bild",
+      "photoType": "Wähle ein gültiges JPEG- oder PNG-Bild mit höchstens 16 Megapixeln",
       "photoTooLarge": "Das Foto darf höchstens 5 MB groß sein",
       "network": "Der Server ist nicht erreichbar. Bitte versuche es später erneut."
     },
