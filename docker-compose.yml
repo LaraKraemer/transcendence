@@ -29,7 +29,6 @@ services:
     build:
       context: ./backend
 
-    # Commands such as db:generate write into ./backend; see the frontend comment on rootless Docker.
     user: root
 
     volumes:
@@ -75,7 +74,6 @@ services:
       context: ./frontend
 
     # next dev writes into ./frontend (next-env.d.ts). Under rootless Docker (42 computers) only
-    # container root maps to the host user who owns it; the image's "node" user gets EACCES.
     user: root
 
     volumes:
