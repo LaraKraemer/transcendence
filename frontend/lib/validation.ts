@@ -1,7 +1,10 @@
+import { z } from "zod";
+
 export const MIN_PASSWORD_LENGTH = 12;
 export const MAX_PASSWORD_BYTES = 72;
 export const MAX_EMAIL_LENGTH = 254;
 export const MAX_DISPLAY_NAME_LENGTH = 100;
+const emailSchema = z.email().max(MAX_EMAIL_LENGTH);
 
 export const validationErrorCodes = [
   "emailInvalid",
@@ -11,6 +14,7 @@ export const validationErrorCodes = [
   "passwordMismatch",
   "displayNameRequired",
   "displayNameTooLong",
+  "textInvalid",
 ] as const;
 
 export type ValidationErrorCode = (typeof validationErrorCodes)[number];
@@ -30,18 +34,31 @@ export function passwordByteLength(password: string): number {
   return new TextEncoder().encode(password).length;
 }
 
-/** Mirrors the backend email rule for registration and friend requests. */
+/** Uses the same email syntax as the sign-in/sign-up server actions, with the backend length limit. */
 export function isEmail(value: unknown): value is string {
-  return (
-    typeof value === "string" &&
-    !value.includes("\0") &&
-    value.length <= MAX_EMAIL_LENGTH &&
-    /^\S+@\S+\.\S+$/.test(value)
-  );
+  return emailSchema.safeParse(value).success;
 }
 
 function validateEmail(email: string): ValidationErrorCode | undefined {
-  return email.includes("@") ? undefined : "emailInvalid";
+  return isEmail(email.trim()) ? undefined : "emailInvalid";
+}
+
+/** Required display name, checked after trimming like the backend. */
+export function validateDisplayName(displayName: string): ValidationErrorCode | undefined {
+  if (displayName.includes("\0")) return "textInvalid";
+  if (!displayName.trim()) return "displayNameRequired";
+  if (displayName.trim().length > MAX_DISPLAY_NAME_LENGTH) return "displayNameTooLong";
+  return undefined;
+}
+
+/** Mirrors TOTP digits and the backend's case/dash/whitespace recovery-code normalization. */
+export function isTwoFactorCode(value: string, kind: "code" | "recovery"): boolean {
+  return kind === "code" ? /^[0-9]{6}$/.test(value) : /^[A-Z2-7]{10}$/.test(value.replace(/[\s-]/g, "").toUpperCase());
+}
+
+/** A real calendar date as YYYY-MM-DD, shared by entry forms and reports. */
+export function isDateOnly(value: unknown): value is string {
+  return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value;
 }
 
 function validatePassword(password: string): ValidationErrorCode | undefined {
@@ -62,7 +79,7 @@ export function validateLogin({ email, password }: LoginFields): FieldErrors<key
 
 export function validateRegister({ email, displayName, password }: RegisterFields): FieldErrors<keyof RegisterFields> {
   return compact({
-    displayName: displayName.trim() ? undefined : "displayNameRequired",
+    displayName: validateDisplayName(displayName),
     email: validateEmail(email),
     password: validatePassword(password),
   });
@@ -96,12 +113,38 @@ export const accountErrorCodes = [
   "amountInvalid",
   "amountDecimals",
   "amountTooLarge",
+  "institutionTooLong",
+  "accountRefTooLong",
+  "textInvalid",
 ] as const;
 
 export type AccountErrorCode = (typeof accountErrorCodes)[number];
 
 export function isAccountErrorCode(value: unknown): value is AccountErrorCode {
   return typeof value === "string" && (accountErrorCodes as readonly string[]).includes(value);
+}
+
+/** Browser validation for both account forms; an empty opening balance is allowed only on create. */
+export function validateAccount(
+  values: Record<"name" | "type" | "currencyCode" | "openingBalance" | "institution" | "accountRef", string>,
+  minorUnit: number,
+  locale: string,
+  mode: "create" | "edit",
+  currencyCodes: string[],
+): Partial<Record<keyof typeof values, AccountErrorCode>> {
+  const errors: Partial<Record<keyof typeof values, AccountErrorCode>> = {};
+  if (!values.name.trim()) errors.name = "nameRequired";
+  else if (values.name.trim().length > MAX_ACCOUNT_NAME_LENGTH) errors.name = "nameTooLong";
+  if (!ACCOUNT_TYPES.includes(values.type as AccountType)) errors.type = "typeInvalid";
+  if (mode === "create" && !currencyCodes.includes(values.currencyCode.trim().toUpperCase())) errors.currencyCode = "currencyInvalid";
+  const amount = mode === "create" && !values.openingBalance.trim() ? 0 : toMinorUnits(values.openingBalance, minorUnit, locale);
+  if (typeof amount === "string") errors.openingBalance = amount;
+  if (mode === "edit" && values.institution.trim().length > MAX_INSTITUTION_LENGTH) errors.institution = "institutionTooLong";
+  if (mode === "edit" && values.accountRef.trim().length > MAX_ACCOUNT_REF_LENGTH) errors.accountRef = "accountRefTooLong";
+  for (const field of mode === "create" ? ["name"] as const : ["name", "institution", "accountRef"] as const) {
+    if (values[field].includes("\0")) errors[field] = "textInvalid";
+  }
+  return errors;
 }
 
 /** Formats an edit value exactly; transactions use magnitude, opening balances preserve the sign. */
@@ -171,12 +214,50 @@ export const transactionErrorCodes = [
   "dateInvalid",
   "categoryInvalid",
   "toAccountInvalid",
+  "accountInvalid",
+  "notesTooLong",
+  "textInvalid",
 ] as const;
 
 export type TransactionErrorCode = (typeof transactionErrorCodes)[number];
 
 export function isTransactionErrorCode(value: unknown): value is TransactionErrorCode {
   return typeof value === "string" && (transactionErrorCodes as readonly string[]).includes(value);
+}
+
+/** Checks money, calendar dates, optional text and account/category compatibility in the browser. */
+export function validateTransaction(
+  values: Record<"accountId" | "type" | "toAccountId" | "amount" | "toAmount" | "description" | "merchant" | "bookedOn" | "categoryId" | "notes", string>,
+  accounts: { id: string; currencyCode: string; minorUnit: number }[],
+  categories: { id: string; types: CategoryType[] }[],
+  locale: string,
+  checkCategory = true,
+): Partial<Record<keyof typeof values, TransactionErrorCode>> {
+  const errors: Partial<Record<keyof typeof values, TransactionErrorCode>> = {};
+  const account = accounts.find((account) => account.id === values.accountId);
+  if (!account) errors.accountId = "accountInvalid";
+  if (!TRANSACTION_TYPES.includes(values.type as TransactionType)) errors.type = "typeInvalid";
+  const amount = toPositiveMinorUnits(values.amount, account?.minorUnit ?? 2, locale);
+  if (typeof amount === "string") errors.amount = amount;
+  if (!isDateOnly(values.bookedOn) || values.bookedOn.startsWith("0000")) errors.bookedOn = "dateInvalid";
+  if (values.description.trim().length > MAX_TRANSACTION_DESCRIPTION_LENGTH) errors.description = "descriptionTooLong";
+  if (values.notes.trim().length > MAX_NOTES_LENGTH) errors.notes = "notesTooLong";
+  if (values.type === "transfer") {
+    const destination = accounts.find((account) => account.id === values.toAccountId);
+    if (!destination || destination.id === values.accountId) errors.toAccountId = "toAccountInvalid";
+    else if (destination.currencyCode !== account?.currencyCode) {
+      const receivedAmount = toPositiveMinorUnits(values.toAmount, destination.minorUnit, locale);
+      if (typeof receivedAmount === "string") errors.toAmount = receivedAmount;
+    }
+  } else {
+    if (values.merchant.trim().length > MAX_TRANSACTION_MERCHANT_LENGTH) errors.merchant = "merchantTooLong";
+    if (checkCategory && values.categoryId && !categories.some((category) => category.id === values.categoryId && category.types.includes(values.type as CategoryType))) errors.categoryId = "categoryInvalid";
+    if (values.merchant.includes("\0")) errors.merchant = "textInvalid";
+  }
+  for (const field of ["description", "notes"] as const) {
+    if (values[field].includes("\0")) errors[field] = "textInvalid";
+  }
+  return errors;
 }
 
 /**
@@ -272,12 +353,25 @@ export const categoryErrorCodes = [
   "iconInvalid",
   "colorInvalid",
   "typesInvalid",
+  "textInvalid",
 ] as const;
 
 export type CategoryErrorCode = (typeof categoryErrorCodes)[number];
 
 export function isCategoryErrorCode(value: unknown): value is CategoryErrorCode {
   return typeof value === "string" && (categoryErrorCodes as readonly string[]).includes(value);
+}
+
+/** Category selections and required name, before either create or edit reaches a server action. */
+export function validateCategory(values: { name: string; icon: string; color: string; types: string[] }, iconKeys: readonly string[]): Partial<Record<keyof typeof values, CategoryErrorCode>> {
+  const errors: Partial<Record<keyof typeof values, CategoryErrorCode>> = {};
+  if (!values.name.trim()) errors.name = "nameRequired";
+  else if (values.name.trim().length > MAX_CATEGORY_NAME_LENGTH) errors.name = "nameTooLong";
+  if (values.name.includes("\0")) errors.name = "textInvalid";
+  if (!iconKeys.includes(values.icon)) errors.icon = "iconInvalid";
+  if (!HEX_COLOR_PATTERN.test(values.color.trim())) errors.color = "colorInvalid";
+  if (!values.types.length || !values.types.every((type) => CATEGORY_TYPES.includes(type as CategoryType))) errors.types = "typesInvalid";
+  return errors;
 }
 
 const LIGHT_ON_COLOR = "#FFFFFF";

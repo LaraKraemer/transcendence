@@ -5,6 +5,9 @@
 import type { CategoryTotalRow, TimeSeriesRow } from "@/lib/types";
 
 import { sumMinorUnits } from "./format.ts";
+import { isDateOnly } from "./validation.ts";
+
+export { isDateOnly } from "./validation.ts";
 
 export const RANGE_PRESETS = ["month", "30d", "year", "custom"] as const;
 export type RangePreset = (typeof RANGE_PRESETS)[number];
@@ -19,16 +22,6 @@ const LAST_DAYS_PRESET_LENGTH = 30;
 
 const isoDate = (date: Date) => date.toISOString().slice(0, 10);
 const daysBetween = ({ from, to }: DateRange) => (Date.parse(to) - Date.parse(from)) / millisecondsPerDay;
-
-/** A real calendar date as `YYYY-MM-DD` (what `<input type="date">` sends), like the backend's isDateOnly. */
-export function isDateOnly(value: unknown): value is string {
-  return (
-    typeof value === "string" &&
-    /^\d{4}-\d{2}-\d{2}$/.test(value) &&
-    !Number.isNaN(Date.parse(value)) &&
-    isoDate(new Date(value)) === value
-  );
-}
 
 /** Today's date in a time zone as `YYYY-MM-DD`. */
 export function todayIn(timeZone: string, now = new Date()): string {

@@ -192,7 +192,7 @@ During development, we added GitHub Actions pipelines to automate backend type c
 | Run inside | Main checks after `npm ci` |
 |---|---|
 | `backend/` | `npm run typecheck && npm run lint && npm run format:check && npm test` |
-| `frontend/` | `npm run lint && npm run check:format && npm run check:import && npm run check:filters && npm run build` |
+| `frontend/` | `npm run lint && npm run check:format && npm run check:import && npm run check:filters && npm run check:validation && npm run build` |
 
 See the [testing guide](docs/testing.md) for API/browser checks, prerequisites and opt-in database tests.
 

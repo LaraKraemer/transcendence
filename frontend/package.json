@@ -10,6 +10,7 @@
     "check:format": "node --experimental-strip-types lib/format.check.mjs",
     "check:import": "node --experimental-strip-types lib/transaction-import.check.mjs",
     "check:filters": "node --experimental-strip-types lib/transaction-filters.check.mjs",
+    "check:validation": "node --experimental-strip-types lib/validation.check.mjs && node --experimental-strip-types client-forms.check.mjs",
     "check:a11y": "node a11y.check.mjs"
   },
   "dependencies": {

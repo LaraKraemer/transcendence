@@ -23,6 +23,7 @@ import {
   hueAndLightness,
   isCategoryErrorCode,
   readableOn,
+  validateCategory,
   type CategoryErrorCode,
   type CategoryType,
 } from "@/lib/validation";
@@ -161,6 +162,8 @@ export function CategoryForm({
 
   const [{ fieldErrors, error }, submitAction, isPending] = useActionState(
     async (_prev: FormState, submitted: typeof values): Promise<FormState> => {
+      const errors = validateCategory(submitted, CATEGORY_ICON_KEYS);
+      if (Object.keys(errors).length) return { fieldErrors: errors, error: null };
       try {
         const result = category
           ? await updateCategory(category.id, opened, submitted)

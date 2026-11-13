@@ -4,7 +4,7 @@ import { Sparkles } from "lucide-react";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 
 import {
   PasswordVisibilityButton,
@@ -73,6 +73,13 @@ export function RegisterForm() {
     },
     initialState,
   );
+
+  useEffect(() => {
+    if (!isPending) {
+      const firstInvalid = ["displayName", "email", "password"].find((field) => fieldErrors[field as keyof RegisterFields]);
+      if (firstInvalid) document.getElementById(firstInvalid)?.focus();
+    }
+  }, [fieldErrors, isPending]);
 
   return (
     <>

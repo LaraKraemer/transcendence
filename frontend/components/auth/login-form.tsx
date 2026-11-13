@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 
 import {
   PasswordVisibilityButton,
@@ -83,6 +83,13 @@ export function LoginForm({
     },
     { ...initialState, error: googleErrorFor(googleError) },
   );
+
+  useEffect(() => {
+    if (!isPending) {
+      const firstInvalid = ["email", "password"].find((field) => fieldErrors[field as keyof LoginFields]);
+      if (firstInvalid) document.getElementById(firstInvalid)?.focus();
+    }
+  }, [fieldErrors, isPending]);
 
   if (step === "code") {
     return (

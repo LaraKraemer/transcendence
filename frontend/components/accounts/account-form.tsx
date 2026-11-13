@@ -21,6 +21,7 @@ import {
   isAccountErrorCode,
   filterAmountInput,
   amountInputValue,
+  validateAccount,
   type AccountErrorCode,
 } from "@/lib/validation";
 
@@ -134,8 +135,13 @@ export function AccountForm(props: AccountFormProps) {
       })),
   });
 
+  const minorUnit =
+    mode === "edit" ? props.minorUnit : (currencies.find((c) => c.code === values.currencyCode)?.minorUnit ?? 2);
+
   const [{ fieldErrors, error }, submitAction, isPending] = useActionState(
     async (_prev: FormState, submitted: Record<AccountFields, string>): Promise<FormState> => {
+      const errors = validateAccount(submitted, minorUnit, locale, mode, currencies.map((currency) => currency.code));
+      if (Object.keys(errors).length) return { fieldErrors: errors, error: null };
       try {
         const result =
           mode === "create"
@@ -206,8 +212,6 @@ export function AccountForm(props: AccountFormProps) {
 
   // Currency names in the user's language; the catalogue's names are English.
   const currencyNames = new Intl.DisplayNames(locale, { type: "currency" });
-  const minorUnit =
-    mode === "edit" ? props.minorUnit : (currencies.find((c) => c.code === values.currencyCode)?.minorUnit ?? 2);
   const errorText = (code: AccountErrorCode) =>
     t(`errors.${code}`, { digits: minorUnit, example: (12.5).toFixed(minorUnit) });
   const headingId = `${idPrefix}-heading`;
@@ -276,6 +280,7 @@ export function AccountForm(props: AccountFormProps) {
               type="text"
               maxLength={MAX_INSTITUTION_LENGTH}
               placeholder={t("form.institutionPlaceholder")}
+              error={fieldErrors.institution && errorText(fieldErrors.institution)}
             />
           )}
         </div>
@@ -305,6 +310,7 @@ export function AccountForm(props: AccountFormProps) {
             autoComplete="off"
             maxLength={MAX_ACCOUNT_REF_LENGTH}
             placeholder={t("form.accountRefPlaceholder")}
+            error={fieldErrors.accountRef && errorText(fieldErrors.accountRef)}
           />
         )}
 
