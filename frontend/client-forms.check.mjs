@@ -1,5 +1,3 @@
-// Exercise the real client submission callbacks without Next, a database or a test framework.
-// Run: node client-forms.check.mjs
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
