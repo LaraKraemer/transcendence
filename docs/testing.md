@@ -61,7 +61,7 @@ The status regression checks failure/recovery, refresh, pause/resume and timeout
 These tests are opt-in and are not enabled in current CI; start PostgreSQL and apply migrations first, then run from `backend/`:
 
 ```bash
-TEST_DATABASE_URL=postgres://expense:expense@localhost:5432/expense_tracker npx vitest run tests/db/user-deletion.integration.test.ts tests/db/analytics.integration.test.ts
+TEST_DATABASE_URL=postgres://<database-user>:<database-password>@localhost:5432/expense_tracker npx vitest run tests/db/user-deletion.integration.test.ts tests/db/analytics.integration.test.ts
 ```
 
 ## CI jobs

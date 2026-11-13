@@ -103,7 +103,7 @@ When switching from the full stack to development mode, run `make down` first.
    cd poolaki
    ```
 
-2. Create the root `.env` if it does not already exist, then replace the monitoring password and Grafana placeholders:
+2. Replace the database, monitoring and Grafana placeholders in the root `.env`, creating it first if needed:
 
    ```bash
    cp .env.example .env
@@ -142,6 +142,8 @@ Environment variables tell the backend how to connect to PostgreSQL and tell the
 Set these values in the root `.env` before `make up`:
 
 ```env
+POSTGRES_USER=<database-user>
+POSTGRES_PASSWORD=<url-safe-database-password>
 POSTGRES_EXPORTER_PASSWORD=<monitoring-database-password>
 GRAFANA_ADMIN_USER=<grafana-admin-username>
 GRAFANA_ADMIN_PASSWORD=<grafana-admin-password>
@@ -151,10 +153,10 @@ See the [monitoring setup](docs/monitoring.md#setup) for password generation, da
 
 #### Host development
 
-1. Create `backend/.env`:
+1. Create `backend/.env` with the credentials from the root `.env`:
 
    ```env
-   DATABASE_URL=postgres://expense:expense@localhost:5432/expense_tracker
+   DATABASE_URL=postgres://<database-user>:<database-password>@localhost:5432/expense_tracker
    ```
 
    `DATABASE_URL` connects the backend to PostgreSQL; the frontend origin defaults to `http://localhost:3000`.
