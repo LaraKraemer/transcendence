@@ -29,6 +29,9 @@ services:
     build:
       context: ./backend
 
+    # Commands such as db:generate write into ./backend; see the frontend comment on rootless Docker.
+    user: root
+
     volumes:
       - ./backend:/app
       # Keep the repository-level formatting rules available above /app.
@@ -71,9 +74,15 @@ services:
     build:
       context: ./frontend
 
+    # next dev writes into ./frontend (next-env.d.ts). Under rootless Docker (42 computers) only
+    # container root maps to the host user who owns it; the image's "node" user gets EACCES.
+    user: root
+
     volumes:
       - ./frontend:/app
       - /app/node_modules
+      # Keeps the build cache in the container, so root-written cache files stay off the host.
+      - /app/.next
       # Only the public CA certificate: this directory holds no private key.
       - ./nginx/certs/ca:/etc/ssl/local-ca:ro
 
