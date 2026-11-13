@@ -63,10 +63,10 @@ For `502 Bad Gateway` after recreating frontend/backend containers, run `docker 
    docker compose up -d db
    ```
 
-2. Create `backend/.env`:
+2. Create `backend/.env` with the database credentials from the root `.env`:
 
    ```env
-   DATABASE_URL=postgres://expense:expense@localhost:5432/expense_tracker
+   DATABASE_URL=postgres://<database-user>:<database-password>@localhost:5432/expense_tracker
    ```
 
 3. Start the backend; migrations apply automatically:
