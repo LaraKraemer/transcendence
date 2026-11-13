@@ -149,8 +149,6 @@ GRAFANA_ADMIN_USER=<grafana-admin-username>
 GRAFANA_ADMIN_PASSWORD=<grafana-admin-password>
 ```
 
-The database credentials apply only when the `db-data` volume is first created. An existing volume keeps its original user and password (previously `expense`/`expense`), so either set those values in `.env` or recreate the volume with `make clean`.
-
 See the [monitoring setup](docs/monitoring.md#setup) for password generation, database initialization and Telegram secrets.
 
 #### Host development

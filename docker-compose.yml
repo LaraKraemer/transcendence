@@ -10,7 +10,6 @@ services:
       - db-data:/var/lib/postgresql/data
 
     environment:
-      # Read from the git-ignored .env; Postgres applies them only when the volume is first created.
       POSTGRES_USER: "${POSTGRES_USER:?POSTGRES_USER must be set in .env}"
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}"
       POSTGRES_DB: expense_tracker

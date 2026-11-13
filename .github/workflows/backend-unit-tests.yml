@@ -52,7 +52,6 @@ jobs:
     services:
       postgres:
         image: postgres:17
-        # Disposable CI-only database; deployment credentials come from the root .env.
         env:
           POSTGRES_USER: expense
           POSTGRES_PASSWORD: expense
