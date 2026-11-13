@@ -67,11 +67,16 @@ export default async function AccountsPage() {
 
   // Balances in different currencies can't be added up, so total each currency
   // separately. With any balance unavailable the total would be wrong, so none is shown.
-  const totals = new Map<string, number>();
-  const allBalancesKnown = accounts.every((account) => account.balanceMinor !== null);
+  const totals = new Map<string, bigint>();
   for (const account of accounts) {
-    totals.set(account.currencyCode, (totals.get(account.currencyCode) ?? 0) + (account.balanceMinor ?? 0));
+    totals.set(
+      account.currencyCode,
+      (totals.get(account.currencyCode) ?? BigInt(0)) + BigInt(account.balanceMinor ?? 0),
+    );
   }
+  const allBalancesKnown =
+    accounts.every((account) => account.balanceMinor !== null) &&
+    [...totals.values()].every((total) => Number.isSafeInteger(Number(total)));
 
   return (
     // A <div>, not <main>: the app shell already wraps every page in <main id="main">.
@@ -103,7 +108,7 @@ export default async function AccountsPage() {
                     [...totals].map(([currency, minor], index) => (
                       <Fragment key={currency}>
                         {index > 0 && " · "}
-                        <span className="whitespace-nowrap">{money(minor, currency)}</span>
+                        <span className="whitespace-nowrap">{money(Number(minor), currency)}</span>
                       </Fragment>
                     ))
               }

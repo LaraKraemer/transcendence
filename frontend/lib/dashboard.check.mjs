@@ -28,6 +28,14 @@ assert.deepEqual(month.spending, [
   { categoryId: "groceries", amountMinor: 2500, share: 0.25 },
 ]);
 assert.deepEqual(summarizeMonth([]), { incomeMinor: 0, expenseMinor: 0, netMinor: 0, spending: [] });
+assert.throws(
+  () =>
+    summarizeMonth([
+      { categoryId: null, type: "income", totalMinor: Number.MAX_SAFE_INTEGER, count: 1 },
+      { categoryId: "salary", type: "income", totalMinor: 2, count: 1 },
+    ]),
+  RangeError,
+);
 
 assert.equal(netChange(118, 100), 0.18);
 assert.equal(netChange(-100, -200), 0.5); // less negative is better

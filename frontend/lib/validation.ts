@@ -32,7 +32,12 @@ export function passwordByteLength(password: string): number {
 
 /** Mirrors the backend email rule for registration and friend requests. */
 export function isEmail(value: unknown): value is string {
-  return typeof value === "string" && value.length <= MAX_EMAIL_LENGTH && /^\S+@\S+\.\S+$/.test(value);
+  return (
+    typeof value === "string" &&
+    !value.includes("\0") &&
+    value.length <= MAX_EMAIL_LENGTH &&
+    /^\S+@\S+\.\S+$/.test(value)
+  );
 }
 
 function validateEmail(email: string): ValidationErrorCode | undefined {

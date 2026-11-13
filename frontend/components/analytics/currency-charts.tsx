@@ -6,7 +6,7 @@ import { Bar, BarChart, CartesianGrid, Legend, Line, LineChart, Pie, PieChart, T
 
 import { getDirection, type Locale } from "@/i18n/config";
 import { netMinor, type CurrencyReport, type Granularity } from "@/lib/analytics";
-import { formatAmount } from "@/lib/format";
+import { formatAmount, sumMinorUnits } from "@/lib/format";
 
 const chartHeightPx = 240;
 const chartStyle = { width: "100%", height: chartHeightPx };
@@ -107,7 +107,7 @@ export function CurrencyCharts({
       };
     })
     .sort((a, b) => b.value - a.value);
-  const slicesTotal = slices.reduce((sum, slice) => sum + slice.value, 0);
+  const slicesTotal = sumMinorUnits(slices.map((slice) => slice.value));
   const percent = (ratio: number) => format.number(ratio, { style: "percent", maximumFractionDigits: 0 });
 
   const xAxis = <XAxis dataKey="period" tick={axisTick} reversed={rtl} minTickGap={12} />;

@@ -10,7 +10,14 @@ import {
   sumTransactions,
   updateAccount,
 } from "../db/accounts.ts";
-import { isCurrencyCode, isUuid, parseOptionalText, parseRequiredText, TEXT_LIMITS } from "../validation.ts";
+import {
+  isCurrencyCode,
+  isUuid,
+  parseOptionalText,
+  parseRequiredText,
+  TEXT_LIMITS,
+  toSafeMoneyNumber,
+} from "../validation.ts";
 
 const ACCOUNT_TYPES = ["checking", "savings", "cash"] as const;
 type AccountType = (typeof ACCOUNT_TYPES)[number];
@@ -103,7 +110,7 @@ accountsRouter.get("/:accountId/balance", async (req, res) => {
   }
 
   const transactionSum = await sumTransactions(account.id);
-  const balanceMinor = account.openingBalanceMinor + transactionSum;
+  const balanceMinor = toSafeMoneyNumber(BigInt(account.openingBalanceMinor) + transactionSum);
   res.json({ balanceMinor, currencyCode: account.currencyCode });
 });
 

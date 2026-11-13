@@ -51,7 +51,7 @@ export async function sumTransactions(accountId: string) {
     .from(transactions)
     .where(eq(transactions.accountId, accountId));
 
-  return Number(result?.total ?? 0);
+  return BigInt(result?.total ?? 0);
 }
 
 export async function updateAccount(

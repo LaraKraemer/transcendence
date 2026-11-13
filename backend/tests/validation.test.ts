@@ -7,10 +7,23 @@ import {
   isHexColor,
   isIsoTimestamp,
   isUuid,
+  MoneyRangeError,
   parseOptionalText,
   parseRequiredText,
   TEXT_LIMITS,
+  toSafeMoneyNumber,
 } from "../srcs/validation.ts";
+
+describe("toSafeMoneyNumber", () => {
+  it.each(["0", "123", "-123", "9007199254740991", "-9007199254740991"])("preserves %s", (value) => {
+    expect(BigInt(toSafeMoneyNumber(value))).toBe(BigInt(value));
+  });
+
+  it.each(["9007199254740992", "9007199254740993", "-9007199254740993"])("rejects %s", (value) => {
+    expect(() => toSafeMoneyNumber(value)).toThrow(MoneyRangeError);
+    expect(() => toSafeMoneyNumber(BigInt(value))).toThrow(MoneyRangeError);
+  });
+});
 
 describe("isEmail", () => {
   it.each(["user@example.com", `${"a".repeat(TEXT_LIMITS.email - "@example.com".length)}@example.com`])(
@@ -25,6 +38,7 @@ describe("isEmail", () => {
     "user@example.com ",
     "user@localhost",
     "user name@example.com",
+    "user\0@example.com",
     `${"a".repeat(TEXT_LIMITS.email + 1 - "@example.com".length)}@example.com`,
   ])("rejects %s", (value) => {
     expect(isEmail(value)).toBe(false);
@@ -81,11 +95,35 @@ describe("isUuid", () => {
 });
 
 describe("isIsoTimestamp", () => {
-  it.each(["2025-01-15T10:30:00Z", "2025-01-15T10:30:00.000Z", "2025-01-15"])("accepts %s", (value) => {
+  it.each([
+    "2025-01-15T10:30:00Z",
+    "2025-01-15T10:30:00.000Z",
+    "2025-01-15T10:30:00.12+02:30",
+    "2024-02-29T23:59:59-05:00",
+    "0001-01-01T00:00:00Z",
+    "9999-12-31T23:59:59.999Z",
+    "2025-01-15",
+  ])("accepts %s", (value) => {
     expect(isIsoTimestamp(value)).toBe(true);
   });
 
-  it.each([null, undefined, 123, "not-a-date", "2025-13-01"])("rejects %j", (value) => {
+  it.each([
+    null,
+    undefined,
+    123,
+    "not-a-date",
+    "2025-13-01",
+    "-010000-01-01T00:00:00.000Z",
+    "+010000-01-01T00:00:00.000Z",
+    "0000-01-01T00:00:00Z",
+    "0001-01-01T00:00:00+01:00",
+    "9999-12-31T23:59:59-01:00",
+    "2025-02-29T12:00:00Z",
+    "2024-02-30T12:00:00Z",
+    "2025-01-15T24:00:00Z",
+    "2025-01-15T10:30:00",
+    "January 15, 2025",
+  ])("rejects %j", (value) => {
     expect(isIsoTimestamp(value)).toBe(false);
   });
 });
@@ -157,6 +195,7 @@ describe("parseOptionalText", () => {
     ["an array", []],
     ["an object", {}],
     ["undefined", undefined],
+    ["a NUL character", "before\0after"],
   ])("rejects %s", (_description, value) => {
     expect(parseOptionalText(value, 100)).toBeUndefined();
   });
@@ -179,6 +218,7 @@ describe("parseRequiredText", () => {
     ["a number", 123],
     ["an array", []],
     ["undefined", undefined],
+    ["a NUL character", "before\0after"],
   ])("rejects %s", (_description, value) => {
     expect(parseRequiredText(value, 100)).toBeUndefined();
   });

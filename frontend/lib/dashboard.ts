@@ -1,9 +1,10 @@
 /**
  * Pure helpers for the overview (dashboard) page: month ranges and the totals it derives from
- * `GET /transactions/summary`. Kept free of imports with runtime code so lib/dashboard.check.mjs
- * can run it with plain Node.
+ * `GET /transactions/summary`. lib/dashboard.check.mjs runs them with plain Node.
  */
 import type { TransactionSummaryRow } from "@/lib/types";
+
+import { sumMinorUnits } from "./format.ts";
 
 export function currentMonth(timeZone: string, now = new Date()): { year: number; month: number } {
   const parts = new Intl.DateTimeFormat("en", { timeZone, year: "numeric", month: "numeric" }).formatToParts(now);
@@ -35,17 +36,13 @@ export function summarizeMonth(rows: TransactionSummaryRow[]): {
   netMinor: number;
   spending: CategorySpending[];
 } {
-  let incomeMinor = 0;
-  let expenseMinor = 0;
-  for (const row of rows) {
-    if (row.type === "income") incomeMinor += row.totalMinor;
-    if (row.type === "expense") expenseMinor -= row.totalMinor;
-  }
+  const incomeMinor = sumMinorUnits(rows.filter((row) => row.type === "income").map((row) => row.totalMinor));
+  const expenseMinor = sumMinorUnits(rows.filter((row) => row.type === "expense").map((row) => -row.totalMinor));
   const spending = rows
     .filter((row) => row.type === "expense")
     .map((row) => ({ categoryId: row.categoryId, amountMinor: -row.totalMinor, share: -row.totalMinor / expenseMinor }))
     .sort((a, b) => b.amountMinor - a.amountMinor);
-  return { incomeMinor, expenseMinor, netMinor: incomeMinor - expenseMinor, spending };
+  return { incomeMinor, expenseMinor, netMinor: sumMinorUnits([incomeMinor, -expenseMinor]), spending };
 }
 
 /**

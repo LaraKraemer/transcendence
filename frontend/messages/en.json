@@ -237,7 +237,7 @@
       "nameSaved": "Name saved"
     },
     "errors": {
-      "photoType": "Choose a JPEG or PNG image",
+      "photoType": "Choose a valid JPEG or PNG image up to 16 megapixels",
       "photoTooLarge": "The photo must be 5 MB or smaller",
       "network": "Could not reach the server. Please try again later."
     },

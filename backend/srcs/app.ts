@@ -16,6 +16,7 @@ import { friendsRouter } from "./routes/friends.ts";
 import { transactionsRouter } from "./routes/transaction.ts";
 import { getStatus } from "./status.ts";
 import { TRANSACTION_IMPORT_MAX_BYTES } from "./transaction-import.ts";
+import { MoneyRangeError } from "./validation.ts";
 
 export function createApp() {
   const app = express();
@@ -75,6 +76,10 @@ export function createApp() {
   });
 
   app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    if (error instanceof MoneyRangeError) {
+      res.status(422).json({ error: error.message });
+      return;
+    }
     if (error instanceof Error && "type" in error) {
       if (error.type === "entity.parse.failed") {
         res.status(400).json({ error: "Malformed JSON" });

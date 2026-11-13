@@ -69,14 +69,19 @@ describe("sumTransactions", () => {
     expect(sql).toContain('sum("amount_minor")');
   });
 
-  it("returns 0 when result is null (no transactions)", async () => {
+  it("returns 0n when result is null (no transactions)", async () => {
     query.mockResolvedValueOnce({ rows: [[null]] });
-    expect(await sumTransactions(accountId)).toBe(0);
+    expect(await sumTransactions(accountId)).toBe(0n);
   });
 
-  it("returns the numeric sum", async () => {
+  it("returns an exact integer sum", async () => {
     query.mockResolvedValueOnce({ rows: [["3000"]] });
-    expect(await sumTransactions(accountId)).toBe(3000);
+    expect(await sumTransactions(accountId)).toBe(3000n);
+  });
+
+  it("preserves sums beyond the safe number range for exact balance arithmetic", async () => {
+    query.mockResolvedValueOnce({ rows: [["9007199254740993"]] });
+    expect(await sumTransactions(accountId)).toBe(9007199254740993n);
   });
 });
 

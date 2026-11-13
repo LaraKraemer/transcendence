@@ -26,6 +26,7 @@ assert.equal(isEmail(`${"a".repeat(MAX_EMAIL_LENGTH - "@example.com".length)}@ex
 assert.equal(isEmail(`${"a".repeat(MAX_EMAIL_LENGTH + 1 - "@example.com".length)}@example.com`), false);
 assert.equal(isEmail("user@localhost"), false);
 assert.equal(isEmail(" user@example.com"), false);
+assert.equal(isEmail("user\0@example.com"), false);
 console.log("isEmail: ok");
 
 assert.equal(toMinorUnits("100.50", 2), 10050);

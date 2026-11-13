@@ -1,9 +1,10 @@
 /**
  * Pure helpers for the analytics page: the date range picked in the URL, the chart granularity and
- * the API rows grouped per currency. Kept free of imports with runtime code so lib/analytics.check.mjs
- * can run it with plain Node.
+ * the API rows grouped per currency. lib/analytics.check.mjs runs them with plain Node.
  */
 import type { CategoryTotalRow, TimeSeriesRow } from "@/lib/types";
+
+import { sumMinorUnits } from "./format.ts";
 
 export const RANGE_PRESETS = ["month", "30d", "year", "custom"] as const;
 export type RangePreset = (typeof RANGE_PRESETS)[number];
@@ -77,7 +78,7 @@ type Totals = Pick<TimeSeriesRow, "incomeMinor" | "expenseMinor" | "transferOutM
  * user's own accounts cancel out across all accounts.
  */
 export const netMinor = ({ incomeMinor, expenseMinor, transferOutMinor, transferInMinor }: Totals) =>
-  incomeMinor + expenseMinor + transferInMinor + transferOutMinor;
+  sumMinorUnits([incomeMinor, expenseMinor, transferInMinor, transferOutMinor]);
 
 export type CurrencyReport = Totals & {
   currencyCode: string;
@@ -107,10 +108,10 @@ export function reportsByCurrency(series: TimeSeriesRow[], categories: CategoryT
   for (const { currencyCode, ...point } of series) {
     const report = reportFor(currencyCode);
     report.series.push(point);
-    report.incomeMinor += point.incomeMinor;
-    report.expenseMinor += point.expenseMinor;
-    report.transferOutMinor += point.transferOutMinor;
-    report.transferInMinor += point.transferInMinor;
+    report.incomeMinor = sumMinorUnits([report.incomeMinor, point.incomeMinor]);
+    report.expenseMinor = sumMinorUnits([report.expenseMinor, point.expenseMinor]);
+    report.transferOutMinor = sumMinorUnits([report.transferOutMinor, point.transferOutMinor]);
+    report.transferInMinor = sumMinorUnits([report.transferInMinor, point.transferInMinor]);
   }
   for (const row of categories) reportFor(row.currencyCode).categories.push(row);
   return [...reports.values()];

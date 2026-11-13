@@ -13,6 +13,8 @@ vi.mock("../srcs/db/client.ts", async () => {
 });
 
 import { createApp } from "../srcs/app.ts";
+import { accounts } from "../srcs/db/schema.ts";
+import { row } from "./helpers/rows.ts";
 
 let server: Server;
 let base: string;
@@ -124,6 +126,29 @@ describe("CORS", () => {
 // ─── Wiring ───────────────────────────────────────────────────────────────────
 
 describe("wiring", () => {
+  it.each([
+    {
+      path: "/accounts/550e8400-e29b-41d4-a716-446655440000/balance",
+      rows: [
+        [row(accounts, { id: "550e8400-e29b-41d4-a716-446655440000", openingBalanceMinor: "9007199254740991" })],
+        [["2"]],
+      ],
+    },
+    { path: "/transactions", rows: [[], [["2", "9007199254740993", "0"]]] },
+    {
+      path: "/analytics/categories?from=2025-01-01&to=2025-01-01",
+      rows: [[[null, "income", "9007199254740993", "2", "EUR"]]],
+    },
+  ])("returns an explicit 422 for unsafe money in $path", async ({ path, rows }) => {
+    query.mockResolvedValueOnce({
+      rows: [["550e8400-e29b-41d4-a716-446655440001", "session-id", new Date()]],
+    });
+    for (const values of rows) query.mockResolvedValueOnce({ rows: values });
+    const response = await fetch(`${base}${path}`, { headers: { Cookie: "session=token" } });
+    expect(response.status).toBe(422);
+    expect(await response.json()).toEqual({ error: "Monetary total exceeds the safe integer range" });
+  });
+
   it("does not expose metrics on the public app", async () => {
     const response = await fetch(`${base}/metrics`);
     expect(response.status).toBe(404);
