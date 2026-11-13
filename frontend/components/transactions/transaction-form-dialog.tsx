@@ -31,6 +31,7 @@ import {
   TRANSACTION_TYPES,
   changedFields,
   isTransactionErrorCode,
+  validateTransaction,
   type EditableTransactionFields,
   type TransactionErrorCode,
   type TransactionType,
@@ -49,6 +50,7 @@ type TransactionFields =
   | "notes";
 
 const FIELD_ORDER: TransactionFields[] = [
+  "accountId",
   "type",
   "toAccountId",
   "amount",
@@ -57,6 +59,7 @@ const FIELD_ORDER: TransactionFields[] = [
   "merchant",
   "bookedOn",
   "categoryId",
+  "notes",
 ];
 
 type FormState = {
@@ -352,6 +355,14 @@ function TransactionForm(props: TransactionFormProps) {
 
   const [{ fieldErrors, error }, submitAction, isPending] = useActionState(
     async (_prev: FormState, { accountId, ...submitted }: Record<TransactionFields, string>): Promise<FormState> => {
+      const errors = validateTransaction(
+        { accountId, ...submitted },
+        allAccounts,
+        categories,
+        locale,
+        props.mode === "create" || submitted.categoryId !== (props.transaction.categoryId ?? ""),
+      );
+      if (Object.keys(errors).length) return { fieldErrors: errors, error: null };
       try {
         const result =
           props.mode === "edit"
@@ -446,7 +457,7 @@ function TransactionForm(props: TransactionFormProps) {
     t(`errors.${code}`, {
       digits: forMinorUnit,
       example: (12.5).toFixed(forMinorUnit),
-      max: code === "merchantTooLong" ? MAX_TRANSACTION_MERCHANT_LENGTH : MAX_TRANSACTION_DESCRIPTION_LENGTH,
+      max: code === "notesTooLong" ? MAX_NOTES_LENGTH : code === "merchantTooLong" ? MAX_TRANSACTION_MERCHANT_LENGTH : MAX_TRANSACTION_DESCRIPTION_LENGTH,
     });
 
   const byName = new Intl.Collator(locale).compare;
@@ -458,6 +469,7 @@ function TransactionForm(props: TransactionFormProps) {
     <form onSubmit={handleSubmit} noValidate>
       <fieldset disabled={isPending}>
         <FormAlert message={error && t(`errors.${error}`)} />
+        {accounts.length <= 1 && <FormAlert message={errorText(fieldErrors.accountId) ?? null} />}
 
         {accounts.length > 1 ? (
           <SelectField
@@ -465,6 +477,7 @@ function TransactionForm(props: TransactionFormProps) {
             {...field("accountId")}
             onChange={(e) => changeSourceAccount(e.target.value)}
             label={isTransfer ? t("form.fromAccount") : t("form.account")}
+            error={errorText(fieldErrors.accountId)}
           >
             {accounts.map((option) => (
               <option key={option.id} value={option.id}>
@@ -619,9 +632,12 @@ function TransactionForm(props: TransactionFormProps) {
             {...field("notes")}
             rows={3}
             maxLength={MAX_NOTES_LENGTH}
+            aria-invalid={fieldErrors.notes ? true : undefined}
+            aria-describedby={fieldErrors.notes ? `${idPrefix}-notes-error` : undefined}
             placeholder={t("form.notesPlaceholder")}
             className="block w-full resize-y rounded-[11px] border border-input bg-field px-[15px] py-[13px] text-sm outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
           />
+          {fieldErrors.notes && <p id={`${idPrefix}-notes-error`} className="mt-1.5 text-caption font-medium text-destructive">{errorText(fieldErrors.notes)}</p>}
         </div>
 
         <div className="mt-2 flex gap-3">

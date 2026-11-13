@@ -19,6 +19,7 @@ import {
   type TwoFactorSetup,
 } from "@/lib/actions/two-factor";
 import type { User } from "@/lib/types";
+import { isTwoFactorCode, type ValidationErrorCode } from "@/lib/validation";
 
 /** Groups the secret in fours ("ABCD EFGH …") so it is easier to type by hand. */
 function groupSecret(secret: string): string {
@@ -134,6 +135,7 @@ function EnableDialog({ setup, onDone, onBusyChange }: DialogProps & { setup: Tw
 
   const [submission, submitAction, isPending] = useActionState(
     async (_previous: { error: FormErrorCode | null }, submitted: string): Promise<{ error: FormErrorCode | null }> => {
+      if (!isTwoFactorCode(submitted, "code")) return { error: "invalidCode" };
       try {
         const result = await enableTwoFactor(submitted);
         if (result.success && result.recoveryCodes) {
@@ -265,6 +267,7 @@ function EnableDialog({ setup, onDone, onBusyChange }: DialogProps & { setup: Tw
 }
 
 type DisableInput = { password: string; code: string; kind: "code" | "recovery" };
+type DisableState = { error: FormErrorCode | ValidationErrorCode | null; field: "password" | "code" | null };
 
 /** Turns 2FA off: the password (when the account has one) plus an authenticator code or a recovery code. */
 function DisableDialog({ hasPassword, onDone, onBusyChange }: DialogProps & { hasPassword: boolean }) {
@@ -278,7 +281,9 @@ function DisableDialog({ hasPassword, onDone, onBusyChange }: DialogProps & { ha
   const [kind, setKind] = useState<"code" | "recovery">("code");
 
   const [submission, submitAction, isPending] = useActionState(
-    async (_previous: { error: FormErrorCode | null }, input: DisableInput): Promise<{ error: FormErrorCode | null }> => {
+    async (_previous: DisableState, input: DisableInput): Promise<DisableState> => {
+      if (hasPassword && !input.password) return { error: "passwordRequired", field: "password" };
+      if (!isTwoFactorCode(input.code, input.kind)) return { error: input.kind === "code" ? "invalidCode" : "invalidRecoveryCode", field: "code" };
       try {
         const result = await disableTwoFactor({
           ...(hasPassword ? { password: input.password } : {}),
@@ -287,14 +292,14 @@ function DisableDialog({ hasPassword, onDone, onBusyChange }: DialogProps & { ha
         if (result.success) {
           announce(t("announcements.disabled"));
           onDone();
-          return { error: null };
+          return { error: null, field: null };
         }
-        return { error: twoFactorErrorFor(result, "invalidPasswordOrCode") };
+        return { error: twoFactorErrorFor(result, "invalidPasswordOrCode"), field: null };
       } catch {
-        return { error: "network" };
+        return { error: "network", field: null };
       }
     },
-    { error: null },
+    { error: null, field: null },
   );
   const error = submission.error;
 
@@ -305,7 +310,7 @@ function DisableDialog({ hasPassword, onDone, onBusyChange }: DialogProps & { ha
 
   // After a rejected attempt, put keyboard focus back on the first field.
   useEffect(() => {
-    if (!isPending && submission.error) document.getElementById(hasPassword ? passwordId : codeId)?.focus();
+    if (!isPending && submission.error) document.getElementById(submission.field === "code" || !hasPassword ? codeId : passwordId)?.focus();
   }, [submission, isPending, hasPassword, passwordId, codeId]);
 
   return (
@@ -318,7 +323,7 @@ function DisableDialog({ hasPassword, onDone, onBusyChange }: DialogProps & { ha
     >
       <fieldset disabled={isPending}>
         <p className="mb-4 text-sm">{t("disableDialog.intro")}</p>
-        <FormAlert message={error && errorText(error)} />
+        <FormAlert message={error && !submission.field ? errorText(error) : null} />
         {hasPassword && (
           <TextField
             id={passwordId}
@@ -330,6 +335,8 @@ function DisableDialog({ hasPassword, onDone, onBusyChange }: DialogProps & { ha
             data-autofocus
             value={password}
             onChange={(event) => setPassword(event.target.value)}
+            required
+            error={error && submission.field === "password" ? errorText(error) : undefined}
           />
         )}
         <TextField
@@ -341,6 +348,7 @@ function DisableDialog({ hasPassword, onDone, onBusyChange }: DialogProps & { ha
           {...(hasPassword ? {} : { "data-autofocus": true })}
           value={code}
           onChange={(event) => setCode(event.target.value)}
+          error={error && submission.field === "code" ? errorText(error) : undefined}
         />
         <button
           type="button"

@@ -26,8 +26,13 @@ npm run lint
 npm run check:format
 npm run check:import
 npm run check:filters
+npm run check:validation
 npm run build
 ```
+
+`check:validation` checks the shared input rules and the real client form submission callbacks with
+mocked server boundaries. It verifies that repeated invalid submissions make no server calls and
+that valid input can reach the server. Browser keyboard/focus behavior is checked separately below.
 
 ## API smoke tests
 

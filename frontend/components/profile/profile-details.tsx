@@ -27,7 +27,7 @@ import { TextField } from "@/components/ui/text-field";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { deleteAvatar, updateDisplayName, uploadAvatar } from "@/lib/actions/profile";
 import type { ActionResponse, User } from "@/lib/types";
-import { MAX_DISPLAY_NAME_LENGTH, type ValidationErrorCode } from "@/lib/validation";
+import { MAX_DISPLAY_NAME_LENGTH, validateDisplayName, type ValidationErrorCode } from "@/lib/validation";
 
 // The backend's avatar rules (PUT /auth/me/avatar), checked before uploading.
 // next.config.ts lets server action bodies through up to this size.
@@ -345,8 +345,10 @@ function NameForm({
   const fieldId = useId();
   const [value, setValue] = useState(displayName);
 
-  const [{ fieldError, error }, submitAction, isPending] = useActionState(
+  const [submission, submitAction, isPending] = useActionState(
     async (_prev: NameFormState, submitted: string): Promise<NameFormState> => {
+      const validationError = validateDisplayName(submitted);
+      if (validationError) return { fieldError: validationError, error: null };
       let result: ActionResponse;
       try {
         result = await updateDisplayName(submitted);
@@ -366,6 +368,7 @@ function NameForm({
     },
     initialNameState,
   );
+  const { fieldError, error } = submission;
 
   // The cleanup clears the parent's flag when a successful save unmounts the form
   // before isPending turns false, so the dialog doesn't stay busy.
@@ -376,8 +379,8 @@ function NameForm({
 
   // After a rejected name, put keyboard focus back on the field.
   useEffect(() => {
-    if (fieldError) document.getElementById(fieldId)?.focus();
-  }, [fieldError, fieldId]);
+    if (!isPending && fieldError) document.getElementById(fieldId)?.focus();
+  }, [submission, fieldError, fieldId, isPending]);
 
   return (
     <form

@@ -10,6 +10,7 @@ import { FormAlert } from "@/components/ui/form-alert";
 import { TextField } from "@/components/ui/text-field";
 import { signOut } from "@/lib/actions/auth";
 import { useAuth } from "@/lib/auth-context";
+import { isTwoFactorCode } from "@/lib/validation";
 
 type CodeKind = "code" | "recovery";
 
@@ -30,7 +31,7 @@ export function TwoFactorForm({ onExpired, onBack }: { onExpired: () => void; on
 
   const [submission, submitAction, isPending] = useActionState(
     async (_previous: { error: FormErrorCode | null }, submitted: string): Promise<{ error: FormErrorCode | null }> => {
-      if (!submitted.trim()) return { error: kind === "code" ? "invalidCode" : "invalidRecoveryCode" };
+      if (!isTwoFactorCode(submitted, kind)) return { error: kind === "code" ? "invalidCode" : "invalidRecoveryCode" };
       try {
         const result = await completeTwoFactor(kind, submitted);
         if (result.success) {

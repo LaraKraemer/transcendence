@@ -76,7 +76,7 @@ The server applies migrations on startup. Migrations leave 17 global reference c
 
 API smoke test (CI runs it too): copy `backend/bruno/.env.example` to `backend/bruno/.env`, set `TEST_PASSWORD` (at least 12 chars), then `cd backend/bruno && npx bru run --env local --cacert ../../nginx/certs/ca/rootCA.pem` with the stack running.
 
-Frontend (`cd frontend`): `npm run lint && npm run check:format && npm run check:import && npm run check:filters && npm run build` (matches CI). Format money with `formatAmount` from `lib/format.ts`; `check:format` is its self-check; `check:import` checks JSON import preview parsing; `check:filters` checks the `/transactions` URL filters and page numbers (`lib/transaction-filters.ts`). `npm run check:a11y` (also in CI) runs axe on every page and the main dialogs; it needs the running stack, `npx playwright install chromium` and `NODE_EXTRA_CA_CERTS=../nginx/certs/ca/rootCA.pem`. Add new pages and dialogs to its lists in `a11y.check.mjs`.
+Frontend (`cd frontend`): `npm run lint && npm run check:format && npm run check:import && npm run check:filters && npm run check:validation && npm run build` (matches CI). Format money with `formatAmount` from `lib/format.ts`; `check:format` is its self-check; `check:import` checks JSON import preview parsing; `check:filters` checks the `/transactions` URL filters and page numbers (`lib/transaction-filters.ts`); `check:validation` checks shared validators and client submission guards without a backend. `npm run check:a11y` (also in CI) runs axe on every page and the main dialogs; it needs the running stack, `npx playwright install chromium` and `NODE_EXTRA_CA_CERTS=../nginx/certs/ca/rootCA.pem`. Add new pages and dialogs to its lists in `a11y.check.mjs`.
 
 ## Architecture
 

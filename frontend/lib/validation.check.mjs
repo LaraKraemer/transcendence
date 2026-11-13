@@ -1,6 +1,7 @@
 // Self-check for the pure helpers in validation.ts (no test framework in the frontend):
 //   node --experimental-strip-types lib/validation.check.mjs
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 
 import {
   MAX_ACCOUNT_REF_LENGTH,
@@ -19,6 +20,17 @@ import {
   toMinorUnits,
   toPositiveMinorUnits,
   validateChangePassword,
+  validateLogin,
+  validateRegister,
+  validateDisplayName,
+  validateAccount,
+  validateCategory,
+  validateTransaction,
+  isTwoFactorCode,
+  accountErrorCodes,
+  categoryErrorCodes,
+  transactionErrorCodes,
+  validationErrorCodes,
 } from "./validation.ts";
 
 assert.equal(MAX_EMAIL_LENGTH, 254);
@@ -198,3 +210,68 @@ assert.deepEqual(validateChangePassword({ ...passwordFields, confirmPassword: `$
   confirmPassword: "passwordMismatch",
 });
 console.log("validateChangePassword: ok");
+
+const registration = { email: "user@example.com", displayName: " User ", password: strongPassword };
+assert.deepEqual(validateRegister(registration), {});
+assert.deepEqual(validateLogin({ email: " USER@example.com ", password: "old" }), {});
+for (const email of ["not-an-email@", "user@@example.com", "user..name@example.com", "user@.example.com", "user@localhost", "user\0@example.com", "a".repeat(255) + "@example.com"]) {
+  assert.equal(validateLogin({ email, password: "old" }).email, "emailInvalid");
+  assert.equal(validateRegister({ ...registration, email }).email, "emailInvalid");
+}
+assert.equal(validateDisplayName("   "), "displayNameRequired");
+assert.equal(validateDisplayName("x".repeat(101)), "displayNameTooLong");
+assert.equal(validateDisplayName("\0"), "textInvalid");
+assert.equal(validateDisplayName(" " + "x".repeat(100) + " "), undefined);
+assert.equal(validateRegister({ ...registration, displayName: "x".repeat(101) }).displayName, "displayNameTooLong");
+for (const code of ["", "12345", "1234567", "abcdef", "１２３４５６"]) assert.equal(isTwoFactorCode(code, "code"), false);
+assert.equal(isTwoFactorCode("123456", "code"), true);
+assert.equal(isTwoFactorCode("abcde-fg234", "recovery"), true);
+assert.equal(isTwoFactorCode("ABCDE FG234", "recovery"), true);
+assert.equal(isTwoFactorCode("ABCDEFGHI0", "recovery"), false);
+assert.equal(isTwoFactorCode("ABCDE-FG2345", "recovery"), false);
+
+const accountInput = { name: "Main", type: "checking", currencyCode: "EUR", openingBalance: "", institution: "", accountRef: "" };
+assert.deepEqual(validateAccount(accountInput, 2, "en", "create", ["EUR"]), {});
+assert.equal(validateAccount(accountInput, 2, "en", "edit", []).openingBalance, "amountInvalid");
+assert.deepEqual(validateAccount({ ...accountInput, openingBalance: "-12,50" }, 2, "de", "edit", []), {});
+assert.equal(validateAccount({ ...accountInput, name: " " }, 2, "en", "create", ["EUR"]).name, "nameRequired");
+assert.equal(validateAccount({ ...accountInput, name: "x".repeat(101) }, 2, "en", "create", ["EUR"]).name, "nameTooLong");
+assert.equal(validateAccount({ ...accountInput, type: "unknown" }, 2, "en", "create", ["EUR"]).type, "typeInvalid");
+assert.equal(validateAccount({ ...accountInput, currencyCode: "USD" }, 2, "en", "create", ["EUR"]).currencyCode, "currencyInvalid");
+assert.equal(validateAccount({ ...accountInput, openingBalance: "1.005" }, 2, "en", "create", ["EUR"]).openingBalance, "amountDecimals");
+assert.equal(validateAccount({ ...accountInput, openingBalance: "9999999999999999" }, 2, "en", "create", ["EUR"]).openingBalance, "amountTooLarge");
+assert.equal(validateAccount({ ...accountInput, institution: "x".repeat(101), openingBalance: "0" }, 2, "en", "edit", []).institution, "institutionTooLong");
+assert.equal(validateAccount({ ...accountInput, accountRef: "x".repeat(51), openingBalance: "0" }, 2, "en", "edit", []).accountRef, "accountRefTooLong");
+assert.equal(validateAccount({ ...accountInput, accountRef: "\0", openingBalance: "0" }, 2, "en", "edit", []).accountRef, "textInvalid");
+
+assert.deepEqual(validateCategory(category, ["utensils"]), {});
+assert.deepEqual(validateCategory({ ...category, name: " ", types: [], icon: "unknown", color: "bad" }, ["utensils"]), {
+  name: "nameRequired", icon: "iconInvalid", color: "colorInvalid", types: "typesInvalid",
+});
+assert.equal(validateCategory({ ...category, types: ["transfer"] }, ["utensils"]).types, "typesInvalid");
+assert.equal(validateCategory({ ...category, name: "\0" }, ["utensils"]).name, "textInvalid");
+assert.equal(validateCategory({ ...category, name: "x".repeat(81) }, ["utensils"]).name, "nameTooLong");
+
+const entry = { accountId: "source", type: "expense", toAccountId: "", amount: "1.50", toAmount: "", description: "", merchant: "", bookedOn: "2026-11-13", categoryId: "", notes: "" };
+const options = [{ id: "source", currencyCode: "EUR", minorUnit: 2 }, { id: "destination", currencyCode: "USD", minorUnit: 2 }];
+assert.deepEqual(validateTransaction(entry, options, [], "en"), {});
+assert.equal(validateTransaction({ ...entry, amount: "0" }, options, [], "en").amount, "amountNotPositive");
+assert.equal(validateTransaction({ ...entry, bookedOn: "2026-02-30" }, options, [], "en").bookedOn, "dateInvalid");
+assert.equal(validateTransaction({ ...entry, bookedOn: "0000-01-01" }, options, [], "en").bookedOn, "dateInvalid");
+assert.equal(validateTransaction({ ...entry, merchant: "\0" }, options, [], "en").merchant, "textInvalid");
+assert.equal(validateTransaction({ ...entry, notes: "x".repeat(2001) }, options, [], "en").notes, "notesTooLong");
+assert.equal(validateTransaction({ ...entry, categoryId: "income" }, options, [{ id: "income", types: ["income"] }], "en").categoryId, "categoryInvalid");
+assert.deepEqual(validateTransaction({ ...entry, categoryId: "legacy" }, options, [], "en", false), {}, "An unchanged category is allowed after its types were edited");
+assert.equal(validateTransaction({ ...entry, type: "transfer", toAccountId: "source" }, options, [], "en").toAccountId, "toAccountInvalid");
+assert.equal(validateTransaction({ ...entry, type: "transfer", toAccountId: "destination" }, options, [], "en").toAmount, "amountRequired");
+assert.deepEqual(validateTransaction({ ...entry, type: "transfer", toAccountId: "destination", toAmount: "2" }, options, [], "en"), {});
+assert.deepEqual(validateTransaction({ ...entry, type: "transfer", toAccountId: "destination" }, options.map((account) => ({ ...account, currencyCode: "EUR" })), [], "en"), {}, "Same-currency transfers reuse the sent amount");
+console.log("client form validation: ok");
+
+for (const locale of ["en", "de", "uk", "fa"]) {
+  const messages = JSON.parse(readFileSync(new URL(`../messages/${locale}.json`, import.meta.url), "utf8"));
+  for (const [namespace, codes] of [["auth", validationErrorCodes], ["accounts", accountErrorCodes], ["categories", categoryErrorCodes], ["transactions", transactionErrorCodes]]) {
+    for (const code of codes) assert.equal(typeof messages[namespace].errors[code], "string", `${locale}: missing ${namespace}.errors.${code}`);
+  }
+}
+console.log("validation messages: all four locales covered");

@@ -69,6 +69,7 @@
       "passwordMismatch": "The passwords do not match",
       "displayNameRequired": "Display name is required",
       "displayNameTooLong": "Display name is too long",
+      "textInvalid": "Remove invalid control characters",
       "emailTaken": "An account with this email already exists",
       "googleEmailTaken": "This email already belongs to an account. Sign in with your email and password instead.",
       "googleFailed": "Google sign-in failed. Please try again.",
@@ -350,6 +351,9 @@
     },
     "errors": {
       "nameRequired": "Enter a name for the account",
+      "institutionTooLong": "Institution must be at most 100 characters",
+      "accountRefTooLong": "Account reference must be at most 50 characters",
+      "textInvalid": "Remove invalid control characters",
       "nameTooLong": "The name is too long",
       "typeInvalid": "Choose an account type",
       "currencyInvalid": "Choose a currency",
@@ -489,7 +493,10 @@
       "merchantTooLong": "The merchant can be at most {max, number} characters",
       "dateInvalid": "Choose a valid date",
       "categoryInvalid": "This category is no longer available. Choose another one.",
-      "toAccountInvalid": "Choose a different account to transfer to"
+      "toAccountInvalid": "Choose a different account to transfer to",
+      "accountInvalid": "Choose an available account",
+      "notesTooLong": "Notes must be at most {max} characters",
+      "textInvalid": "Remove invalid control characters"
     },
     "newTransaction": "New transaction",
     "merchant": "Merchant",
@@ -594,6 +601,7 @@
       "iconInvalid": "Choose an icon",
       "colorInvalid": "Use a colour like #2563EB",
       "typesInvalid": "Choose at least one type",
+      "textInvalid": "Remove invalid control characters",
       "network": "Could not reach the server. Please try again later.",
       "generic": "Something went wrong. Please try again."
     },
