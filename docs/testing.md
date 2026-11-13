@@ -29,44 +29,6 @@ npm run check:filters
 npm run build
 ```
 
-## Dependency security checks
-
-Run in both `backend/` and `frontend/`:
-
-```bash
-npm audit --omit=dev --registry=https://registry.npmjs.org
-npm audit --registry=https://registry.npmjs.org
-```
-
-The public registry is explicit because some corporate registry proxies reject audit requests.
-After dependency changes, run the local checks above and `make rebuild` to renew the containers'
-anonymous `node_modules` volumes; installing on the host does not update them.
-
-### Update verification (2026-11-13)
-
-Updated Next.js and its ESLint config to 16.4.6, Sharp to 0.35.5, Zod's minimum to 4.6.6,
-and Vitest/coverage to 5.1.0. Compatible transitive security fixes are recorded in both lockfiles.
-Both runtime audits (`--omit=dev`) report **zero vulnerabilities**.
-Backend type/lint/format checks and 915 tests pass on Node 22.23.5 (15 database tests skipped).
-Frontend lint, formatting/import/filter self-checks and the production build also pass on Node 22.
-No services were running, so live API/browser checks and container-volume rebuilding remain to be run.
-
-The full audits still report **23 backend findings (8 high, 15 moderate)** and
-**7 frontend findings (moderate)** in development tooling:
-
-- Bruno's dependencies include Faker, Axios, form-data, js-yaml, csv-parse, UUID and YAML.
-  The current compatible CLI update does not resolve all its pinned dependencies. Do not run
-  untrusted collections or scripts; revisit when upstream releases patched dependency versions.
-- Drizzle Kit pulls an older esbuild through `@esbuild-kit/esm-loader`. The advisory concerns
-  esbuild's development HTTP server, not the application's database queries. Do not expose
-  development tooling to untrusted networks; revisit a compatible upstream fix.
-- TypeScript ESLint pulls vulnerable minimatch. Lint only trusted source trees; revisit an
-  upstream update using patched minimatch.
-
-These are remaining risks, not a clean full-tree security bill. Development dependencies are
-also installed in the project's dev containers. No forced downgrades or untested cross-major
-overrides were applied merely to suppress advisory counts.
-
 ## API smoke tests
 
 Start the stack with `make up`, then follow the [Bruno collection guide](../backend/bruno/README.md) to create its local `.env` with a `TEST_PASSWORD` of at least 12 characters.
