@@ -29,7 +29,7 @@ Docker exposes the app only through Nginx at `https://localhost:3000` and API `h
 
 ## Local HTTPS
 
-Install mkcert before `make up`; the Makefile creates certificates in git-ignored `nginx/certs/` and trusts the local CA:
+`make up` creates certificates in git-ignored `nginx/certs/` with mkcert and trusts the local CA. When mkcert is not on `PATH`, the Makefile downloads it into `~/.local/bin`, so no sudo is needed. To install it yourself instead:
 
 ```bash
 # macOS; nss adds Firefox support
@@ -40,8 +40,8 @@ sudo apt install mkcert libnss3-tools
 
 Other systems: [mkcert installation](https://github.com/FiloSottile/mkcert#installation).
 
-- On Linux, open the browser once first so its certificate store exists, mkcert may ask for sudo to update system trust. 
-- Without sudo, use `TRUST_STORES=nss make certs` with `certutil` installed. 
+- On Linux, open the browser once first so its certificate store exists.
+- Without sudo, `make certs` asks for the sudo password, fails to update the system trust store and still creates the certificate. The browser then shows a certificate warning: accept it once for `https://localhost:3000` and once for `https://localhost:8443/health`, or API requests fail. In Chrome, select **Advanced → Proceed to localhost (unsafe)**; in Firefox, **Advanced → Accept the Risk and Continue**.
 - Restart the browser after setup.
 
 Never share the private `rootCA-key.pem` from `mkcert -CAROOT`, or bypass verification with `curl -k` or `NODE_TLS_REJECT_UNAUTHORIZED=0`.
