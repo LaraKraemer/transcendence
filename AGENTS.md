@@ -46,7 +46,7 @@ Node 22 (`.nvmrc`). `README.md` is the human setup guide; this file lists what a
 ```bash
 make up | down | logs     # docker compose: db, backend, frontend, nginx (https://localhost:3000, API https://localhost:8443; hot reload via bind mounts)
 make dev                  # db, backend, frontend, nginx and backups; no monitoring
-make certs                # local HTTPS certificate (needs mkcert); make up, rebuild and restart run it when missing
+make certs                # local HTTPS certificate (downloads mkcert into ~/.local/bin if missing); make up, rebuild and restart run it when missing
 make rebuild              # after Dockerfile/package.json changes (renews container node_modules)
 make clean                # asks for yes; deletes database, avatar and monitoring volumes
 curl --cacert nginx/certs/ca/rootCA.pem https://localhost:8443/health

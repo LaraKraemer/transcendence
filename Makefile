@@ -2,6 +2,9 @@
 COMPOSE=docker compose
 CERT_DIR=nginx/certs
 CERT=$(CERT_DIR)/localhost.pem
+# mkcert from PATH, else a copy the Makefile downloads into ~/.local/bin (no sudo needed).
+MKCERT_VERSION=v1.4.4
+MKCERT=$(or $(shell command -v mkcert),$(HOME)/.local/bin/mkcert)
 
 # These targets are commands, even if a file with the same name exists.
 .PHONY: build certs up dev rebuild down stop restart logs clean prune backup restore
@@ -13,12 +16,20 @@ build:
 # Create the local HTTPS certificate once and trust its CA on this machine.
 certs: $(CERT)
 
+# Download the mkcert release for this OS and CPU; the temporary name keeps a failed download from counting as installed.
+$(HOME)/.local/bin/mkcert:
+	mkdir -p $(@D)
+	curl -fsSL -o $@.tmp "https://github.com/FiloSottile/mkcert/releases/download/$(MKCERT_VERSION)/mkcert-$(MKCERT_VERSION)-$$(uname -s | tr A-Z a-z)-$$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')"
+	chmod +x $@.tmp
+	mv $@.tmp $@
+
 # "nginx" is the name the frontend container uses to reach the proxy.
-$(CERT):
+# Without sudo (e.g. 42 computers), skip the system trust store; the certificate is still created.
+$(CERT): | $(MKCERT)
 	mkdir -p $(CERT_DIR)/ca
-	mkcert -install
-	mkcert -cert-file $(CERT) -key-file $(CERT_DIR)/localhost-key.pem localhost 127.0.0.1 ::1 nginx
-	cp "$$(mkcert -CAROOT)/rootCA.pem" $(CERT_DIR)/ca/rootCA.pem
+	$(MKCERT) -install || TRUST_STORES=nss $(MKCERT) -install || true
+	$(MKCERT) -cert-file $(CERT) -key-file $(CERT_DIR)/localhost-key.pem localhost 127.0.0.1 ::1 nginx
+	cp "$$($(MKCERT) -CAROOT)/rootCA.pem" $(CERT_DIR)/ca/rootCA.pem
 
 # Start the full evaluation stack, including backups and monitoring.
 up: $(CERT)

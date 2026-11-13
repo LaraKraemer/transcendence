@@ -79,7 +79,7 @@ Run commands from the repository root unless stated otherwise; frontend and back
 
 - Git
 - Docker Engine or Docker Desktop, installed and running
-- mkcert for local HTTPS certificates; see [certificate setup](docs/development.md#local-https)
+- mkcert for local HTTPS certificates; `make up` downloads it when missing, see [certificate setup](docs/development.md#local-https)
 - Docker Compose v2
 - GNU Make 3.81 or newer
 - Node.js 22 and npm for host development or local checks; provided by Docker otherwise
@@ -109,7 +109,7 @@ When switching from the full stack to development mode, run `make down` first.
    cp .env.example .env
    ```
 
-3. Start the services; this creates a trusted local certificate with mkcert if missing (may ask for your password), builds missing images and starts the application, HTTPS proxy, backups and monitoring. Compose creates the restricted monitoring database user automatically:
+3. Start the services; this creates a local certificate with mkcert if missing (downloads mkcert if needed; trusting it may ask for your password, and without sudo the browser shows a warning, see [certificate setup](docs/development.md#local-https)), builds missing images and starts the application, HTTPS proxy, backups and monitoring. Compose creates the restricted monitoring database user automatically:
 
    ```bash
    make up
@@ -128,7 +128,7 @@ When switching from the full stack to development mode, run `make down` first.
    curl -fsS --cacert nginx/certs/ca/rootCA.pem https://localhost:8443/status
    ```
 
-6. Open https://localhost:3000 (restart your browser after certificate setup); Grafana is at http://localhost:3002 (login required).
+6. Open https://localhost:3000 (restart your browser after certificate setup, or accept the certificate warning on machines without sudo); Grafana is at http://localhost:3002 (login required).
 
 If a service does not become healthy, run `make logs` to inspect startup errors.
 The root `.env` is required for monitoring; Google sign-in, 2FA and Telegram delivery use the optional settings below.
