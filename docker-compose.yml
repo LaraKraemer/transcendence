@@ -117,6 +117,8 @@ services:
     ports:
       - "3000:443"
       - "8443:8443"
+      # Keep the administrative monitoring UI local to this computer.
+      - "127.0.0.1:3002:3002"
 
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
@@ -226,16 +228,14 @@ services:
     image: grafana/grafana:13.3.0
     restart: unless-stopped
 
-    ports:
-      # Allow browser access only from this computer.
-      - "127.0.0.1:3002:3000"
-
     environment:
       # Set the initial admin account; require login and disable public sign-up.
       GF_SECURITY_ADMIN_USER: "${GRAFANA_ADMIN_USER:?GRAFANA_ADMIN_USER must be set in .env}"
       GF_SECURITY_ADMIN_PASSWORD: "${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD must be set in .env}"
       GF_AUTH_ANONYMOUS_ENABLED: "false"
       GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_SERVER_ROOT_URL: https://localhost:3002
+      GF_SECURITY_COOKIE_SECURE: "true"
 
     volumes:
       # Keep Grafana data across restarts; load configuration files read-only.
