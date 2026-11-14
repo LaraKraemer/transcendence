@@ -43,7 +43,6 @@ export function Friends() {
     const poll = () => {
       if (document.visibilityState === "visible") void refresh(controller.signal);
     };
-    // Let Strict Mode's setup/cleanup check finish before starting a request.
     const initialPoll = window.setTimeout(poll, 0);
     const interval = window.setInterval(poll, pollIntervalMs);
     document.addEventListener("visibilitychange", poll);
