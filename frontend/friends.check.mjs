@@ -20,10 +20,17 @@ try {
   const [aliceContext, bobContext] = contexts;
   const alice = await aliceContext.newPage();
   const bob = await bobContext.newPage();
+  const failedFriendsRequests = [];
+  alice.on("requestfailed", (request) => {
+    if (new URL(request.url()).pathname === "/friends") {
+      failedFriendsRequests.push(request.failure()?.errorText);
+    }
+  });
   await alice.clock.install();
   await alice.goto(`${frontendUrl}/profile`);
   await bob.goto(`${frontendUrl}/profile`);
   await alice.getByRole("heading", { name: "Sent requests" }).waitFor();
+  assert.deepEqual(failedFriendsRequests, [], "initial friends loading should not cancel requests");
   await alice.getByRole("textbox", { name: "Friend's email address" }).fill("friends-check-missing@example.com");
   await alice.getByRole("button", { name: "Send request" }).click();
   await alice.getByText("No user found").waitFor();
