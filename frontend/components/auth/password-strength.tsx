@@ -20,8 +20,11 @@ function estimateStrength(password: string): Strength {
 
 export function PasswordStrength({ password }: { password: string }) {
   const t = useTranslations("auth.strength");
-  if (!password) return null;
 
   const { score, label, tone } = estimateStrength(password);
-  return <StrengthMeter score={score} label={t(label)} tone={tone} />;
+  return (
+    <div className={password ? undefined : "invisible"}>
+      <StrengthMeter score={score} label={t(label)} tone={tone} />
+    </div>
+  );
 }
