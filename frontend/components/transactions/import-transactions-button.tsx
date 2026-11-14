@@ -112,9 +112,9 @@ export function ImportTransactionsButton({
       >
         <Upload size={16} aria-hidden className="shrink-0" />
       </IconButton>
-      <div role="status">
+      <div role="status" className="pointer-events-none fixed end-4 top-4 z-20 max-w-[calc(100%-2rem)]">
         {successCount !== null && (
-          <p className="mt-2 w-fit rounded-[8px] border border-success/40 bg-success-bg px-3 py-2 text-xs font-medium text-success">
+          <p className="w-fit max-w-sm rounded-[8px] border border-success/40 bg-success-bg px-3 py-2 text-xs font-medium break-words text-success shadow-lg">
             {t("success", { count: successCount })}
           </p>
         )}
