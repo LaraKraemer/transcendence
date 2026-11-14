@@ -53,9 +53,11 @@ Never commit `.env` or `.secrets/`.
 
 | Resource | Location |
 |---|---|
-| Grafana | http://localhost:3002; sign in with the credentials from `.env` |
+| Grafana | https://localhost:3002; sign in with the credentials from `.env` |
 | Dashboards | Poolaki → Backend-Dashboard / Database-Dashboard |
-| Alerts | http://localhost:3002/alerting/list |
+| Alerts | https://localhost:3002/alerting/list |
+
+Nginx terminates HTTPS on the loopback-only host port 3002 and forwards requests to Grafana over the internal Docker network. Grafana has no direct host port and uses secure login cookies. Plain HTTP on port 3002 redirects to HTTPS. The existing mkcert certificate also covers this endpoint.
 
 Prometheus, Alertmanager, exporters and backend metrics stay inside Docker; do not expose their unauthenticated ports.
 Dashboard files are in `monitoring/grafana/`; alert rules are in `monitoring/alerts.yml`.
@@ -64,6 +66,7 @@ Dashboard files are in `monitoring/grafana/`; alert rules are in `monitoring/ale
 
 - Run `sh scripts/monitoring.check.sh` to validate configuration without sending messages
 - Open Grafana in a private browser window and confirm login is required
+- Run `NODE_EXTRA_CA_CERTS=nginx/certs/ca/rootCA.pem node scripts/grafana-https.check.mjs` against the running full stack to check HTTPS, the HTTP redirect and blocked anonymous API access
 - In Grafana Explore, check `up{job="backend"}` and `pg_up{job="postgres-exporter"}` both return `1`
 
 Alerts cover backend/database/exporter availability, high error rate, slow responses and database connection queues.

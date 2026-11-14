@@ -128,7 +128,7 @@ When switching from the full stack to development mode, run `make down` first.
    curl -fsS --cacert nginx/certs/ca/rootCA.pem https://localhost:8443/status
    ```
 
-6. Open https://localhost:3000 (restart your browser after certificate setup, or accept the certificate warning on machines without sudo); Grafana is at http://localhost:3002 (login required).
+6. Open https://localhost:3000 (restart your browser after certificate setup); Grafana is at https://localhost:3002 (login required).
 
 If a service does not become healthy, run `make logs` to inspect startup errors.
 The root `.env` is required for monitoring; Google sign-in, 2FA and Telegram delivery use the optional settings below.
@@ -181,7 +181,7 @@ See the development guide for [Google sign-in setup](docs/development.md#google-
 | Frontend | https://localhost:3000 | Open in the browser. |
 | Backend readiness | https://localhost:8443/health | `curl -fsS --cacert nginx/certs/ca/rootCA.pem https://localhost:8443/health` |
 | Backend operational status | https://localhost:8443/status | `curl -fsS --cacert nginx/certs/ca/rootCA.pem https://localhost:8443/status` |
-| Grafana | http://localhost:3002 | Sign in with the admin credentials from `.env`. |
+| Grafana | https://localhost:3002 | Sign in with the admin credentials from `.env`. |
 
 ### Running Without Docker
 
